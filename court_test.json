@@ -1,0 +1,13 @@
+{
+    "disputes": {
+        "dPID-2026-FAKE1234": {
+            "claimant": "ORCID-0000-0001",
+            "proof": "https://evidence.org",
+            "votes_against_suspect": 3,
+            "status": "tainted"
+        }
+    },
+    "tainted_dpids": [
+        "dPID-2026-FAKE1234"
+    ]
+}

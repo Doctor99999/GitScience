@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  gitscience-node:
+    build: .
+    container_name: gitscience_p2p_node
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./gitscience_data:/app/gitscience_data
+    restart: always
