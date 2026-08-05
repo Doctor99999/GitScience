@@ -1,10 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Включаем статическую генерацию для развертывания на GitHub Pages
   output: "export",
-  
-  // Отключаем серверную оптимизацию изображений, так как GitHub Pages — статический хостинг
+  // Указываем имя твоего репозитория, чтобы стили и скрипты загружались правильно
+  basePath: "/GitScience",
   images: {
     unoptimized: true,
   },
