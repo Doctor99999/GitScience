@@ -21,7 +21,7 @@ export default function GitScienceDashboard() {
   const [calcResults, setCalcResults] = useState<any>(null);
 
   // URL бэкенда FastAPI (при локальном запуске или деплое ноды)
-  const API_URL = "http://127.0.0.1:8000";
+  const API_URL = "https://gitscience-api.onrender.com";
 
   const handleConnectWallet = async () => {
     if (typeof window !== "undefined" && (window as any).ethereum) {
