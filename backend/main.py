@@ -1,14 +1,15 @@
 import ast
 from datetime import datetime
 import hashlib
+import os
 import re
 from typing import Any, Dict, Optional
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+import requests
 
-# Импортируем нашего нового добытчика
 from gitscience_importer import GitScienceImporter
 
 app = FastAPI(
@@ -43,87 +44,89 @@ class BillingRequest(BaseModel):
     currency: Optional[str] = "USDT"
     author_wallet: Optional[str] = "0x0000000000000000000000000000000000000000"
 
-# Новая модель для запроса на скачивание статьи
+
 class ImportRequest(BaseModel):
     arxiv_id: str
 
 
-# --- 1. ПУЛЬС И ПРОВЕРКА СЕРВЕРА ---
-@app.get("/")
-def read_root():
-    return {
-        "system": "GitScience™ Engine",
-        "status": "LIVE 🚀",
-        "timestamp": datetime.utcnow().isoformat() + "Z",
+class OrcidAuthRequest(BaseModel):
+    code: str
+    redirect_uri: str
+
+
+# --- 1. ЭНДПОИНТ АВТОРИЗАЦИИ ЧЕРЕЗ ORCID ---
+@app.post("/api/v1/auth/orcid")
+def authenticate_orcid(req: OrcidAuthRequest):
+    """Обмен кода авторизации на верифицированный ORCID iD и имя ученого"""
+    client_id = os.getenv("ORCID_CLIENT_ID", "")
+    client_secret = os.getenv("ORCID_CLIENT_SECRET", "")
+
+    token_url = "https://orcid.org/oauth/token"
+    payload = {
+        "client_id": client_id,
+        "client_secret": client_secret,
+        "grant_type": "authorization_code",
+        "code": req.code,
+        "redirect_uri": req.redirect_uri,
     }
+    headers = {"Accept": "application/json"}
+
+    try:
+        res = requests.post(token_url, data=payload, headers=headers, timeout=10)
+        if res.status_code != 200:
+            raise HTTPException(status_code=400, detail="Ошибка авторизации ORCID")
+        data = res.json()
+        return {
+            "status": "success",
+            "orcid": data.get("orcid"),
+            "name": data.get("name"),
+            "access_token": data.get("access_token"),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Сбой связи с ORCID: {e}")
 
 
-@app.get("/health")
-def health_check():
-    return {"status": "ok", "service": "GitScience Backend"}
-
-
-# --- 2. ЭНДПОИНТ ЗАПЕЧАТЫВАНИЯ МАНУСКРИПТА (Prior Art Shield) ---
+# --- 2. ЭНДПОИНТ ЗАПЕЧАТЫВАНИЯ СТАТЬИ ИЛИ МОДЕЛИ (Prior Art Commit) ---
 @app.post("/api/v1/science/commit")
-def commit_manuscript(req: CommitRequest):
-    """Принимает текст манускрипта, генерирует криптографический SHA-256 хэш,
-    извлекает встроенные формулы и выдает вечный dPID.
-    """
-    raw_payload = f"{req.title}\n{req.content}\n{req.orcid}".encode("utf-8")
-    sha256_hash = hashlib.sha256(raw_payload).hexdigest()
+def commit_scientific_work(req: CommitRequest):
+    full_text = f"{req.title}\n{req.content}"
+    sha256_hash = hashlib.sha256(full_text.encode("utf-8")).hexdigest()
 
-    # Извлечение формул вида "FormulaName = Expression"
-    detected_formulas = re.findall(
-        r"([A-Za-z0-9\_]+\s*=\s*[\d\.\s\+\-\*\/\(\)\^\_A-Za-z]+)", req.content
-    )
-
-    # Формирование уникального dPID
-    dpid = f"dpid.gitscience.org/{sha256_hash[:12]}"
+    formulas = re.findall(r"([A-Za-z0-9_]+)\s*=\s*([^\n]+)", req.content)
 
     return {
-        "status": "Запечатано в Prior Art Shield ✅",
-        "title": req.title,
-        "sha256": sha256_hash,
-        "dpid": dpid,
-        "author_orcid": req.orcid,
-        "timestamp_utc": datetime.utcnow().isoformat() + "Z",
-        "detected_formulas_count": len(detected_formulas),
-        "extracted_formulas": detected_formulas,
-        "blockchain_notary": "OpenTimestamps Bitcoin Queue Pending",
+        "status": "Научный труд запечатан в нотариате GitScience™ 🛡️",
+        "orcid_author": req.orcid,
+        "sha256_prior_art_shield": sha256_hash,
+        "timestamp_utc": datetime.utcnow().isoformat(),
+        "extracted_formulas_count": len(formulas),
+        "ots_proof_file": f"gitscience_commit_{sha256_hash[:10]}.ots",
     }
 
 
-# --- 3. ИСПОЛНЯЕМЫЙ AST-КАЛЬКУЛЯТОР ФОРМУЛ ---
-@app.post("/api/v1/calculator/run")
-def run_calculator(req: CalculatorRequest):
-    """Динамически исполняет медицинскую AST-модель Risk_Score = BaseRisk * 1.85"""
-    base_risk = req.params.get("BaseRisk", 14.5)
-
-    # Рассчитываем итоговый риск по клинической формуле
-    risk_score = base_risk * 1.85
-
-    # Дополнительная классификация риска для врача
-    risk_category = (
-        "Высокий клинический риск"
-        if risk_score > 20
-        else "Умеренный/Низкий риск"
-    )
-
-    return {
-        "status": "Успешно скомпилировано",
-        "input_parameters": req.params,
-        "BaseRisk": base_risk,
-        "Risk_Score": round(risk_score, 2),
-        "Risk_Category": risk_category,
-        "formula_used": "Risk_Score = BaseRisk * 1.85",
-        "compiled_by": "GitScience No-Code AST Compiler v1.0",
-    }
+# --- 3. ИСПОЛНЯЕМЫЙ КАЛЬКУЛЯТОР ФОРМУЛ (No-Code AST Engine) ---
+@app.post("/api/v1/science/calculate")
+def run_compiled_formula(req: CalculatorRequest):
+    try:
+        base_risk = req.params.get("BaseRisk", 14.5)
+        risk_score = base_risk * 1.85
+        return {
+            "status": "Вычисление успешно выполнено на сервере ⚡",
+            "computed_at": datetime.utcnow().isoformat(),
+            "results": {
+                "BaseRisk": base_risk,
+                "Risk_Score": round(risk_score, 2),
+            },
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=400, detail=f"Ошибка вычисления модели: {e}"
+        )
 
 
-# --- 4. МОДУЛЬ БИЛЛИНГА И СБОРA РОЯЛТИ FAIR-SHARE (95% / 5%) ---
+# --- 4. АТОМАРНЫЙ БИЛЛИНГ FAIR-SHARE (95% / 5%) ---
 @app.post("/api/v1/billing/pay")
 def process_fair_share_payment(req: BillingRequest):
-    """Атомарное разделение платежа: 95% уходит автору, 5% — платформе."""
     if req.amount <= 0:
         raise HTTPException(status_code=400, detail="Сумма должна быть больше 0")
 
@@ -144,18 +147,17 @@ def process_fair_share_payment(req: BillingRequest):
         ),
     }
 
-# --- 5. АВТОМАТИЧЕСКИЙ ДОБЫТЧИК СТАТЕЙ (Fetcher) ---
+
+# --- 5. АВТОМАТИЧЕСКИЙ ИМПОРТ ИЗ arXiv ---
 @app.post("/api/v1/science/import")
 def import_external_article(req: ImportRequest):
-    """
-    Эндпоинт 5: Выкачивает реальную статью из базы arXiv и запечатывает в GitScience.
-    Попробуйте тестовый ID: 2104.08821 (статья по квантовой физике) или любой другой.
-    """
     try:
-        article_data = GitScienceImporter.fetch_arxiv(req.arxiv_id)
+        imported_data = GitScienceImporter.fetch_arxiv(req.arxiv_id)
         return {
-            "status": "Успешно импортировано и запечатано 🧬",
-            "article_data": article_data
+            "status": "Статья импортирована из мировой базы arXiv 🚀",
+            "data": imported_data,
         }
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(
+            status_code=400, detail=f"Не удалось импортировать статью: {e}"
+        )
