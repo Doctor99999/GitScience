@@ -22,13 +22,24 @@ export default function GitScienceDashboard() {
 
   const API_URL = "https://gitscience-api.onrender.com";
   
-  // Твой реальный Client ID из ORCID
+  // Реальный Client ID из ORCID
   const ORCID_CLIENT_ID = "APP-7KHX9DAL2RMVUVFR"; 
   const REDIRECT_URI = "https://doctor99999.github.io/GitScience/";
 
-  // Проверяем, вернулся ли пользователь от ORCID с кодом авторизации
+  // При загрузке страницы: загружаем сохраненный ORCID из localStorage или ловим code из URL
   useEffect(() => {
     if (typeof window !== "undefined") {
+      // 1. Проверяем, есть ли уже авторизованный пользователь в памяти
+      const savedUser = localStorage.getItem("gitscience_orcid_user");
+      if (savedUser) {
+        try {
+          setOrcidUser(JSON.parse(savedUser));
+        } catch (e) {
+          localStorage.removeItem("gitscience_orcid_user");
+        }
+      }
+
+      // 2. Проверяем, вернулся ли пользователь от ORCID с кодом авторизации
       const urlParams = new URLSearchParams(window.location.search);
       const code = urlParams.get("code");
       
@@ -46,13 +57,27 @@ export default function GitScienceDashboard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code: code, redirect_uri: REDIRECT_URI }),
       });
+
       const data = await response.json();
-      if (data.status === "success") {
-        setOrcidUser({ id: data.orcid, name: data.name });
-        window.history.replaceState({}, document.title, "/GitScience/");
+
+      if (response.ok && data.status === "success") {
+        const userData = {
+          id: data.orcid,
+          name: data.name || `Ученый (${data.orcid})`,
+        };
+        
+        setOrcidUser(userData);
+        // Сохраняем в localStorage, чтобы вход не слетал при перезагрузке страницы
+        localStorage.setItem("gitscience_orcid_user", JSON.stringify(userData));
+        
+        // Очищаем адресную строку от параметра ?code=
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } else {
+        alert(`Ошибка авторизации ORCID: ${data.detail || JSON.stringify(data)}`);
       }
     } catch (error) {
       console.error("Ошибка при верификации ORCID:", error);
+      alert("Не удалось связаться с сервером. Возможно, сервис на Render просыпается.");
     } finally {
       setLoading(false);
     }
@@ -61,6 +86,11 @@ export default function GitScienceDashboard() {
   const handleLoginOrcid = () => {
     const orcidAuthUrl = `https://orcid.org/oauth/authorize?client_id=${ORCID_CLIENT_ID}&response_type=code&scope=/authenticate&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`;
     window.location.href = orcidAuthUrl;
+  };
+
+  const handleLogoutOrcid = () => {
+    setOrcidUser(null);
+    localStorage.removeItem("gitscience_orcid_user");
   };
 
   const handleConnectWallet = async () => {
@@ -151,13 +181,23 @@ export default function GitScienceDashboard() {
             {!orcidUser ? (
               <button
                 onClick={handleLoginOrcid}
-                className="bg-[#A6CE39] hover:bg-[#8eb030] text-black font-bold py-2 px-4 rounded-lg text-sm transition shadow-md flex items-center gap-2"
+                disabled={loading}
+                className="bg-[#A6CE39] hover:bg-[#8eb030] text-black font-bold py-2 px-4 rounded-lg text-sm transition shadow-md flex items-center gap-2 disabled:opacity-50"
               >
-                <span>🆔</span> Войти через ORCID iD
+                <span>🆔</span> {loading ? "Авторизация..." : "Войти через ORCID iD"}
               </button>
             ) : (
-              <div className="bg-slate-900 border border-[#A6CE39]/50 px-3 py-1.5 rounded-lg text-xs font-mono text-[#A6CE39]">
-                ✅ {orcidUser.name || "Ученый"} ({orcidUser.id})
+              <div className="flex items-center gap-2">
+                <div className="bg-slate-900 border border-[#A6CE39]/50 px-3 py-1.5 rounded-lg text-xs font-mono text-[#A6CE39]">
+                  ✅ {orcidUser.name} ({orcidUser.id})
+                </div>
+                <button
+                  onClick={handleLogoutOrcid}
+                  title="Выйти из ORCID"
+                  className="bg-slate-800 hover:bg-rose-900/50 border border-slate-700 text-slate-400 hover:text-rose-300 py-1.5 px-2 rounded-lg text-xs transition"
+                >
+                  🚪
+                </button>
               </div>
             )}
 

@@ -58,8 +58,8 @@ class OrcidAuthRequest(BaseModel):
 @app.post("/api/v1/auth/orcid")
 def authenticate_orcid(req: OrcidAuthRequest):
     """Обмен кода авторизации на верифицированный ORCID iD и имя ученого"""
-    client_id = os.getenv("ORCID_CLIENT_ID", "")
-    client_secret = os.getenv("ORCID_CLIENT_SECRET", "")
+    client_id = os.getenv("ORCID_CLIENT_ID", "APP-7KHX9DAL2RMVUVFR")
+    client_secret = os.getenv("ORCID_CLIENT_SECRET", "1cc3191b-56ca-483a-8972-83d5c3a3e089")
 
     token_url = "https://orcid.org/oauth/token"
     payload = {
@@ -74,14 +74,32 @@ def authenticate_orcid(req: OrcidAuthRequest):
     try:
         res = requests.post(token_url, data=payload, headers=headers, timeout=10)
         if res.status_code != 200:
-            raise HTTPException(status_code=400, detail="Ошибка авторизации ORCID")
+            error_detail = res.text
+            try:
+                err_json = res.json()
+                error_detail = err_json.get("error_description") or err_json.get("error") or res.text
+            except Exception:
+                pass
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Ошибка авторизации ORCID: {error_detail}"
+            )
+        
         data = res.json()
+        orcid_id = data.get("orcid")
+        name = data.get("name")
+        
+        if not orcid_id:
+            raise HTTPException(status_code=400, detail="ORCID ID не получен от сервера ORCID")
+
         return {
             "status": "success",
-            "orcid": data.get("orcid"),
-            "name": data.get("name"),
+            "orcid": orcid_id,
+            "name": name or f"Ученый ({orcid_id})",
             "access_token": data.get("access_token"),
         }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Сбой связи с ORCID: {e}")
 
