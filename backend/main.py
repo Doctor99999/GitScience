@@ -148,7 +148,7 @@ def process_fair_share_payment(req: BillingRequest):
     }
 
 
-# --- 5. АВТОМАТИЧЕСКИЙ ИМПОРТ ИЗ arXiv ---
+# --- 5. АВТОМАТИЧЕСКИЙ ДОБЫТЧИК СТАТЕЙ (Fetcher) ---
 @app.post("/api/v1/science/import")
 def import_external_article(req: ImportRequest):
     try:

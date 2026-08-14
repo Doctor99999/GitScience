@@ -22,7 +22,7 @@ export default function GitScienceDashboard() {
 
   const API_URL = "https://gitscience-api.onrender.com";
   
-  // ⚠️ ВСТАВЬ СВОЙ НАСТОЯЩИЙ CLIENT ID ИЗ ЭТАПА 1 НИЖЕ ⚠️
+  // Твой реальный Client ID из ORCID
   const ORCID_CLIENT_ID = "APP-7KHX9DAL2RMVUVFR"; 
   const REDIRECT_URI = "https://doctor99999.github.io/GitScience/";
 
@@ -256,7 +256,7 @@ export default function GitScienceDashboard() {
         {/* АТОМАРНЫЙ БИЛЛИНГ FAIR-SHARE */}
         <section className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4 shadow-xl">
           <h2 className="text-xl font-bold text-slate-200 flex items-center gap-2">
-            <span>💳</span> Биллинг Fair-Share (Распределение 95% / 5%)
+            <span>💳</span> Биллинг Fair-Share (Распределение 70% / 30%)
           </h2>
 
           <div className="flex flex-col md:flex-row gap-4">
@@ -278,8 +278,8 @@ export default function GitScienceDashboard() {
           {payResult && (
             <div className="bg-slate-950 p-4 rounded-xl border border-indigo-900/50 font-mono text-xs text-indigo-300 space-y-1">
               <p className="font-bold text-slate-200 mb-1">{payResult.status}</p>
-              <p>💰 Автору (95%): <span className="font-bold text-emerald-400">{payResult.split.author_share_95} {payResult.currency}</span></p>
-              <p>🏛️ Платформе (5%): <span className="font-bold text-slate-400">{payResult.split.platform_fee_5} {payResult.currency}</span></p>
+              <p>💰 Автору (70%): <span className="font-bold text-emerald-400">{payResult.split?.author_share_70} {payResult.currency}</span></p>
+              <p>🏛️ Платформе (30%): <span className="font-bold text-slate-400">{payResult.split?.platform_fee_30} {payResult.currency}</span></p>
             </div>
           )}
         </section>
