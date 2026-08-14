@@ -124,22 +124,22 @@ def run_compiled_formula(req: CalculatorRequest):
         )
 
 
-# --- 4. АТОМАРНЫЙ БИЛЛИНГ FAIR-SHARE (95% / 5%) ---
+# --- 4. АТОМАРНЫЙ БИЛЛИНГ FAIR-SHARE (70% / 30%) ---
 @app.post("/api/v1/billing/pay")
 def process_fair_share_payment(req: BillingRequest):
     if req.amount <= 0:
         raise HTTPException(status_code=400, detail="Сумма должна быть больше 0")
 
-    author_share = round(req.amount * 0.95, 2)
-    platform_fee = round(req.amount * 0.05, 2)
+    author_share = round(req.amount * 0.70, 2)
+    platform_fee = round(req.amount * 0.30, 2)
 
     return {
         "status": "Платеж Fair-Share успешно обработан 💳",
         "total_amount": req.amount,
         "currency": req.currency,
         "split": {
-            "author_share_95": author_share,
-            "platform_fee_5": platform_fee,
+            "author_share_70": author_share,
+            "platform_fee_30": platform_fee,
         },
         "recipient_wallet": req.author_wallet,
         "transaction_hash": (
