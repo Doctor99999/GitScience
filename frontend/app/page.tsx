@@ -8,8 +8,9 @@ export default function GitScienceDashboard() {
   const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   
-  // Состояние биллинга
+  // Состояние биллинга и выбора валюты
   const [payAmount, setPayAmount] = useState(100);
+  const [selectedCurrency, setSelectedCurrency] = useState("USDT");
   const [payResult, setPayResult] = useState<any>(null);
 
   // Состояние ORCID и Web3 кошелька
@@ -22,14 +23,13 @@ export default function GitScienceDashboard() {
 
   const API_URL = "https://gitscience-api.onrender.com";
   
-  // Реальный Client ID из ORCID
+  // Твой реальный Client ID из ORCID уже зафиксирован здесь
   const ORCID_CLIENT_ID = "APP-7KHX9DAL2RMVUVFR"; 
   const REDIRECT_URI = "https://doctor99999.github.io/GitScience/";
 
   // При загрузке страницы: загружаем сохраненный ORCID из localStorage или ловим code из URL
   useEffect(() => {
     if (typeof window !== "undefined") {
-      // 1. Проверяем, есть ли уже авторизованный пользователь в памяти
       const savedUser = localStorage.getItem("gitscience_orcid_user");
       if (savedUser) {
         try {
@@ -39,7 +39,6 @@ export default function GitScienceDashboard() {
         }
       }
 
-      // 2. Проверяем, вернулся ли пользователь от ORCID с кодом авторизации
       const urlParams = new URLSearchParams(window.location.search);
       const code = urlParams.get("code");
       
@@ -67,10 +66,7 @@ export default function GitScienceDashboard() {
         };
         
         setOrcidUser(userData);
-        // Сохраняем в localStorage, чтобы вход не слетал при перезагрузке страницы
         localStorage.setItem("gitscience_orcid_user", JSON.stringify(userData));
-        
-        // Очищаем адресную строку от параметра ?code=
         window.history.replaceState({}, document.title, window.location.pathname);
       } else {
         alert(`Ошибка авторизации ORCID: ${data.detail || JSON.stringify(data)}`);
@@ -150,7 +146,7 @@ export default function GitScienceDashboard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           amount: payAmount,
-          currency: "USDT",
+          currency: selectedCurrency,
           author_wallet: walletAddress || "0x0000000000000000000000000000000000000000",
         }),
       });
@@ -201,12 +197,15 @@ export default function GitScienceDashboard() {
               </div>
             )}
 
-            {/* КНОПКА WEBW3 */}
+            {/* КНОПКА ПОДКЛЮЧЕНИЯ КОШЕЛЬКА */}
             <button
               onClick={handleConnectWallet}
-              className="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-medium py-2 px-4 rounded-lg text-sm transition"
+              className="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-medium py-2 px-4 rounded-lg text-sm transition flex items-center gap-2"
             >
-              {walletAddress ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` : "🔌 Подключить Web3"}
+              <span>💳</span>
+              {walletAddress 
+                ? `${selectedCurrency}: ${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` 
+                : "Подключить кошелек"}
             </button>
           </div>
         </header>
@@ -293,26 +292,49 @@ export default function GitScienceDashboard() {
           )}
         </section>
 
-        {/* АТОМАРНЫЙ БИЛЛИНГ FAIR-SHARE */}
+        {/* АТОМАРНЫЙ БИЛЛИНГ FAIR-SHARE С ВЫБОРОМ ВАЛЮТЫ */}
         <section className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4 shadow-xl">
           <h2 className="text-xl font-bold text-slate-200 flex items-center gap-2">
             <span>💳</span> Биллинг Fair-Share (Распределение 70% / 30%)
           </h2>
 
-          <div className="flex flex-col md:flex-row gap-4">
-            <input
-              type="number"
-              value={payAmount}
-              onChange={(e) => setPayAmount(Number(e.target.value))}
-              placeholder="Сумма (USDT)"
-              className="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none"
-            />
-            <button
-              onClick={handlePayFairShare}
-              className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 px-6 rounded-xl text-sm transition shadow-lg"
-            >
-              Симулировать B2B-оплату вызова API
-            </button>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* Ввод суммы */}
+            <div className="md:col-span-2">
+              <label className="text-xs text-slate-400 block mb-1">Сумма платежа</label>
+              <input
+                type="number"
+                value={payAmount}
+                onChange={(e) => setPayAmount(Number(e.target.value))}
+                placeholder="Сумма"
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none"
+              />
+            </div>
+
+            {/* Выбор валюты кошелька */}
+            <div>
+              <label className="text-xs text-slate-400 block mb-1">Валюта кошелька</label>
+              <select
+                value={selectedCurrency}
+                onChange={(e) => setSelectedCurrency(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none"
+              >
+                <option value="USDT">USDT (Tether)</option>
+                <option value="ETH">ETH (Ethereum)</option>
+                <option value="USD">USD ($)</option>
+                <option value="KZT">KZT (₸)</option>
+              </select>
+            </div>
+
+            {/* Кнопка симуляции */}
+            <div className="flex items-end">
+              <button
+                onClick={handlePayFairShare}
+                className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 px-4 rounded-xl text-sm transition shadow-lg"
+              >
+                Оплатить API
+              </button>
+            </div>
           </div>
 
           {payResult && (

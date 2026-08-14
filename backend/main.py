@@ -59,7 +59,7 @@ class OrcidAuthRequest(BaseModel):
 def authenticate_orcid(req: OrcidAuthRequest):
     """Обмен кода авторизации на верифицированный ORCID iD и имя ученого"""
     client_id = os.getenv("ORCID_CLIENT_ID", "APP-7KHX9DAL2RMVUVFR")
-    client_secret = os.getenv("ORCID_CLIENT_SECRET", "1cc3191b-56ca-483a-8972-83d5c3a3e089")
+    client_secret = os.getenv("ORCID_CLIENT_SECRET", "")
 
     token_url = "https://orcid.org/oauth/token"
     payload = {
