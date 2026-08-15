@@ -3,7 +3,7 @@
 
 """
 gitscience_fortress.py — Бронекомплекс GitScience™ (7 Промышленных Пилонов Безопасности)
-Полный состав: Песочница, Академический Суд, IRB Этика, ZK-Приватность, IoT-Gateway и Маршрутизатор Аманата.
+Отказоустойчивая версия (Fault-Tolerant)
 """
 
 import re
@@ -14,7 +14,11 @@ import concurrent.futures
 from pathlib import Path
 from typing import Dict, Any, List, Optional, Tuple
 
-from gitscience_compiler import SafeASTEvaluator, UnsafeFormulaError
+# Безопасный импорт: если компилятор старой версии, сервер не упадет
+try:
+    from gitscience_compiler import SafeASTEvaluator
+except ImportError:
+    SafeASTEvaluator = None
 
 
 # =====================================================================
@@ -25,6 +29,9 @@ class SandboxedEvaluator:
 
     @staticmethod
     def evaluate_safe(parsed_ast, variables: Dict[str, Any], max_time_sec: float = 0.5):
+        if not SafeASTEvaluator:
+            raise NotImplementedError("AST Evaluator не подключен")
+            
         def _worker():
             return SafeASTEvaluator.evaluate(parsed_ast, variables)
 
@@ -33,7 +40,7 @@ class SandboxedEvaluator:
             try:
                 return future.result(timeout=max_time_sec)
             except concurrent.futures.TimeoutError:
-                raise TimeoutError(f"🚨 [Sandbox Alert] Превышен лимит времени выполнения формулы ({max_time_sec} сек). Возможно зацикливание.")
+                raise TimeoutError(f"🚨 [Sandbox Alert] Превышен лимит времени выполнения формулы ({max_time_sec} сек).")
 
 
 # =====================================================================
@@ -43,7 +50,7 @@ class ScienceCourt:
     """Система разрешения споров об авторстве, фальсификациях и претензиях на Prior Art"""
 
     def __init__(self, storage_dir: Path):
-        self.court_file = storage_dir / "court_cases.json"
+        self.court_file = Path(storage_dir) / "court_cases.json"
         self._init_db()
 
     def _init_db(self):
@@ -86,7 +93,7 @@ class IRBClinicalVerifier:
         irb_approval_code = data_payload.get("irb_approval_number", "")
 
         if has_human_data and not irb_approval_code:
-            return False, "🚨 [IRB Alert] Публикация клинических данных требует указания номера разрешения Комитета по биоэтике (IRB Approval Number)."
+            return False, "🚨 [IRB Alert] Публикация клинических данных требует указания номера разрешения Комитета по биоэтике (IRB)."
 
         return True, "✅ [Bioethics Passed] Документ соответствует стандартам Хельсинкской декларации."
 
