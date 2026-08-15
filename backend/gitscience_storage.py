@@ -1,7 +1,7 @@
 """
 GitScience Sovereign Storage Engine
 Стандарт: ISO 14721 OAIS (Open Archival Information System).
-Персистентная SQLite-база с поддержкой WAL и репликации Litestream.
+Автоматическое сохранение на физический диск F:\GitScience_Vault (500 GB)
 """
 import sqlite3
 import os
@@ -10,15 +10,21 @@ import hashlib
 from typing import List, Dict, Optional
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-STORAGE_DIR = os.path.join(BASE_DIR, "storage")
+
+# Определение пути хранилища: диск F:\ или локальная папка
+if os.path.exists("F:\\"):
+    STORAGE_DIR = os.getenv("GITSCIENCE_STORAGE_PATH", "F:\\GitScience_Vault")
+else:
+    STORAGE_DIR = os.getenv("GITSCIENCE_STORAGE_PATH", os.path.join(BASE_DIR, "storage"))
+
 UPLOADS_DIR = os.path.join(STORAGE_DIR, "uploads")
 CERT_DIR = os.path.join(STORAGE_DIR, "certificates")
 DB_PATH = os.path.join(STORAGE_DIR, "gitscience.db")
 CONSTANTS_PATH = os.path.join(BASE_DIR, "PROTOCOL_CONSTANTS.json")
 
-os.makedirs(STORAGE_DIR, exist_ok=True)
-os.makedirs(UPLOADS_DIR, exist_ok=True)
-os.makedirs(CERT_DIR, exist_ok=True)
+# Автоматическое создание всех папок на диске F:
+for path in [STORAGE_DIR, UPLOADS_DIR, CERT_DIR]:
+    os.makedirs(path, exist_ok=True)
 
 def load_protocol_constants() -> dict:
     if os.path.exists(CONSTANTS_PATH):
@@ -54,7 +60,7 @@ def init_db():
     )
     """)
     
-    # Реестр биллинга (Ledger)
+    # Реестр транзакций (Ledger)
     cur.execute("""
     CREATE TABLE IF NOT EXISTS ledger_transactions (
         tx_id TEXT PRIMARY KEY,
@@ -70,7 +76,7 @@ def init_db():
     """)
     conn.commit()
     
-    # Genesis Block #0 (Корневой анкер истины)
+    # Genesis Block #0 (Корневой этический анкер)
     cur.execute("SELECT COUNT(*) FROM manuscripts WHERE is_genesis_anchor = 1")
     if cur.fetchone()[0] == 0:
         genesis_manifest = (
@@ -96,11 +102,11 @@ def save_uploaded_pdf(file_bytes: bytes, filename: str, title: str, author: str,
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
     
-    # Честный криптографический расчет SHA-256
+    # Расчет честного SHA-256
     real_sha256 = hashlib.sha256(file_bytes).hexdigest()
     real_git_commit = hashlib.sha1(file_bytes).hexdigest()
     
-    # Определение порядкового номера
+    # Порядковый номер
     cur.execute("SELECT COUNT(*) FROM manuscripts WHERE is_genesis_anchor = 0")
     serial_count = cur.fetchone()[0] + 1
     reg_code = f"GS-2026-{serial_count:05d}"
