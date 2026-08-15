@@ -4,3 +4,4 @@ pdfplumber
 gitpython
 pydantic
 requests
+python-multipart
