@@ -5,3 +5,6 @@ gitpython
 pydantic
 requests
 python-multipart
+qrcode[pil]
+pypdf
+reportlab
