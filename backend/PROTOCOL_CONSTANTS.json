@@ -1,0 +1,31 @@
+{
+  "protocol": "GitScience™ Sovereign Protocol",
+  "version": "2.4.0-GENESIS",
+  "founder": {
+    "name": "Salauat Abiltayevich Yeshimov",
+    "orcid": "0009-0003-3929-3605",
+    "role": "Protocol Architect & Surgical Oncologist"
+  },
+  "fair_share_bps": {
+    "total_bps": 10000,
+    "author_share_bps": 7000,
+    "infra_fund_bps": 2000,
+    "founder_share_bps": 1000,
+    "author_percent": 70.0,
+    "infra_percent": 20.0,
+    "founder_percent": 10.0
+  },
+  "legal_framework": [
+    "35 U.S.C. § 102 (US Patent Act)",
+    "EPC Article 54(2) (European Patent Convention)",
+    "WIPO Paris Convention for the Protection of Industrial Property",
+    "ISO 14721 OAIS (Open Archival Information System)",
+    "RFC 3161 / OpenTimestamps Cryptographic Evidence"
+  ],
+  "medical_compliance": {
+    "tier": "Math-as-a-Service (MaaS)",
+    "regulatory_class": "RUO (Research Use Only) / CDSS Class I",
+    "attestation_required": true,
+    "physician_in_the_loop": true
+  }
+}

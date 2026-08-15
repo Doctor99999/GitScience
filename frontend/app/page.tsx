@@ -3,348 +3,450 @@
 import { useState, useEffect } from "react";
 
 export default function GitScienceDashboard() {
-  const [title, setTitle] = useState("Клиническая оценка риска коронарных осложнений");
-  const [content, setContent] = useState("# Клиническая модель\nBaseRisk = 14.5\nRisk_Score = BaseRisk * 1.85");
-  const [result, setResult] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
-  
-  // Состояние биллинга и выбора валюты
-  const [payAmount, setPayAmount] = useState(100);
-  const [selectedCurrency, setSelectedCurrency] = useState("USDT");
+  const [activeTab, setActiveTab] = useState<"library" | "upload" | "calculator" | "billing">("library");
+
+  // Библиотека
+  const [articles, setArticles] = useState<any[]>([]);
+  const [loadingLib, setLoadingLib] = useState(false);
+  const [selectedCert, setSelectedCert] = useState<any>(null);
+
+  // Форма загрузки реального PDF
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [title, setTitle] = useState("Coupling of Neuro-Immuno-Oncological Axes & Tk Equation");
+  const [author, setAuthor] = useState("Salauat Abiltayevich Yeshimov");
+  const [orcid, setOrcid] = useState("0009-0003-3929-3605");
+  const [category, setCategory] = useState("Oncology / Neuro-Immune Medicine");
+  const [uploadResult, setUploadResult] = useState<any>(null);
+  const [uploading, setUploading] = useState(false);
+
+  // AST Калькулятор
+  const [calcParams, setCalcParams] = useState({ BaseRisk: 14.5, Artery: 5.0, Vein: 3.0, Lymph: 1.2 });
+  const [calcResult, setCalcResult] = useState<any>(null);
+
+  // Биллинг
+  const [amount, setAmount] = useState(100);
+  const [currency, setCurrency] = useState("USDT");
   const [payResult, setPayResult] = useState<any>(null);
 
-  // Состояние ORCID и Web3 кошелька
-  const [orcidUser, setOrcidUser] = useState<any>(null);
-  const [walletAddress, setWalletAddress] = useState<string | null>(null);
-
-  // Состояние калькулятора
-  const [calcParams, setCalcParams] = useState<{ [key: string]: number }>({ BaseRisk: 14.5 });
-  const [calcResults, setCalcResults] = useState<any>(null);
-
   const API_URL = "https://gitscience-api.onrender.com";
-  
-  // Твой реальный Client ID из ORCID уже зафиксирован здесь
-  const ORCID_CLIENT_ID = "APP-7KHX9DAL2RMVUVFR"; 
-  const REDIRECT_URI = "https://doctor99999.github.io/GitScience/";
 
-  // При загрузке страницы: загружаем сохраненный ORCID из localStorage или ловим code из URL
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const savedUser = localStorage.getItem("gitscience_orcid_user");
-      if (savedUser) {
-        try {
-          setOrcidUser(JSON.parse(savedUser));
-        } catch (e) {
-          localStorage.removeItem("gitscience_orcid_user");
-        }
-      }
-
-      const urlParams = new URLSearchParams(window.location.search);
-      const code = urlParams.get("code");
-      
-      if (code) {
-        verifyOrcidCode(code);
-      }
+  const fetchLibrary = async () => {
+    setLoadingLib(true);
+    try {
+      const res = await fetch(`${API_URL}/library`);
+      const data = await res.json();
+      if (data.articles) setArticles(data.articles);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingLib(false);
     }
+  };
+
+  useEffect(() => {
+    fetchLibrary();
   }, []);
 
-  const verifyOrcidCode = async (code: string) => {
-    try {
-      setLoading(true);
-      const response = await fetch(`${API_URL}/api/v1/auth/orcid`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: code, redirect_uri: REDIRECT_URI }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.status === "success") {
-        const userData = {
-          id: data.orcid,
-          name: data.name || `Ученый (${data.orcid})`,
-        };
-        
-        setOrcidUser(userData);
-        localStorage.setItem("gitscience_orcid_user", JSON.stringify(userData));
-        window.history.replaceState({}, document.title, window.location.pathname);
-      } else {
-        alert(`Ошибка авторизации ORCID: ${data.detail || JSON.stringify(data)}`);
-      }
-    } catch (error) {
-      console.error("Ошибка при верификации ORCID:", error);
-      alert("Не удалось связаться с сервером. Возможно, сервис на Render просыпается.");
-    } finally {
-      setLoading(false);
+  const handleUploadPDF = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pdfFile) {
+      alert("Пожалуйста, выберите файл PDF вашей статьи");
+      return;
     }
-  };
+    setUploading(true);
+    setUploadResult(null);
 
-  const handleLoginOrcid = () => {
-    const orcidAuthUrl = `https://orcid.org/oauth/authorize?client_id=${ORCID_CLIENT_ID}&response_type=code&scope=/authenticate&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`;
-    window.location.href = orcidAuthUrl;
-  };
+    const formData = new FormData();
+    formData.append("file", pdfFile);
+    formData.append("title", title);
+    formData.append("author_name", author);
+    formData.append("orcid", orcid);
+    formData.append("category", category);
+    formData.append("abstract", "Genesis-манускрипт модели нейро-иммуно-онкологии.");
 
-  const handleLogoutOrcid = () => {
-    setOrcidUser(null);
-    localStorage.removeItem("gitscience_orcid_user");
-  };
-
-  const handleConnectWallet = async () => {
-    if (typeof window !== "undefined" && (window as any).ethereum) {
-      try {
-        const accounts = await (window as any).ethereum.request({ method: "eth_requestAccounts" });
-        setWalletAddress(accounts[0]);
-      } catch (err) {
-        alert("Ошибка подключения MetaMask");
-      }
-    } else {
-      alert("Установите Web3-кошелек MetaMask");
-    }
-  };
-
-  const handleCommit = async () => {
-    setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/v1/science/commit`, {
+      const res = await fetch(`${API_URL}/notary/upload-pdf`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title,
-          content,
-          orcid: orcidUser ? orcidUser.id : "0009-0003-3929-3605",
-        }),
+        body: formData,
       });
       const data = await res.json();
-      setResult(data);
-    } catch (e) {
-      alert("Ошибка отправки коммита на сервер");
+      setUploadResult(data);
+      fetchLibrary();
+    } catch (err: any) {
+      alert("Ошибка нотариата: " + err.message);
     } finally {
-      setLoading(false);
+      setUploading(false);
     }
   };
 
-  const handleRunCalculation = async () => {
+  const openCertificate = async (code: string) => {
+    try {
+      const res = await fetch(`${API_URL}/notary/certificate/${code}`);
+      const data = await res.json();
+      setSelectedCert(data);
+    } catch (err) {
+      alert("Не удалось загрузить данные сертификата");
+    }
+  };
+
+  const handleCalculate = async () => {
     try {
       const res = await fetch(`${API_URL}/api/v1/science/calculate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ params: calcParams }),
+        body: JSON.stringify({ params: calcParams, doctor_attestation: true }),
       });
       const data = await res.json();
-      if (data.results) {
-        setCalcResults(data.results);
-      }
-    } catch (e) {
-      alert("Ошибка при расчете модели");
+      setCalcResult(data);
+    } catch (err: any) {
+      alert("Ошибка расчета: " + err.message);
     }
   };
 
-  const handlePayFairShare = async () => {
+  const handlePay = async () => {
     try {
       const res = await fetch(`${API_URL}/api/v1/billing/pay`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          amount: payAmount,
-          currency: selectedCurrency,
-          author_wallet: walletAddress || "0x0000000000000000000000000000000000000000",
-        }),
+        body: JSON.stringify({ amount, currency, author_wallet: "0x71C...3929" }),
       });
       const data = await res.json();
       setPayResult(data);
-    } catch (e) {
-      alert("Ошибка обработки платежа");
+    } catch (err: any) {
+      alert("Ошибка биллинга: " + err.message);
     }
   };
 
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-100 p-6 md:p-12 font-sans">
-      <div className="max-w-5xl mx-auto space-y-8">
+    <main className="min-h-screen bg-slate-950 text-slate-100 p-4 md:p-8 font-sans">
+      <div className="max-w-6xl mx-auto space-y-6">
         
-        {/* ХЕДЕР ПЛАТФОРМЫ */}
-        <header className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-slate-800 pb-6 gap-4">
+        {/* ХЕДЕР */}
+        <header className="flex flex-col md:flex-row items-start md:items-center justify-between bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl gap-4">
           <div>
-            <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-emerald-400 to-teal-200 bg-clip-text text-transparent">
-              GitScience™ Engine
-            </h1>
-            <p className="text-slate-400 text-sm mt-1">
-              Суверенная децентрализованная научная экосистема (Prior Art & AST Compiler)
-            </p>
+            <div className="flex items-center gap-3">
+              <span className="text-2xl font-black tracking-wider text-emerald-400">GITSCIENCE™</span>
+              <span className="text-xs bg-emerald-950 text-emerald-300 border border-emerald-800 px-2 py-0.5 rounded font-mono">v2.4.0 SOVEREIGN</span>
+            </div>
+            <p className="text-xs text-slate-400 mt-1">Суверенная научная библиотека, нотариат Prior Art и вычислительное ядро</p>
           </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            {/* КНОПКА ORCID */}
-            {!orcidUser ? (
-              <button
-                onClick={handleLoginOrcid}
-                disabled={loading}
-                className="bg-[#A6CE39] hover:bg-[#8eb030] text-black font-bold py-2 px-4 rounded-lg text-sm transition shadow-md flex items-center gap-2 disabled:opacity-50"
-              >
-                <span>🆔</span> {loading ? "Авторизация..." : "Войти через ORCID iD"}
-              </button>
-            ) : (
-              <div className="flex items-center gap-2">
-                <div className="bg-slate-900 border border-[#A6CE39]/50 px-3 py-1.5 rounded-lg text-xs font-mono text-[#A6CE39]">
-                  ✅ {orcidUser.name} ({orcidUser.id})
-                </div>
-                <button
-                  onClick={handleLogoutOrcid}
-                  title="Выйти из ORCID"
-                  className="bg-slate-800 hover:bg-rose-900/50 border border-slate-700 text-slate-400 hover:text-rose-300 py-1.5 px-2 rounded-lg text-xs transition"
-                >
-                  🚪
-                </button>
-              </div>
-            )}
-
-            {/* КНОПКА ПОДКЛЮЧЕНИЯ КОШЕЛЬКА */}
-            <button
-              onClick={handleConnectWallet}
-              className="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-medium py-2 px-4 rounded-lg text-sm transition flex items-center gap-2"
-            >
-              <span>💳</span>
-              {walletAddress 
-                ? `${selectedCurrency}: ${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` 
-                : "Подключить кошелек"}
-            </button>
+          <div className="flex flex-wrap gap-2 text-[11px] font-mono text-slate-300">
+            <span className="bg-slate-800 border border-slate-700 px-2.5 py-1 rounded">ISO 14721 OAIS</span>
+            <span className="bg-slate-800 border border-slate-700 px-2.5 py-1 rounded">RFC 3161 / OTS</span>
+            <span className="bg-slate-800 border border-slate-700 px-2.5 py-1 rounded">35 U.S.C. § 102</span>
           </div>
         </header>
 
-        {/* ПУЛЬТ СОЗДАНИЯ И ЗАПЕЧАТЫВАНИЯ */}
-        <section className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4 shadow-xl">
-          <h2 className="text-xl font-bold text-slate-200 flex items-center gap-2">
-            <span>📝</span> Новый научный труд или модель
-          </h2>
-
-          <div className="space-y-3">
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Название проекта / гипотезы"
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500 transition"
-            />
-
-            <textarea
-              rows={5}
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="Текст исследования и формулы (например: Risk = Base * 1.85)"
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm font-mono focus:outline-none focus:border-emerald-500 transition"
-            />
-          </div>
-
+        {/* НАВИГАЦИЯ */}
+        <nav className="flex gap-2 border-b border-slate-800 pb-2">
           <button
-            onClick={handleCommit}
-            disabled={loading}
-            className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 rounded-xl transition shadow-lg shadow-emerald-900/20 text-sm disabled:opacity-50"
+            onClick={() => setActiveTab("library")}
+            className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${
+              activeTab === "library" ? "bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/20" : "bg-slate-900 text-slate-400 hover:bg-slate-800"
+            }`}
           >
-            {loading ? "Запечатывание в блокчейне..." : "🛡️ Зафиксировать авторство (Commit & Prior Art Shield)"}
+            🏛️ Библиотека ({articles.length})
           </button>
+          <button
+            onClick={() => setActiveTab("upload")}
+            className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${
+              activeTab === "upload" ? "bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/20" : "bg-slate-900 text-slate-400 hover:bg-slate-800"
+            }`}
+          >
+            📄 Загрузить PDF (Манускрипт №1)
+          </button>
+          <button
+            onClick={() => setActiveTab("calculator")}
+            className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${
+              activeTab === "calculator" ? "bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/20" : "bg-slate-900 text-slate-400 hover:bg-slate-800"
+            }`}
+          >
+            ⚡ AST Калькулятор (Tk Ratio)
+          </button>
+          <button
+            onClick={() => setActiveTab("billing")}
+            className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${
+              activeTab === "billing" ? "bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/20" : "bg-slate-900 text-slate-400 hover:bg-slate-800"
+            }`}
+          >
+            💳 Fair-Share (70 / 20 / 10)
+          </button>
+        </nav>
 
-          {result && (
-            <div className="bg-slate-950 border border-emerald-900/50 p-4 rounded-xl text-xs font-mono space-y-2 text-emerald-400">
-              <p className="font-bold text-slate-200">{result.status}</p>
-              <p><span className="text-slate-500">SHA-256 Shield:</span> {result.sha256_prior_art_shield}</p>
-              <p><span className="text-slate-500">Сертификат:</span> {result.ots_proof_file}</p>
-              <p><span className="text-slate-500">Автор (ORCID):</span> {result.orcid_author}</p>
+        {/* 1. БИБЛИОТЕКА */}
+        {activeTab === "library" && (
+          <section className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-lg font-bold text-slate-200">Реестр защищенных исследований</h2>
+              <button onClick={fetchLibrary} className="text-xs text-emerald-400 hover:underline">Обновить ⟳</button>
             </div>
-          )}
-        </section>
 
-        {/* ИНТЕРАКТИВНЫЙ AST КАЛЬКУЛЯТОР */}
-        <section className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4 shadow-xl">
-          <h2 className="text-xl font-bold text-slate-200 flex items-center gap-2">
-            <span>⚡</span> Выполнение скомпилированной AST-модели
-          </h2>
+            {loadingLib ? (
+              <p className="text-sm text-slate-500 font-mono">Чтение архивного реестра...</p>
+            ) : articles.length === 0 ? (
+              <div className="bg-slate-900 border border-slate-800 p-8 rounded-2xl text-center space-y-3">
+                <p className="text-slate-300 font-medium">Реестр научных трудов чист и готов к первому коммиту.</p>
+                <p className="text-xs text-slate-500">Перейдите во вкладку «Загрузить PDF», чтобы выпустить Сертификат Научного Приоритета №1.</p>
+              </div>
+            ) : (
+              <div className="grid gap-4">
+                {articles.map((art) => (
+                  <div key={art.serial_number} className="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex flex-col md:flex-row justify-between gap-4 items-start md:items-center">
+                    <div className="space-y-1.5 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="bg-emerald-950 text-emerald-300 border border-emerald-800 text-[11px] font-mono font-bold px-2 py-0.5 rounded">
+                          {art.registration_code}
+                        </span>
+                        <span className="text-xs text-slate-400">{art.category}</span>
+                      </div>
+                      <h3 className="font-semibold text-slate-100 text-base">{art.title}</h3>
+                      <p className="text-xs text-slate-400">Автор: <span className="text-slate-200 font-medium">{art.author_name}</span> (ORCID: {art.orcid})</p>
+                      <p className="text-[11px] font-mono text-slate-500 truncate max-w-xl">SHA-256: {art.sha256_hash}</p>
+                    </div>
+                    <button
+                      onClick={() => openCertificate(art.registration_code)}
+                      className="bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-emerald-900/40 text-xs font-semibold px-4 py-2.5 rounded-xl transition flex items-center gap-2"
+                    >
+                      🛡️ Сертификат Приоритета
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-1">
-              <label className="text-xs text-slate-400 block font-medium">BaseRisk (Базовый показатель)</label>
-              <input
-                type="number"
-                value={calcParams.BaseRisk || 14.5}
-                onChange={(e) => setCalcParams({ ...calcParams, BaseRisk: Number(e.target.value) })}
-                className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm focus:outline-none"
-              />
-            </div>
-
-            <div className="flex items-end md:col-span-2">
-              <button
-                onClick={handleRunCalculation}
-                className="w-full bg-teal-600 hover:bg-teal-500 text-white font-bold py-3 rounded-xl text-sm transition shadow-lg"
-              >
-                Рассчитать модель на сервере ➔
-              </button>
-            </div>
-          </div>
-
-          {calcResults && (
-            <div className="bg-slate-950 p-4 rounded-xl border border-teal-900/50 font-mono text-xs text-teal-400 space-y-1">
-              <p className="font-bold text-slate-300 mb-2">Результаты вычислений:</p>
-              {Object.entries(calcResults).map(([k, v]: [string, any]) => (
-                <div key={k} className="flex justify-between border-b border-slate-900 py-1">
-                  <span>{k}:</span>
-                  <span className="font-bold text-slate-100">{v}</span>
+        {/* 2. ЗАГРУЗКА PDF */}
+        {activeTab === "upload" && (
+          <section className="bg-slate-900 border border-slate-800 p-6 rounded-2xl space-y-4">
+            <h2 className="text-lg font-bold text-slate-200">Физическая фиксация первого манускрипта (Prior Art Shield)</h2>
+            <form onSubmit={handleUploadPDF} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs text-slate-400">Название работы</label>
+                  <input
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3 py-2 text-sm mt-1"
+                    required
+                  />
                 </div>
-              ))}
-            </div>
-          )}
-        </section>
+                <div>
+                  <label className="text-xs text-slate-400">Автор / Изобретатель</label>
+                  <input
+                    value={author}
+                    onChange={(e) => setAuthor(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3 py-2 text-sm mt-1"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400">Верифицированный ORCID iD</label>
+                  <input
+                    value={orcid}
+                    onChange={(e) => setOrcid(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3 py-2 text-sm mt-1 font-mono"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400">Категория</label>
+                  <input
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3 py-2 text-sm mt-1"
+                  />
+                </div>
+              </div>
 
-        {/* АТОМАРНЫЙ БИЛЛИНГ FAIR-SHARE С ВЫБОРОМ ВАЛЮТЫ */}
-        <section className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4 shadow-xl">
-          <h2 className="text-xl font-bold text-slate-200 flex items-center gap-2">
-            <span>💳</span> Биллинг Fair-Share (Распределение 70% / 30%)
-          </h2>
+              <div>
+                <label className="text-xs text-slate-400">Выберите оригинальный файл статьи (.PDF)</label>
+                <input
+                  type="file"
+                  accept="application/pdf"
+                  onChange={(e) => setPdfFile(e.target.files?.[0] || null)}
+                  className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded-xl p-3 text-sm mt-1"
+                  required
+                />
+              </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {/* Ввод суммы */}
-            <div className="md:col-span-2">
-              <label className="text-xs text-slate-400 block mb-1">Сумма платежа</label>
-              <input
-                type="number"
-                value={payAmount}
-                onChange={(e) => setPayAmount(Number(e.target.value))}
-                placeholder="Сумма"
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none"
-              />
-            </div>
-
-            {/* Выбор валюты кошелька */}
-            <div>
-              <label className="text-xs text-slate-400 block mb-1">Валюта кошелька</label>
-              <select
-                value={selectedCurrency}
-                onChange={(e) => setSelectedCurrency(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none"
-              >
-                <option value="USDT">USDT (Tether)</option>
-                <option value="ETH">ETH (Ethereum)</option>
-                <option value="USD">USD ($)</option>
-                <option value="KZT">KZT (₸)</option>
-              </select>
-            </div>
-
-            {/* Кнопка симуляции */}
-            <div className="flex items-end">
               <button
-                onClick={handlePayFairShare}
-                className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 px-4 rounded-xl text-sm transition shadow-lg"
+                type="submit"
+                disabled={uploading}
+                className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-6 py-3 rounded-xl text-sm transition shadow-lg shadow-emerald-500/20"
               >
-                Оплатить API
+                {uploading ? "Вычисление SHA-256 и нотариат..." : "Зафиксировать Первенство и Выпустить Сертификат №1 🛡️"}
               </button>
+            </form>
+
+            {uploadResult && (
+              <div className="bg-slate-950 p-4 rounded-xl border border-emerald-900 text-xs font-mono text-emerald-300 space-y-1">
+                <p className="font-bold text-slate-100 text-sm">✅ {uploadResult.certificate_title}</p>
+                <p>Регистрационный код: <span className="text-emerald-400 font-bold">{uploadResult.registration_code}</span></p>
+                <p className="break-all">Реальный SHA-256: {uploadResult.sha256_payload_hash}</p>
+                <p className="break-all">Git Commit OID: {uploadResult.git_commit_hash}</p>
+                <p className="text-slate-400">{uploadResult.ots_status}</p>
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* 3. КАЛЬКУЛЯТОР AST */}
+        {activeTab === "calculator" && (
+          <section className="bg-slate-900 border border-slate-800 p-6 rounded-2xl space-y-4">
+            <h2 className="text-lg font-bold text-slate-200">Исполнение формулы автора через безопасный AST-парсер</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div>
+                <label className="text-xs text-slate-400">BaseRisk</label>
+                <input
+                  type="number"
+                  value={calcParams.BaseRisk}
+                  onChange={(e) => setCalcParams({ ...calcParams, BaseRisk: parseFloat(e.target.value) || 0 })}
+                  className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded-xl p-2.5 text-sm mt-1"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-slate-400">Artery (A)</label>
+                <input
+                  type="number"
+                  value={calcParams.Artery}
+                  onChange={(e) => setCalcParams({ ...calcParams, Artery: parseFloat(e.target.value) || 0 })}
+                  className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded-xl p-2.5 text-sm mt-1"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-slate-400">Vein (V)</label>
+                <input
+                  type="number"
+                  value={calcParams.Vein}
+                  onChange={(e) => setCalcParams({ ...calcParams, Vein: parseFloat(e.target.value) || 0 })}
+                  className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded-xl p-2.5 text-sm mt-1"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-slate-400">Lymph (L)</label>
+                <input
+                  type="number"
+                  value={calcParams.Lymph}
+                  onChange={(e) => setCalcParams({ ...calcParams, Lymph: parseFloat(e.target.value) || 0 })}
+                  className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded-xl p-2.5 text-sm mt-1"
+                />
+              </div>
+            </div>
+
+            <button
+              onClick={handleCalculate}
+              className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition"
+            >
+              Выполнить расчет через AST
+            </button>
+
+            {calcResult && (
+              <div className="bg-slate-950 p-4 rounded-xl border border-indigo-900 text-xs font-mono text-indigo-300 space-y-1">
+                <p className="font-bold text-slate-100">{calcResult.status}</p>
+                <p>Вычисленный Tk_Ratio: <span className="text-emerald-400 font-bold">{calcResult.results?.Tk_Ratio}</span></p>
+                <p>Клинический Risk_Score: <span className="text-emerald-400 font-bold">{calcResult.results?.Risk_Score}</span></p>
+                <p className="text-slate-400 mt-2">{calcResult.compliance?.note}</p>
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* 4. БИЛЛИНГ FAIR-SHARE */}
+        {activeTab === "billing" && (
+          <section className="bg-slate-900 border border-slate-800 p-6 rounded-2xl space-y-4">
+            <h2 className="text-lg font-bold text-slate-200">Автоматический консенсус распределения (70% / 20% / 10%)</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="text-xs text-slate-400">Сумма платежа</label>
+                <input
+                  type="number"
+                  value={amount}
+                  onChange={(e) => setAmount(parseFloat(e.target.value) || 0)}
+                  className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded-xl p-2.5 text-sm mt-1"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-slate-400">Валюта</label>
+                <select
+                  value={currency}
+                  onChange={(e) => setCurrency(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded-xl p-2.5 text-sm mt-1"
+                >
+                  <option value="USDT">USDT</option>
+                  <option value="USD">USD</option>
+                  <option value="KZT">KZT (₸)</option>
+                </select>
+              </div>
+              <div className="flex items-end">
+                <button
+                  onClick={handlePay}
+                  className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold p-2.5 rounded-xl text-sm transition"
+                >
+                  Провести платеж в Ledger
+                </button>
+              </div>
+            </div>
+
+            {payResult && (
+              <div className="bg-slate-950 p-4 rounded-xl border border-emerald-900 text-xs font-mono text-emerald-300 space-y-1">
+                <p className="font-bold text-slate-100">{payResult.status}</p>
+                <p>💰 Автору (70%): <span className="font-bold text-emerald-400">{payResult.split?.author_70_percent} {payResult.currency}</span></p>
+                <p>🏛️ Фонд инфраструктуры (20%): <span className="font-bold text-slate-300">{payResult.split?.infrastructure_20_percent} {payResult.currency}</span></p>
+                <p>👑 Создателю сети (10%): <span className="font-bold text-amber-400">{payResult.split?.founder_10_percent} {payResult.currency}</span></p>
+                <p className="text-slate-500 truncate">Tx Hash: {payResult.transaction_hash}</p>
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* МОДАЛЬНОЕ ОКНО: СЕРТИФИКАТ ПРИОРИТЕТА */}
+        {selectedCert && (
+          <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
+            <div className="bg-white text-slate-900 max-w-2xl w-full p-6 md:p-8 rounded-2xl border-4 border-slate-900 shadow-2xl relative space-y-4">
+              <button
+                onClick={() => setSelectedCert(null)}
+                className="absolute top-4 right-4 text-slate-500 hover:text-slate-900 font-bold text-lg"
+              >
+                ✕
+              </button>
+
+              <div className="border-b-2 border-slate-900 pb-3">
+                <h3 className="text-xl font-black uppercase tracking-wider text-slate-900">GITSCIENCE™ SOVEREIGN NOTARY</h3>
+                <p className="text-xs text-amber-800 font-bold uppercase">Official Certificate of Scientific Priority</p>
+              </div>
+
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-300 space-y-2 text-xs">
+                <p><span className="font-bold text-slate-700">Сертификат:</span> <span className="font-mono font-bold text-slate-900 text-sm">{selectedCert.certificate_number}</span></p>
+                <p><span className="font-bold text-slate-700">Регистрационный код:</span> <span className="font-mono font-bold text-slate-900">{selectedCert.registration_code}</span></p>
+                <p><span className="font-bold text-slate-700">Манускрипт:</span> <span className="font-semibold">{selectedCert.title}</span></p>
+                <p><span className="font-bold text-slate-700">Автор / Изобретатель:</span> {selectedCert.author}</p>
+                <p><span className="font-bold text-slate-700">ORCID iD:</span> <span className="font-mono">{selectedCert.orcid}</span></p>
+                <p><span className="font-bold text-slate-700">Дата фиксации (UTC):</span> {selectedCert.timestamp_utc}</p>
+              </div>
+
+              <div className="bg-slate-900 text-slate-100 p-3 rounded-xl font-mono text-[11px] space-y-1">
+                <p className="text-sky-400 font-bold">Честные Криптографические Доказательства:</p>
+                <p className="text-amber-300 break-all">SHA-256: {selectedCert.sha256_digest}</p>
+                <p className="text-emerald-400 break-all">Git Commit: {selectedCert.git_commit_oid}</p>
+                <p className="text-slate-400">Статус: {selectedCert.legal_status}</p>
+              </div>
+
+              <p className="text-[11px] text-amber-900 bg-amber-50 p-3 rounded-lg border-l-4 border-amber-600 leading-relaxed">
+                Настоящий сертификат фиксирует дату и точный хэш манускрипта до передачи в сторонние журналы. В соответствии с WIPO и 35 U.S.C. § 102 документ является неопровержимым доказательством известного уровня техники (Prior Art) и гарантирует авторское право создателя.
+              </p>
+
+              <div className="flex justify-end pt-2">
+                <button
+                  onClick={() => window.print()}
+                  className="bg-slate-900 hover:bg-slate-800 text-white font-bold px-5 py-2 rounded-xl text-xs"
+                >
+                  Распечатать / Сохранить в PDF 🖨️
+                </button>
+              </div>
             </div>
           </div>
-
-          {payResult && (
-            <div className="bg-slate-950 p-4 rounded-xl border border-indigo-900/50 font-mono text-xs text-indigo-300 space-y-1">
-              <p className="font-bold text-slate-200 mb-1">{payResult.status}</p>
-              <p>💰 Автору (70%): <span className="font-bold text-emerald-400">{payResult.split?.author_share_70} {payResult.currency}</span></p>
-              <p>🏛️ Платформе (30%): <span className="font-bold text-slate-400">{payResult.split?.platform_fee_30} {payResult.currency}</span></p>
-            </div>
-          )}
-        </section>
+        )}
 
       </div>
     </main>
