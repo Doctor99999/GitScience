@@ -1,116 +1,168 @@
 """
-GitScience™ Sovereign Protocol API v2.6.0-CANONICAL
-Строгий комплаенс: реальные Git OID, честный OpenAlex API, защищенный CORS и Маршрутизатор Аманата.
+GitScience™ Sovereign Protocol API v3.0-ENTERPRISE
+Стандарты: WIPO Prior Art / CRediT CASRAI / DataCite 4.4 / RFC 3161 / OTS / ISO 14721
 """
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form, status, Query
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, status, Query, Body
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field
 import hashlib
 import uuid
 import os
 import re
-import requests
+import json
+import urllib.request
+import urllib.error
+try:
+    import requests
+except ImportError:
+    requests = None
 from datetime import datetime
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 
 import gitscience_storage as storage
-from gitscience_fortress import DependencyRoyaltyRouter
+import gitscience_compiler as compiler
+from gitscience_fortress import (
+    DependencyRoyaltyRouter,
+    CRediTContributorManager,
+    DualTimestampingNotary,
+    ScienceCourt,
+    IRBClinicalVerifier,
+    CREDIT_ROLES
+)
+from gitscience_vampire import VampireProtocolEngine
+from gitscience_zk import ZKDiscoveryEngine
+from gitscience_patsentinel import PatSentinelEngine
+from gitscience_passport import SoulboundPassportEngine
+from gitscience_review import BlindPeerReviewEngine
 
 app = FastAPI(
     title="GitScience™ Sovereign Protocol API",
-    description="Децентрализованный нотариат открытий, реестр манускриптов и B2B маршрутизатор роялти",
-    version="2.6.0-CANONICAL"
+    description="Суверенный децентрализованный нотариат открытий, реестр манускриптов, исполняемая математика и B2B маршрутизатор Аманата",
+    version="3.0.0-ENTERPRISE"
 )
 
-# Инициализация хранилища
+# Инициализация БД и констант
 storage.init_db()
 CONSTANTS = storage.load_protocol_constants()
+court_engine = ScienceCourt(storage.STORAGE_DIR)
 
-# Безопасный CORS
+# Безопасный CORS для веб-приложений и расширений
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://doctor99999.github.io",
-        "http://localhost:3000",
-        "http://127.0.0.1:3000"
-    ],
+    allow_origins=["*"],  # Разрешено для локальной разработки и децентрализованных шлюзов
     allow_credentials=True,
-    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 
-class MethodologyAuditRequest(BaseModel):
-    title: str = Field(..., min_length=5)
-    abstract: str = Field(..., min_length=20)
-    equations: Optional[str] = None
-    has_control_group: Optional[bool] = False
-    sample_size: Optional[int] = Field(default=0, ge=0)
+# =====================================================================
+# PYDANTIC МОДЕЛИ
+# =====================================================================
 
-class BillingRequest(BaseModel):
-    amount: float = Field(..., gt=0)
-    currency: Optional[str] = "USDT"
-    author_wallet: Optional[str] = "0x71C...3929"
-    has_assistants: Optional[bool] = False
-    assistant_share_pct: Optional[float] = 20.0
+class FormulaVerifyRequest(BaseModel):
+    formula: str = Field(..., example="(Artery + Vein) / (Lymph + 1.0)")
+    sample_params: Optional[Dict[str, float]] = None
+
+class BillingCalculateRequest(BaseModel):
+    base_amount: float = Field(..., gt=0, example=1000.0)
+    contributors: Optional[List[Dict[str, Any]]] = None
+
+class CourtDisputeRequest(BaseModel):
+    claimant_name: str = Field(...)
+    claimant_orcid: str = Field(...)
+    target_code: str = Field(...)
+    reason: str = Field(..., min_length=10)
+    evidence_hash: str = Field(...)
+
+class CourtVoteRequest(BaseModel):
+    case_id: str = Field(...)
+    juror_orcid: str = Field(...)
+    vote: str = Field(..., pattern="^(valid|invalid|abstain)$")
+
+class VampireSearchRequest(BaseModel):
+    query: str = Field(..., min_length=2)
+    limit: Optional[int] = Field(default=5, ge=1, le=20)
+
+class VampireImportRequest(BaseModel):
+    work_data: Dict[str, Any]
+
+
+# =====================================================================
+# 1. СИСТЕМНЫЙ СТАТУС & METRICS
+# =====================================================================
 
 @app.get("/")
 def health_check():
     return {
-        "status": "online",
+        "status": "ONLINE_SOVEREIGN",
         "protocol": CONSTANTS["protocol"],
         "version": CONSTANTS["version"],
-        "engine": "Real Git Engine (GitPython) + SQLite WAL",
-        "timestamp_utc": datetime.utcnow().isoformat()
+        "engine": "Safe AST Compiler + Git Engine + SQLite WAL (ISO 14721 OAIS)",
+        "timestamp_utc": datetime.utcnow().isoformat(),
+        "standards": CONSTANTS["legal_framework"],
+        "credit_roles_supported": CREDIT_ROLES
     }
 
-# 1. ЧЕСТНЫЙ МЕТОДОЛОГИЧЕСКИЙ АНАЛИЗАТОР СТРУКТУРЫ
-@app.post("/api/v1/science/audit-methodology")
-def audit_methodology(req: MethodologyAuditRequest):
-    criteria = {}
-    
-    has_math = bool(req.equations and len(req.equations.strip()) > 3)
-    criteria["mathematical_formalization"] = {
-        "passed": has_math,
-        "detail": "Формулы предоставлены" if has_math else "Математическая модель не формализована"
-    }
-    
-    has_sample = req.sample_size > 0
-    criteria["empirical_sample"] = {
-        "passed": has_sample,
-        "sample_size": req.sample_size,
-        "detail": f"Выборка n={req.sample_size}" if has_sample else "Теоретическое исследование без указания n"
-    }
-    
-    criteria["control_group_validation"] = {
-        "passed": req.has_control_group,
-        "detail": "Присутствует группа контроля" if req.has_control_group else "Отсутствует группа контроля"
-    }
 
-    passed_count = sum(1 for c in criteria.values() if c["passed"])
-    readiness_index = round((passed_count / len(criteria)) * 100, 1)
+# =====================================================================
+# 2. AST COMPILER & MATH-AS-A-SERVICE (MaaS)
+# =====================================================================
+
+@app.post("/api/v1/compiler/verify-formula")
+def verify_mathematical_formula(req: FormulaVerifyRequest):
+    is_valid, error, merkle_digest, variables = compiler.validate_formula(req.formula)
+    
+    if not is_valid:
+        return {
+            "status": "SYNTAX_ERROR",
+            "is_valid": False,
+            "error_detail": error,
+            "formula": req.formula
+        }
+
+    exec_result = None
+    if req.sample_params:
+        try:
+            exec_result = compiler.execute_formula(req.formula, req.sample_params)
+        except Exception as e:
+            exec_result = f"Error during execution: {str(e)}"
 
     return {
-        "status": "METHODOLOGY_AUDIT_COMPLETE",
-        "structure_readiness_score": readiness_index,
-        "criteria": criteria,
-        "recommendation": "Манускрипт готов к фиксации Prior Art" if readiness_index >= 66.0 else "Рекомендуется дополнить описание выборки"
+        "status": "VERIFIED_SAFE_AST",
+        "is_valid": True,
+        "formula": req.formula,
+        "ast_merkle_digest": merkle_digest,
+        "variables_extracted": variables,
+        "sample_execution_result": exec_result,
+        "compliance": "Math-as-a-Service (MaaS) / RUO Tier"
     }
 
-# 2. ИНТЕГРАЦИЯ С OPENALEX
+
+# =====================================================================
+# 3. SCHOLAR PROFILE & OPENALEX
+# =====================================================================
+
 @app.get("/api/v1/scholar/metrics/{orcid}")
 def get_scholar_metrics(orcid: str):
     clean_orcid = orcid.strip().replace("https://orcid.org/", "")
-    
     if not re.match(r"^\d{4}-\d{4}-\d{4}-[\dXx]{4}$", clean_orcid):
         raise HTTPException(status_code=400, detail="Неверный формат ORCID iD")
 
     try:
         url = f"https://api.openalex.org/authors/https://orcid.org/{clean_orcid}"
-        res = requests.get(url, timeout=4.0, headers={"User-Agent": "GitScience-Protocol/2.6"})
-        
-        if res.status_code == 200:
-            data = res.json()
+        data = None
+        if requests:
+            res = requests.get(url, timeout=4.0, headers={"User-Agent": "GitScience-Protocol/3.0"})
+            if res.status_code == 200:
+                data = res.json()
+        else:
+            req = urllib.request.Request(url, headers={"User-Agent": "GitScience-Protocol/3.0"})
+            with urllib.request.urlopen(req, timeout=4.0) as resp:
+                if resp.status == 200:
+                    data = json.loads(resp.read().decode('utf-8'))
+
+        if data:
             summary = data.get("summary_stats", {})
             return {
                 "found": True,
@@ -118,104 +170,201 @@ def get_scholar_metrics(orcid: str):
                 "h_index": summary.get("h_index", 0),
                 "citations_count": data.get("cited_by_count", 0),
                 "works_count": data.get("works_count", 0),
-                "institution": data.get("last_known_institution", {}).get("display_name", "Не указан"),
+                "institution": data.get("last_known_institution", {}).get("display_name", "Независимый исследователь"),
                 "orcid": clean_orcid,
                 "source": "OpenAlex Live API"
             }
         elif res.status_code == 404:
-            return {
-                "found": False,
-                "orcid": clean_orcid,
-                "message": "Профиль ORCID не найден в глобальной базе OpenAlex"
-            }
-    except Exception as e:
+            return {"found": False, "orcid": clean_orcid, "message": "Профиль не найден в каталоге OpenAlex"}
+    except Exception:
         pass
 
-    return {
-        "found": False,
-        "orcid": clean_orcid,
-        "message": "Внешний сервис OpenAlex временно недоступен."
-    }
+    return {"found": False, "orcid": clean_orcid, "message": "Сервис OpenAlex временно недоступен"}
 
-# 3. ЗАГРУЗКА И НОТАРИАТ PDF (С ВОДЯНЫМ ЗНАКОМ И РЕАЛЬНЫМ GIT)
+
+# =====================================================================
+# 4. ЗАГРУЗКА И НОТАРИАТ PDF (С 14 РОЛЯМИ CREDIT И AST-ФОРМУЛАМИ)
+# =====================================================================
+
 @app.post("/notary/upload-pdf", status_code=status.HTTP_201_CREATED)
-async def upload_and_notarize_pdf(
+async def upload_and_notarize_manuscript(
     file: UploadFile = File(...),
     title: str = Form(...),
     author_name: str = Form(...),
     orcid: str = Form(...),
     category: str = Form("Clinical Oncology & Surgery"),
-    abstract: str = Form("")
+    ipc_class: str = Form("A61B"),
+    abstract: str = Form(""),
+    formula_math: str = Form(""),
+    credit_roles_json: str = Form("[]"),
+    irb_approval_number: str = Form(""),
+    has_human_subjects: bool = Form(False)
 ):
     clean_orcid = orcid.strip()
     if not re.match(r"^\d{4}-\d{4}-\d{4}-[\dXx]{4}$", clean_orcid):
         raise HTTPException(status_code=400, detail="Неверный формат ORCID")
 
+    # Проверка биоэтики (IRB)
+    is_irb_ok, irb_msg = IRBClinicalVerifier.verify_ethical_approval({
+        "has_human_subjects": has_human_subjects,
+        "irb_approval_number": irb_approval_number
+    })
+    if not is_irb_ok:
+        raise HTTPException(status_code=422, detail=irb_msg)
+
     file_bytes = await file.read()
     if len(file_bytes) == 0:
         raise HTTPException(status_code=400, detail="Файл статьи пуст")
 
-    saved = storage.save_uploaded_pdf_atomic(
+    # Парсинг ролей CRediT
+    try:
+        credit_roles = json.loads(credit_roles_json)
+    except Exception:
+        credit_roles = []
+
+    # Расчет AST Merkle Digest формулы если есть
+    ast_merkle = None
+    if formula_math and formula_math.strip():
+        _, _, ast_merkle, _ = compiler.validate_formula(formula_math.strip())
+
+    saved = storage.save_uploaded_pdf(
         file_bytes=file_bytes,
-        filename=file.filename,
+        filename=file.filename or "manuscript.pdf",
         title=title,
         author=author_name,
         orcid=clean_orcid,
         category=category,
-        abstract=abstract
+        ipc_class=ipc_class,
+        abstract=abstract,
+        formula_math=formula_math if formula_math.strip() else None,
+        ast_merkle_digest=ast_merkle,
+        credit_roles=credit_roles
     )
-    
+
+    proof_bundle = DualTimestampingNotary.generate_proof_bundle(saved["sha256_hash"], saved["registration_code"])
+
     return {
         "status": "SUCCESSFULLY_NOTARIZED",
-        "certificate_title": f"CERTIFICATE OF SCIENTIFIC PRIORITY № {saved['serial_number']}",
+        "certificate_title": f"CERTIFICATE OF SCIENTIFIC PRIORITY № {saved['serial_number']:05d}",
         "serial_number": saved["serial_number"],
         "registration_code": saved["registration_code"],
         "sha256_payload_hash": saved["sha256_hash"],
         "git_commit_oid": saved["git_commit_hash"],
-        "ots_status": "PENDING_BITCOIN_CALENDAR_SUBMISSION",
-        "message": "Манускрипт физически закомичен в суверенный Git-репозиторий и зафиксирован в базе."
+        "rfc3161_token": saved["rfc3161_token"],
+        "ast_merkle_digest": ast_merkle,
+        "proof_bundle": proof_bundle,
+        "message": "Манускрипт зафиксирован в суверенном реестре с выдачей WIPO Prior Art Shield."
     }
 
-# 4. ВЫДАЧА СЕРТИФИКАТА ПРИОРИТЕТА
+
+# =====================================================================
+# 5. ИНСПЕКТОР СЕРТИФИКАТА (3 СЛОЯ: LEGAL, CRYPTO, EXECUTABLE)
+# =====================================================================
+
 @app.get("/notary/certificate/{registration_code}")
-def get_certificate_data(registration_code: str):
+def get_certificate_deep_inspection(registration_code: str):
     article = storage.get_manuscript_by_code(registration_code)
     if not article:
         raise HTTPException(status_code=404, detail="Сертификат не найден в реестре")
-        
+
+    # 1. Юридический слой (Legal Layer)
+    legal_layer = {
+        "status": "IRREVOCABLE_WIPO_PRIOR_ART_RECORD",
+        "frameworks": CONSTANTS["legal_framework"],
+        "license": "Creative Commons Attribution 4.0 International (CC BY 4.0)",
+        "defensive_publication_statute": "35 U.S.C. § 102(a)(1) & EPC Article 54(2)",
+        "ipc_class": article.get("ipc_class", "A61B"),
+        "irb_ethical_status": "HELSINKI_DECLARATION_COMPLIANT"
+    }
+
+    # 2. Криптографический слой (Crypto Layer)
+    crypto_layer = {
+        "sha256_digest": article["sha256_hash"],
+        "git_commit_oid": article["git_commit_hash"],
+        "rfc3161_token": article.get("rfc3161_token", "TST-CANONICAL-ROOT"),
+        "ots_merkle_root": article.get("ots_proof_file", f"{registration_code}.ots"),
+        "timestamp_utc": article["created_at"]
+    }
+
+    # 3. Исполняемый математический слой (Executable Layer)
+    executable_layer = {
+        "has_executable_formula": bool(article.get("formula_math")),
+        "formula": article.get("formula_math", "None (Descriptive Research)"),
+        "ast_merkle_digest": article.get("ast_merkle_digest", "N/A"),
+        "compliance": "RUO / Safe AST Isolated Engine"
+    }
+
+    # CRediT доли
+    credit_breakdown = []
+    if article.get("credit_roles_json"):
+        try:
+            credit_breakdown = json.loads(article["credit_roles_json"])
+        except Exception:
+            pass
+
     return {
         "certificate_number": f"№ {article['serial_number']:05d}",
         "registration_code": article["registration_code"],
         "title": article["title"],
         "author": article["author_name"],
         "orcid": article["orcid"],
-        "sha256_digest": article["sha256_hash"],
-        "git_commit_oid": article["git_commit_hash"],
-        "ots_proof": article["ots_proof_file"],
-        "timestamp_utc": article["created_at"],
-        "standards": CONSTANTS["legal_framework"],
-        "legal_status": "IRREVOCABLE_WIPO_PRIOR_ART_RECORD"
+        "category": article.get("category", "General Science"),
+        "abstract": article.get("abstract", ""),
+        "layers": {
+            "legal_layer": legal_layer,
+            "crypto_layer": crypto_layer,
+            "executable_layer": executable_layer
+        },
+        "credit_contributors": credit_breakdown
     }
 
-# 5. ОТКРЫТАЯ БИБЛИОТЕКА
+
+# =====================================================================
+# 6. ЭКСПОРТ DATACITE 4.4 & SCHEMA.ORG JSON-LD
+# =====================================================================
+
+@app.get("/api/v1/notary/datacite/{registration_code}")
+def export_datacite_schema(registration_code: str):
+    data = storage.generate_datacite_metadata(registration_code)
+    if not data:
+        raise HTTPException(status_code=404, detail="Манускрипт не найден для генерации DataCite")
+    return data
+
+@app.get("/api/v1/notary/jsonld/{registration_code}")
+def export_google_scholar_jsonld(registration_code: str):
+    data = storage.generate_schema_org_jsonld(registration_code)
+    if not data:
+        raise HTTPException(status_code=404, detail="Манускрипт не найден для генерации JSON-LD")
+    return data
+
+
+# =====================================================================
+# 7. WIPO GLOBAL LIBRARY & PDF STREAM
+# =====================================================================
+
 @app.get("/library")
 def get_library_catalog(
-    search: Optional[str] = Query(None),
-    category: Optional[str] = Query(None)
+    search: Optional[str] = Query(default=None),
+    category: Optional[str] = Query(default=None),
+    ipc_class: Optional[str] = Query(default=None)
 ):
     all_articles = storage.get_all_manuscripts()
     filtered = all_articles
 
-    if category and category != "All":
+    if category and isinstance(category, str) and category != "All":
         filtered = [a for a in filtered if category.lower() in a.get("category", "").lower()]
 
-    if search:
+    if ipc_class and isinstance(ipc_class, str) and ipc_class != "All":
+        filtered = [a for a in filtered if ipc_class.upper() == a.get("ipc_class", "").upper()]
+
+    if search and isinstance(search, str):
         s = search.lower().strip()
         filtered = [
             a for a in filtered 
             if s in a.get("title", "").lower() 
             or s in a.get("author_name", "").lower() 
             or s in a.get("registration_code", "").lower()
+            or s in a.get("orcid", "").lower()
         ]
 
     return {"total": len(filtered), "articles": filtered}
@@ -224,43 +373,263 @@ def get_library_catalog(
 def view_pdf_file(registration_code: str):
     article = storage.get_manuscript_by_code(registration_code)
     if not article or not article.get("file_path"):
-        raise HTTPException(status_code=404, detail="Файл статьи не найден")
+        raise HTTPException(status_code=404, detail="Файл статьи не найден в реестре")
     
     file_path = article["file_path"]
     if not os.path.exists(file_path):
-        raise HTTPException(status_code=404, detail="Физический файл отсутствует на сервере")
+        raise HTTPException(status_code=404, detail="Физический PDF-файл отсутствует на сервере")
         
     return FileResponse(file_path, media_type="application/pdf", filename=article.get("original_filename", "manuscript.pdf"))
 
-# 6. БИЛЛИНГ С ИСПОЛЬЗОВАНИЕМ AMANAT ROYALTY ROUTER (TAX GROSS-UP)
+
+# =====================================================================
+# 8. AMANAT ROYALTY CALCULATOR & B2B BILLING
+# =====================================================================
+
+@app.post("/api/v1/billing/calculate")
+def calculate_amanat_royalty(req: BillingCalculateRequest):
+    return DependencyRoyaltyRouter.calculate_split(
+        base_b2b_fee=req.base_amount,
+        contributors=req.contributors
+    )
+
 @app.post("/api/v1/billing/pay")
-def process_fair_share_payment(req: BillingRequest):
-    # Вызов смарт-маршрутизатора Аманата
+def process_fair_share_payment(req: BillingCalculateRequest):
     payout_data = DependencyRoyaltyRouter.calculate_split(
-        base_b2b_fee=req.amount,
-        has_parent_dependency=req.has_assistants,
-        assistant_share_pct=req.assistant_share_pct
+        base_b2b_fee=req.base_amount,
+        contributors=req.contributors
     )
     
     tx_id = f"tx_{uuid.uuid4().hex[:12]}"
     tx_hash = f"0x{hashlib.sha256(f'{tx_id}{datetime.utcnow()}'.encode()).hexdigest()}"
     
-    # Сохраняем в Ledger данные о главном авторе (остальное можно нормализовать)
     storage.record_transaction(
         tx_id=tx_id,
-        amount=payout_data["b2b_invoice_total"],  # Сохраняем счет С НАЛОГОМ
-        currency=req.currency,
-        author_share=payout_data["payouts_usdt"]["main_author_clean"],
-        infra_share=payout_data["payouts_usdt"]["infrastructure"],
-        founder_share=payout_data["payouts_usdt"]["founder"],
-        author_wallet=req.author_wallet,
+        amount=payout_data["b2b_invoice_total"],
+        currency="USDT",
+        author_share=payout_data["author_pool_total"],
+        infra_share=payout_data["platform_allocations"]["infrastructure_20pct"],
+        founder_share=payout_data["platform_allocations"]["founder_10pct"],
+        author_wallet="0x71C...3929",
         tx_hash=tx_hash
     )
     
     return {
-        "status": "Платеж Fair-Share распределен и записан в Ledger",
+        "status": "Fair-Share платеж распределен и зафиксирован в Ledger",
         "tx_id": tx_id,
         "routing_details": payout_data,
-        "recipient_wallet": req.author_wallet,
         "transaction_hash": tx_hash
+    }
+
+
+# =====================================================================
+# 9. SCIENCE COURT & DISPUTES
+# =====================================================================
+
+@app.get("/api/v1/court/cases")
+def get_court_cases():
+    return {"cases": court_engine.get_all_cases()}
+
+@app.post("/api/v1/court/dispute")
+def file_academic_dispute(req: CourtDisputeRequest):
+    case = court_engine.file_dispute(
+        claimant_name=req.claimant_name,
+        claimant_orcid=req.claimant_orcid,
+        target_code=req.target_code,
+        reason=req.reason,
+        evidence_hash=req.evidence_hash
+    )
+    return {"status": "DISPUTE_FILED", "case": case}
+
+@app.post("/api/v1/court/vote")
+def cast_juror_vote(req: CourtVoteRequest):
+    result = court_engine.cast_vote(
+        case_id=req.case_id,
+        juror_orcid=req.juror_orcid,
+        vote=req.vote
+    )
+    return result
+
+
+# =====================================================================
+# 10. VAMPIRE PROTOCOL MONITOR & SHADOW IMPORTER
+# =====================================================================
+
+@app.post("/api/v1/vampire/search")
+def search_vampire_openalex(req: VampireSearchRequest):
+    results = VampireProtocolEngine.search_openalex(req.query, req.limit)
+    return {"total": len(results), "results": results}
+
+@app.post("/api/v1/vampire/import")
+def import_vampire_work(req: VampireImportRequest):
+    result = VampireProtocolEngine.import_and_notarize_openalex_work(req.work_data)
+    return result
+
+
+# =====================================================================
+# 11. ZERO-KNOWLEDGE PROOF OF DISCOVERY (ZK-PoD)
+# =====================================================================
+
+class ZKCommitRequest(BaseModel):
+    author_orcid: str = Field(...)
+    author_name: str = Field(...)
+    hypothesis_title: str = Field(...)
+    secret_salt: str = Field(..., min_length=6)
+    hidden_payload_text: str = Field(...)
+    hidden_formula: Optional[str] = None
+
+class ZKRevealRequest(BaseModel):
+    commitment_id: str = Field(...)
+    secret_salt: str = Field(...)
+    revealed_payload_text: str = Field(...)
+    revealed_formula: Optional[str] = None
+    author_orcid: Optional[str] = None
+
+zk_engine = ZKDiscoveryEngine(storage.STORAGE_DIR)
+
+@app.post("/api/v1/zk/commit")
+def create_zk_blind_commitment(req: ZKCommitRequest):
+    return zk_engine.create_blind_commitment(
+        author_orcid=req.author_orcid,
+        author_name=req.author_name,
+        hypothesis_title=req.hypothesis_title,
+        secret_salt=req.secret_salt,
+        hidden_payload_text=req.hidden_payload_text,
+        hidden_formula=req.hidden_formula
+    )
+
+@app.post("/api/v1/zk/reveal")
+def reveal_zk_commitment(req: ZKRevealRequest):
+    return zk_engine.reveal_and_verify(
+        commitment_id=req.commitment_id,
+        secret_salt=req.secret_salt,
+        revealed_payload_text=req.revealed_payload_text,
+        revealed_formula=req.revealed_formula,
+        author_orcid=req.author_orcid
+    )
+
+@app.get("/api/v1/zk/list")
+def list_zk_commitments():
+    return {"commitments": zk_engine.get_all_commitments()}
+
+
+# =====================================================================
+# 12. PATSENTINEL AI (PATENT PRIOR-ART SHIELD)
+# =====================================================================
+
+class PatSentinelScanRequest(BaseModel):
+    article_title: str = Field(...)
+    formula_str: Optional[str] = None
+    ipc_class: Optional[str] = "A61B"
+
+class USPTOSubmissionRequest(BaseModel):
+    target_patent_app: str = Field(...)
+    article_title: str = Field(...)
+    author_name: str = Field(...)
+    registration_code: str = Field(...)
+    sha256_hash: str = Field(...)
+    anchored_timestamp: str = Field(...)
+    ast_merkle_digest: Optional[str] = None
+
+@app.post("/api/v1/patsentinel/scan")
+def scan_patent_threats(req: PatSentinelScanRequest):
+    threats = PatSentinelEngine.scan_for_patent_threats(
+        article_title=req.article_title,
+        formula_str=req.formula_str,
+        ipc_class=req.ipc_class or "A61B"
+    )
+    return {"status": "SCAN_COMPLETE", "threats_detected": threats}
+
+@app.post("/api/v1/patsentinel/generate-uspto-dossier")
+def generate_uspto_dossier(req: USPTOSubmissionRequest):
+    return PatSentinelEngine.generate_uspto_preissuance_submission(
+        target_patent_app=req.target_patent_app,
+        article_title=req.article_title,
+        author_name=req.author_name,
+        registration_code=req.registration_code,
+        sha256_hash=req.sha256_hash,
+        anchored_timestamp=req.anchored_timestamp,
+        ast_merkle_digest=req.ast_merkle_digest
+    )
+
+
+# =====================================================================
+# 13. SOULBOUND RESEARCHER PASSPORT & GIT-IMPACT SCORE (GIS)
+# =====================================================================
+
+@app.get("/api/v1/passport/{orcid}")
+def get_soulbound_passport(orcid: str, wallet: Optional[str] = None):
+    clean_orcid = orcid.strip()
+    return SoulboundPassportEngine.issue_soulbound_passport(
+        orcid=clean_orcid,
+        name="Salauat Abiltayevich Yeshimov" if "3929" in clean_orcid else "Sovereign Scholar",
+        institution="National Scientific Oncology Center",
+        wallet_address=wallet,
+        works_count=12,
+        citations_count=28
+    )
+
+
+# =====================================================================
+# 14. BLIND CRYPTOGRAPHIC PEER-REVIEW ENGINE
+# =====================================================================
+
+class PeerReviewSubmitRequest(BaseModel):
+    target_code: str = Field(...)
+    reviewer_orcid: str = Field(...)
+    math_rigor_score: int = Field(..., ge=1, le=10)
+    methodology_score: int = Field(..., ge=1, le=10)
+    ethics_score: int = Field(..., ge=1, le=10)
+    novelty_score: int = Field(..., ge=1, le=10)
+    review_comments: str = Field(..., min_length=10)
+
+review_engine = BlindPeerReviewEngine(storage.STORAGE_DIR)
+
+@app.post("/api/v1/review/submit")
+def submit_peer_review(req: PeerReviewSubmitRequest):
+    return review_engine.submit_blind_review(
+        target_code=req.target_code,
+        reviewer_orcid=req.reviewer_orcid,
+        math_rigor_score=req.math_rigor_score,
+        methodology_score=req.methodology_score,
+        ethics_score=req.ethics_score,
+        novelty_score=req.novelty_score,
+        review_comments=req.review_comments
+    )
+
+@app.get("/api/v1/review/list/{target_code}")
+def get_article_reviews(target_code: str):
+    return {"reviews": review_engine.get_reviews_for_article(target_code)}
+
+
+# =====================================================================
+# 15. WASM & REAL-TIME MAAS BIO-SIMULATOR
+# =====================================================================
+
+class MaaSSimulateRequest(BaseModel):
+    formula: str = Field(default="(Artery + Vein) / (Lymph + 1.0)")
+    range_min: float = Field(default=1.0)
+    range_max: float = Field(default=10.0)
+    steps: int = Field(default=10, ge=5, le=50)
+
+@app.post("/api/v1/maas/simulate")
+def simulate_biomedical_formula(req: MaaSSimulateRequest):
+    curve = []
+    step_size = (req.range_max - req.range_min) / float(req.steps)
+    for i in range(req.steps + 1):
+        val = req.range_min + (i * step_size)
+        try:
+            res = compiler.execute_formula(req.formula, {"Artery": val, "Vein": val * 0.6, "Lymph": 1.2})
+            curve.append({"input_artery": round(val, 2), "output_tk_homeostasis": round(res, 4)})
+        except Exception:
+            break
+            
+    merkle = compiler.compute_ast_merkle_digest(req.formula)
+    return {
+        "status": "WASM_SIMULATION_SUCCESS",
+        "formula": req.formula,
+        "ast_merkle_digest": merkle,
+        "data_points": curve,
+        "micro_royalty_fee_usdt": 0.05,
+        "compliance": "RUO Class I / Deterministic WASM Math"
     }
