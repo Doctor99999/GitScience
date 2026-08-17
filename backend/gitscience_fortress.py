@@ -105,20 +105,20 @@ class CRediTContributorManager:
 # 3. ⏱️ ДВОЙНОЙ КРИПТОНОТАРИАТ (RFC 3161 & OpenTimestamps)
 # =====================================================================
 class DualTimestampingNotary:
-    """Генерация и валидация доверенных временных меток RFC 3161 и OpenTimestamps"""
+    """Генерация и валидация системных временных меток RFC 3161 и OpenTimestamps"""
 
     @staticmethod
     def generate_proof_bundle(payload_sha256: str, registration_code: str) -> Dict[str, Any]:
-        simulated_tsa_token = hashlib.sha256(f"RFC3161:{payload_sha256}:{time.time()}".encode()).hexdigest()
+        simulated_tsa_token = hashlib.sha256(f"GITSCIENCE_SYSTEM_TSA:{payload_sha256}:{time.time()}".encode()).hexdigest()
         simulated_ots_merkle = hashlib.sha256(f"BITCOIN_MERKLE_ROOT:{payload_sha256}".encode()).hexdigest()
 
         return {
             "registration_code": registration_code,
             "sha256_digest": payload_sha256,
             "rfc3161_tsa": {
-                "status": "QUALIFIED_ELECTRONIC_TIMESTAMP",
-                "standard": "RFC 3161 / eIDAS Art 42",
-                "tsa_authority": "DigiCert / FreeTSA Cryptographic Anchor",
+                "status": "SYSTEM_TIME_STAMP_TOKEN",
+                "standard": "RFC 3161 Data Structure Compatible",
+                "tsa_authority": "GitScience Sovereign Node Authority (Self-Attested)",
                 "token_id": f"TST-{simulated_tsa_token[:16].upper()}",
                 "timestamp_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
             },

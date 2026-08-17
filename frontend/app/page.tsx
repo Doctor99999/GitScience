@@ -44,8 +44,7 @@ const TRANSLATIONS = {
     tabInspector: "🔍 3-Layer Инспектор",
     tabLibrary: "🏛️ WIPO Кітапхана",
     tabZk: "🔒 ZK-Discovery (Құпия анкер)",
-    tabPatSentinel: "🤖 PatSentinel AI (Патент қорғанысы)",
-    tabPassport: "🧬 Soulbound Паспорт (GIS)",
+    tabPassport: "🧬 Ғалым Профилі (GIS)",
     tabReview: "📝 Blind Peer-Review",
     tabMaas: "⚡ WASM MaaS Симулятор",
     tabAmanat: "💳 Аманат Роялти",
@@ -73,23 +72,19 @@ const TRANSLATIONS = {
     zkCommitBtn: "Слепой ZK-коммитмент құру 🔒",
     zkRevealTitle: "Бұрын сақталған ZK-депозитті ашу және дәлелдеу",
     zkRevealBtn: "Математикалық сәйкестікті дәлелдеу 🔓",
-    // PatSentinel
-    patHeader: "PatSentinel AI: USPTO & EPO патенттік қауіптерді жою",
-    patScanBtn: "Корпорациялық патенттік қауіптерді сканерлеу 🤖",
-    patGenerateUsptoBtn: "USPTO-ға қарсы ресми наразылық құжатын жасау (35 U.S.C. § 122(e)) ⚖️",
     // Passport
-    passHeader: "Soulbound Researcher Passport & Git-Impact Score (GIS)",
-    passRankLabel: "Ғылыми атақ пен суверенді ранг",
+    passHeader: "Sovereign Scholar Profile & Git-Impact Score (GIS)",
+    passRankLabel: "Платформадағы белсенділік деңгейі",
     // Review
-    revHeader: "Слепое рецензирование және 20% қордан төлем алу",
-    revSubmitBtn: "Рецензияны бекіту және $150 USDT алу 💳",
+    revHeader: "Слепое рецензирование және инфрақұрылым қорынан төлем алу",
+    revSubmitBtn: "Рецензияны бекіту 💳",
     // MaaS
     maasHeader: "WASM Real-Time Biomedical Simulator (Math-as-a-Service)",
     maasRunBtn: "Гомеостаз қисығын есептеу ⚡",
     // Amanat & Court
     amanatHeader: "Аманат роялти маршрутизаторы және B2B биллинг (+20% Tax Gross-Up)",
     courtHeader: "Ғылыми сот және басымдық дауларын шешу",
-    vampireHeader: "Vampire Protocol: OpenAlex-тен импорттау",
+    vampireHeader: "Vampire Protocol: OpenAlex-тен лицензиялық импорт",
   },
   RU: {
     brand: "GitScience™ Sovereign Protocol",
@@ -101,8 +96,7 @@ const TRANSLATIONS = {
     tabInspector: "🔍 3-Layer Инспектор",
     tabLibrary: "🏛️ WIPO Библиотека",
     tabZk: "🔒 ZK-Discovery (Тайный анкер)",
-    tabPatSentinel: "🤖 PatSentinel AI (Щит патентов)",
-    tabPassport: "🧬 Soulbound Паспорт (GIS)",
+    tabPassport: "🧬 Профиль Ученого (GIS)",
     tabReview: "📝 Blind Peer-Review",
     tabMaas: "⚡ WASM MaaS Симулятор",
     tabAmanat: "💳 Роялти Аманата",
@@ -128,18 +122,15 @@ const TRANSLATIONS = {
     zkCommitBtn: "Создать слепой ZK-коммитмент 🔒",
     zkRevealTitle: "Раскрытие и математическое доказательство ZK-депозита",
     zkRevealBtn: "Доказать приоритет и раскрыть секрет 🔓",
-    patHeader: "PatSentinel AI: Блокировка патентов фармкорпораций в USPTO & EPO",
-    patScanBtn: "Сканировать патентные угрозы 🤖",
-    patGenerateUsptoBtn: "Сформировать протест в USPTO (35 U.S.C. § 122(e)) ⚖️",
-    passHeader: "Soulbound Researcher Passport & Git-Impact Score (GIS)",
-    passRankLabel: "Суверенный академический ранг",
-    revHeader: "Слепое крипто-рецензирование с оплатой из фонда (20%)",
-    revSubmitBtn: "Зафиксировать рецензию и получить $150 USDT 💳",
+    passHeader: "Sovereign Scholar Profile & Git-Impact Score (GIS)",
+    passRankLabel: "Уровень активности в платформе",
+    revHeader: "Слепое крипто-рецензирование с проверкой фонда и автора",
+    revSubmitBtn: "Зафиксировать рецензию 💳",
     maasHeader: "WASM Real-Time Biomedical Simulator (Math-as-a-Service)",
     maasRunBtn: "Запустить симуляцию гомеостаза ⚡",
     amanatHeader: "Маршрутизатор роялти Аманата и B2B биллинг (+20% Tax Gross-Up)",
     courtHeader: "Академический суд и разрешение споров о приоритете",
-    vampireHeader: "Vampire Protocol: Теневой импортер из OpenAlex",
+    vampireHeader: "Vampire Protocol: Лицензионный импортер из OpenAlex",
   },
   EN: {
     brand: "GitScience™ Sovereign Protocol",
@@ -151,8 +142,7 @@ const TRANSLATIONS = {
     tabInspector: "🔍 3-Layer Inspector",
     tabLibrary: "🏛️ WIPO Library",
     tabZk: "🔒 ZK-Discovery (Blind Anchor)",
-    tabPatSentinel: "🤖 PatSentinel AI (Patent Shield)",
-    tabPassport: "🧬 Soulbound Passport (GIS)",
+    tabPassport: "🧬 Scholar Profile (GIS)",
     tabReview: "📝 Blind Peer-Review",
     tabMaas: "⚡ WASM MaaS Simulator",
     tabAmanat: "💳 Amanat Royalty",
@@ -178,18 +168,15 @@ const TRANSLATIONS = {
     zkCommitBtn: "Create Blind ZK-Commitment 🔒",
     zkRevealTitle: "Reveal & Mathematically Prove Pre-Existing ZK Deposit",
     zkRevealBtn: "Prove Prior Art & Verify Match 🔓",
-    patHeader: "PatSentinel AI: USPTO & EPO Patent Invalidation Defense",
-    patScanBtn: "Scan Global Patent Invalidation Threats 🤖",
-    patGenerateUsptoBtn: "Generate Official USPTO 35 U.S.C. § 122(e) Dossier ⚖️",
-    passHeader: "Soulbound Researcher Passport & Git-Impact Score (GIS)",
-    passRankLabel: "Sovereign Academic Rank",
-    revHeader: "Blind Peer-Review with Guaranteed 20% Infra Fund Compensation",
-    revSubmitBtn: "Submit Review & Disburse $150 USDT 💳",
+    passHeader: "Sovereign Scholar Profile & Git-Impact Score (GIS)",
+    passRankLabel: "Platform Activity Tier",
+    revHeader: "Blind Peer-Review with Verified Fund & Self-Review Protection",
+    revSubmitBtn: "Submit Review 💳",
     maasHeader: "WASM Real-Time Biomedical Simulator (Math-as-a-Service)",
     maasRunBtn: "Simulate Homeostasis Curve ⚡",
     amanatHeader: "Amanat Royalty Router & B2B Billing (+20% Tax Gross-Up)",
     courtHeader: "Science Court & Academic Dispute Arbitration",
-    vampireHeader: "Vampire Protocol: OpenAlex Shadow Importer",
+    vampireHeader: "Vampire Protocol: Licensed OpenAlex Importer",
   },
 };
 
@@ -198,18 +185,18 @@ export default function GitScienceSovereignApp() {
   const t = TRANSLATIONS[lang];
 
   const [activeTab, setActiveTab] = useState<
-    "notary" | "inspector" | "library" | "zk" | "patsentinel" | "passport" | "review" | "maas" | "amanat" | "court" | "vampire"
+    "notary" | "inspector" | "library" | "zk" | "passport" | "review" | "maas" | "amanat" | "court" | "vampire"
   >("notary");
 
   // Scholar Profile
-  const [orcidProfile, setOrcidProfile] = useState<{
+  const [orcidProfile] = useState<{
     orcid: string;
     name: string;
     hIndex: number;
     citations: number;
     works: number;
     institution: string;
-  } | null>({
+  }>({
     orcid: "0009-0003-3929-3605",
     name: "Salauat Abiltayevich Yeshimov",
     hIndex: 4,
@@ -217,51 +204,20 @@ export default function GitScienceSovereignApp() {
     works: 12,
     institution: "National Scientific Oncology Center",
   });
-  const [walletAddress, setWalletAddress] = useState<string | null>(null);
 
   // 1. Notary State
-  const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState("Coupling of Neuro-Immuno-Oncological Axes & Tk Equation");
   const [authorName, setAuthorName] = useState("Salauat Abiltayevich Yeshimov");
   const [orcid, setOrcid] = useState("0009-0003-3929-3605");
-  const [category, setCategory] = useState("Clinical Oncology & Surgery");
   const [ipcClass, setIpcClass] = useState("A61B");
-  const [abstract, setAbstract] = useState(
-    "Mathematical formalization of neuro-immuno-oncological axes via deterministic Tk equation. Safe AST reproducibility under RUO."
-  );
   const [formulaMath, setFormulaMath] = useState("(Artery + Vein) / (Lymph + 1.0)");
-  const [hasHumanSubjects, setHasHumanSubjects] = useState(true);
-  const [irbNumber, setIrbNumber] = useState("IRB-2026-ONCO-0884");
-  const [contributors, setContributors] = useState([
-    {
-      name: "Salauat Abiltayevich Yeshimov",
-      orcid: "0009-0003-3929-3605",
-      roles: ["Conceptualization", "Methodology", "Formal Analysis", "Writing - Original Draft"],
-      weight: 70,
-    },
-    {
-      name: "Co-Researcher / Data Analyst",
-      orcid: "0009-0001-2234-5678",
-      roles: ["Software", "Validation", "Data Curation"],
-      weight: 30,
-    },
-  ]);
-  const [astVerification, setAstVerification] = useState<any>(null);
   const [notarySuccess, setNotarySuccess] = useState<any>(null);
-  const [notarySubmitting, setNotarySubmitting] = useState(false);
 
-  // 2. Inspector State
-  const [searchInspectCode, setSearchInspectCode] = useState("GS-2026-00001");
-  const [inspectedDoc, setInspectedDoc] = useState<any>(null);
-
-  // 3. Library State
+  // 2. Library State
   const [libraryArticles, setLibraryArticles] = useState<any[]>([]);
-  const [libSearch, setLibSearch] = useState("");
-  const [libIpcFilter, setLibIpcFilter] = useState("All");
-  const [activePdfUrl, setActivePdfUrl] = useState<string | null>(null);
 
-  // 4. ZK-Discovery State
-  const [zkTitle, setZkTitle] = useState("Novel Targeted Oncology Nanocomplex");
+  // 3. ZK-Discovery State
+  const [zkTitle, setZkTitle] = useState("Novel Targeted Oncology Protocol");
   const [zkSecret, setZkSecret] = useState("amanat_secret_key_2026");
   const [zkPayload, setZkPayload] = useState("Confidential surgical protocol with specific vascular clamping intervals.");
   const [zkFormula, setZkFormula] = useState("log(Artery + 1.0) * sqrt(Vein)");
@@ -271,37 +227,26 @@ export default function GitScienceSovereignApp() {
   const [zkRevealPayload, setZkRevealPayload] = useState("");
   const [zkRevealResult, setZkRevealResult] = useState<any>(null);
 
-  // 5. PatSentinel State
-  const [patThreats, setPatThreats] = useState<any[]>([]);
-  const [patScanning, setPatScanning] = useState(false);
-  const [usptoDossier, setUsptoDossier] = useState<string | null>(null);
-
-  // 6. Soulbound Passport State
+  // 4. Soulbound Passport State
   const [passportData, setPassportData] = useState<any>(null);
 
-  // 7. Review State
+  // 5. Review State
   const [revTargetCode, setRevTargetCode] = useState("GS-2026-00001");
+  const [revReviewerOrcid, setRevReviewerOrcid] = useState("0009-0001-2234-5678");
   const [revMath, setRevMath] = useState(9);
   const [revMethod, setRevMethod] = useState(8);
   const [revEthics, setRevEthics] = useState(10);
   const [revNovelty, setRevNovelty] = useState(9);
-  const [revComments, setRevComments] = useState("Flawless mathematical AST reproducibility. Helsinki declaration compliant.");
+  const [revComments, setRevComments] = useState("Rigorous mathematical AST reproducibility. WMA Helsinki declaration compliant.");
   const [revResult, setRevResult] = useState<any>(null);
 
-  // 8. MaaS Simulator State
+  // 6. MaaS Simulator State
   const [maasCurve, setMaasCurve] = useState<any[]>([]);
   const [maasFormula, setMaasFormula] = useState("(Artery + Vein) / (Lymph + 1.0)");
   const [maasSimulating, setMaasSimulating] = useState(false);
 
-  // 9. Amanat Calculator State
+  // 7. Amanat Calculator State
   const [baseFee, setBaseFee] = useState(5000);
-
-  // 10. Court State
-  const [courtCases, setCourtCases] = useState<any[]>([]);
-
-  // 11. Vampire State
-  const [vampireQuery, setVampireQuery] = useState("Oncology Mathematical Models");
-  const [vampireResults, setVampireResults] = useState<any[]>([]);
 
   useEffect(() => {
     loadLibrary();
@@ -325,8 +270,7 @@ export default function GitScienceSovereignApp() {
           orcid: "0009-0003-3929-3605",
           category: "Clinical Oncology & Surgery",
           ipc_class: "A61B",
-          abstract: "Mathematical formalization of neuro-immuno-oncological axes via Tk equation.",
-          sha256_hash: "a4f89d3c11e74b21908d132a0d1e57c6b548b29f0e132049e6f1a8c903429381",
+          license_type: "CC-BY-4.0",
           created_at: "2026-08-17 00:00:00",
         },
       ]);
@@ -342,18 +286,16 @@ export default function GitScienceSovereignApp() {
       }
     } catch (e) {
       setPassportData({
-        passport_id: "SB-PASSPORT-3929-APEX",
+        profile_id: "GS-PROFILE-3929",
         orcid: "0009-0003-3929-3605",
         scholar_name: "Salauat Abiltayevich Yeshimov",
         institution: "National Scientific Oncology Center",
         git_impact_score: 184.0,
-        academic_rank: "Distinguished Protocol Architect",
-        status: "SOULBOUND_IMMUTABLE_ACTIVE",
+        platform_tier: "Distinguished Scientific Contributor",
       });
     }
   };
 
-  // Handlers for ZK
   const handleZkCommit = async () => {
     try {
       const res = await fetch(`${API_BASE}/api/v1/zk/commit`, {
@@ -402,63 +344,11 @@ export default function GitScienceSovereignApp() {
       setZkRevealResult({
         verified: true,
         status: "MATHEMATICALLY_PROVEN_PRIOR_ART",
-        legal_effect: "Неопровержимое доказательство приоритета первого изобретения (35 U.S.C. § 102)",
+        legal_effect: "Подтверждено математическое совпадение с исходным слепым депозитом",
       });
     }
   };
 
-  // Handlers for PatSentinel
-  const handlePatScan = async () => {
-    setPatScanning(true);
-    try {
-      const res = await fetch(`${API_BASE}/api/v1/patsentinel/scan`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ article_title: title, ipc_class: ipcClass }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setPatThreats(data.threats_detected || []);
-      }
-    } catch (e) {
-      setPatThreats([
-        {
-          patent_app_id: "US2026/0198421A1",
-          applicant: "MegaPharma Corp.",
-          title: "Biological Homeostasis Axes Algorithm",
-          overlap_score: 87.4,
-          recommendation: "Подать возражение 35 U.S.C. § 122(e) в USPTO",
-        },
-      ]);
-    } finally {
-      setPatScanning(false);
-    }
-  };
-
-  const handleGenerateUsptoDossier = async (appId: string) => {
-    try {
-      const res = await fetch(`${API_BASE}/api/v1/patsentinel/generate-uspto-dossier`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          target_patent_app: appId,
-          article_title: title,
-          author_name: authorName,
-          registration_code: "GS-2026-00001",
-          sha256_hash: "a4f89d3c11e74b21908d132a0d1e57c6b548b29f0e132049e6f1a8c903429381",
-          anchored_timestamp: "2026-08-17 00:00:00 UTC",
-        }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setUsptoDossier(data.legal_dossier);
-      }
-    } catch (e) {
-      setUsptoDossier("OFFICIAL THIRD-PARTY PREISSUANCE SUBMISSION UNDER 35 U.S.C. § 122(e)...");
-    }
-  };
-
-  // Handlers for Peer Review
   const handleSubmitReview = async () => {
     try {
       const res = await fetch(`${API_BASE}/api/v1/review/submit`, {
@@ -466,7 +356,7 @@ export default function GitScienceSovereignApp() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           target_code: revTargetCode,
-          reviewer_orcid: orcidProfile?.orcid || "0009-0003-3929-3605",
+          reviewer_orcid: revReviewerOrcid,
           math_rigor_score: revMath,
           methodology_score: revMethod,
           ethics_score: revEthics,
@@ -474,20 +364,16 @@ export default function GitScienceSovereignApp() {
           review_comments: revComments,
         }),
       });
-      if (res.ok) {
-        const data = await res.json();
-        setRevResult(data);
-      }
+      const data = await res.json();
+      setRevResult(data);
     } catch (e) {
       setRevResult({
-        status: "REVIEW_RECORDED_AND_COMPENSATED",
-        composite_score: 9.0,
-        reviewer_payout: "$150.00 USDT (From 20% Infra Fund)",
+        status: "ERROR",
+        error: "Ошибка отправки рецензии на сервер",
       });
     }
   };
 
-  // Handlers for MaaS Simulator
   const handleRunMaas = async () => {
     setMaasSimulating(true);
     try {
@@ -515,7 +401,7 @@ export default function GitScienceSovereignApp() {
 
   return (
     <div className="min-h-screen bg-[#070d18] text-slate-100 flex flex-col font-sans selection:bg-emerald-500 selection:text-slate-900">
-      {/* 1. TOP SOVEREIGN HEADER */}
+      {/* 1. TOP HEADER */}
       <header className="border-b border-slate-800/80 bg-[#0b1322]/90 backdrop-blur sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -526,7 +412,7 @@ export default function GitScienceSovereignApp() {
               <div className="flex items-center gap-2">
                 <h1 className="font-bold text-lg text-slate-50 tracking-tight">{t.brand}</h1>
                 <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-bold">
-                  v3.0 Apex
+                  v3.1 Canonical
                 </span>
               </div>
               <p className="text-xs text-slate-400 hidden md:block">{t.tagline}</p>
@@ -534,7 +420,7 @@ export default function GitScienceSovereignApp() {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Language Picker: KZ FIRST */}
+            {/* Language Selector: KZ FIRST */}
             <div className="flex bg-slate-900/80 border border-slate-700/60 rounded-lg p-0.5 text-xs font-mono">
               {(["KZ", "RU", "EN"] as const).map((l) => (
                 <button
@@ -564,14 +450,13 @@ export default function GitScienceSovereignApp() {
           </div>
         </div>
 
-        {/* NAVIGATION TABS: ALL 11 SOVEREIGN MODULES */}
+        {/* NAVIGATION TABS */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex overflow-x-auto gap-1.5 py-2 border-t border-slate-800/40 scrollbar-none text-xs font-medium">
           {[
             { id: "notary", label: t.tabNotary },
             { id: "inspector", label: t.tabInspector },
             { id: "library", label: t.tabLibrary },
             { id: "zk", label: t.tabZk },
-            { id: "patsentinel", label: t.tabPatSentinel },
             { id: "passport", label: t.tabPassport },
             { id: "review", label: t.tabReview },
             { id: "maas", label: t.tabMaas },
@@ -596,9 +481,7 @@ export default function GitScienceSovereignApp() {
 
       {/* 2. MAIN CONTENT AREA */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-8">
-        {/* =====================================================================
-            TAB 1: SOVEREIGN NOTARY
-        ===================================================================== */}
+        {/* NOTARY */}
         {activeTab === "notary" && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             <div className="lg:col-span-8 space-y-6">
@@ -658,7 +541,6 @@ export default function GitScienceSovereignApp() {
                     </div>
                   </div>
 
-                  {/* Formula AST */}
                   <div className="p-4 bg-slate-950 rounded-xl border border-slate-800 space-y-2">
                     <label className="text-xs font-semibold text-cyan-300">{t.formulaLabel}</label>
                     <input
@@ -686,21 +568,18 @@ export default function GitScienceSovereignApp() {
               </div>
             </div>
 
-            {/* Sidebar */}
             <div className="lg:col-span-4 space-y-6">
               <div className="bg-[#0e1726] border border-slate-800 rounded-2xl p-6 space-y-4">
                 <h3 className="text-sm font-bold text-slate-100">🌿 Аманат каждого ученого</h3>
                 <p className="text-xs text-slate-400 leading-relaxed">
-                  В эпоху GitScience™ ваше открытие защищено математически до того, как его увидит мир. Неотзывный WIPO Prior Art Shield исключает плагиат.
+                  Неотзывный WIPO Prior Art Shield и детерминированная математика Safe AST гарантируют защиту вашего открытия.
                 </p>
               </div>
             </div>
           </div>
         )}
 
-        {/* =====================================================================
-            TAB 4: ZK-DISCOVERY CHAMBER
-        ===================================================================== */}
+        {/* ZK-DISCOVERY */}
         {activeTab === "zk" && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             <div className="lg:col-span-6 space-y-6">
@@ -710,13 +589,13 @@ export default function GitScienceSovereignApp() {
                     <span>🔒</span> {t.zkHeader}
                   </h2>
                   <p className="text-xs text-slate-400 mt-1">
-                    Фиксация тайны открытия (Zero-Knowledge Commitment) в блокчейне без публичного раскрытия формулы.
+                    Фиксация тайны открытия (Zero-Knowledge Commitment) в реестре до публичного раскрытия формулы.
                   </p>
                 </div>
 
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-400 mb-1">Название секретной гипотезы</label>
+                    <label className="block text-xs font-semibold text-slate-400 mb-1">Название гипотезы</label>
                     <input
                       type="text"
                       value={zkTitle}
@@ -734,7 +613,7 @@ export default function GitScienceSovereignApp() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-400 mb-1">Конфиденциальное описание открытия</label>
+                    <label className="block text-xs font-semibold text-slate-400 mb-1">Конфиденциальный текст открытия</label>
                     <textarea
                       rows={3}
                       value={zkPayload}
@@ -743,7 +622,7 @@ export default function GitScienceSovereignApp() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-400 mb-1">Секретная формула (Safe AST)</label>
+                    <label className="block text-xs font-semibold text-slate-400 mb-1">Формула (Safe AST)</label>
                     <input
                       type="text"
                       value={zkFormula}
@@ -770,7 +649,7 @@ export default function GitScienceSovereignApp() {
               </div>
             </div>
 
-            {/* ZK Reveal Verification */}
+            {/* Reveal */}
             <div className="lg:col-span-6 space-y-6">
               <div className="bg-[#0e1726] border border-slate-800 rounded-2xl p-6 shadow-xl space-y-5">
                 <h3 className="text-lg font-bold text-slate-100 flex items-center gap-2">
@@ -797,7 +676,7 @@ export default function GitScienceSovereignApp() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-400 mb-1">Раскрываемый текст открытия</label>
+                    <label className="block text-xs font-semibold text-slate-400 mb-1">Раскрываемый текст</label>
                     <textarea
                       rows={3}
                       value={zkRevealPayload}
@@ -815,8 +694,8 @@ export default function GitScienceSovereignApp() {
 
                   {zkRevealResult && (
                     <div className="p-4 bg-emerald-950/40 border border-emerald-500/40 rounded-xl space-y-2 text-xs">
-                      <div className="text-emerald-400 font-bold font-mono">🏆 {zkRevealResult.status}</div>
-                      <p className="text-slate-300">{zkRevealResult.legal_effect}</p>
+                      <div className="text-emerald-400 font-bold font-mono">🏆 {zkRevealResult.status || (zkRevealResult.verified ? "VERIFIED" : "FAILED")}</div>
+                      <p className="text-slate-300">{zkRevealResult.legal_effect || zkRevealResult.error}</p>
                     </div>
                   )}
                 </div>
@@ -825,78 +704,14 @@ export default function GitScienceSovereignApp() {
           </div>
         )}
 
-        {/* =====================================================================
-            TAB 5: PATSENTINEL AI
-        ===================================================================== */}
-        {activeTab === "patsentinel" && (
-          <div className="space-y-6">
-            <div className="bg-[#0e1726] border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pb-4 border-b border-slate-800">
-                <div>
-                  <h2 className="text-xl font-bold text-slate-100 flex items-center gap-2">
-                    <span>🤖</span> {t.patHeader}
-                  </h2>
-                  <p className="text-xs text-slate-400 mt-1">
-                    Автоматический мониторинг USPTO/EPO и генерация протестов 35 U.S.C. § 122(e) & EPC Rule 114.
-                  </p>
-                </div>
-                <button
-                  onClick={handlePatScan}
-                  disabled={patScanning}
-                  className="bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold text-xs px-4 py-2.5 rounded-lg transition"
-                >
-                  {patScanning ? "Сканирование..." : t.patScanBtn}
-                </button>
-              </div>
-
-              {patThreats.length > 0 && (
-                <div className="space-y-4">
-                  <h3 className="text-xs font-bold text-slate-300 uppercase font-mono">
-                    Обнаруженные патентные пересечения ({patThreats.length})
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {patThreats.map((th, i) => (
-                      <div key={i} className="bg-slate-900/90 border border-red-500/40 rounded-xl p-5 space-y-3">
-                        <div className="flex justify-between items-center text-xs">
-                          <span className="font-mono text-red-400 font-bold">{th.patent_app_id}</span>
-                          <span className="text-xs font-mono text-amber-300 font-bold">{th.overlap_score}% Overlap</span>
-                        </div>
-                        <h4 className="font-bold text-sm text-slate-100">{th.title}</h4>
-                        <p className="text-xs text-slate-400">Заявитель: <strong className="text-slate-300">{th.applicant}</strong></p>
-                        <p className="text-xs text-amber-300">{th.recommendation}</p>
-
-                        <button
-                          onClick={() => handleGenerateUsptoDossier(th.patent_app_id)}
-                          className="w-full bg-red-600/30 hover:bg-red-600/50 text-red-300 border border-red-500/40 text-xs py-2 rounded-lg font-bold transition"
-                        >
-                          {t.patGenerateUsptoBtn}
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {usptoDossier && (
-                <div className="p-4 bg-slate-950 border border-slate-800 rounded-xl space-y-2">
-                  <h4 className="text-xs font-bold text-cyan-300 font-mono">Сформированное юридическое досье (USPTO Preissuance Submission):</h4>
-                  <pre className="text-[11px] font-mono text-slate-300 bg-slate-900 p-4 rounded overflow-x-auto whitespace-pre-wrap">{usptoDossier}</pre>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* =====================================================================
-            TAB 6: SOULBOUND PASSPORT & GIS
-        ===================================================================== */}
+        {/* SCHOLAR PROFILE & GIS */}
         {activeTab === "passport" && passportData && (
           <div className="max-w-4xl mx-auto space-y-6">
             <div className="bg-gradient-to-br from-[#0e1f38] to-[#070d18] border border-cyan-500/40 rounded-3xl p-8 shadow-2xl space-y-6 relative overflow-hidden">
               <div className="flex flex-col sm:flex-row items-center justify-between gap-6 border-b border-slate-800 pb-6">
                 <div>
                   <span className="text-xs font-mono px-3 py-1 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold uppercase">
-                    Soulbound ID • EIP-5114
+                    Sovereign Scholar Profile
                   </span>
                   <h2 className="text-2xl font-bold text-slate-50 mt-2">{passportData.scholar_name}</h2>
                   <p className="text-xs text-slate-400 font-mono mt-1">ORCID: {passportData.orcid} • {passportData.institution}</p>
@@ -911,21 +726,19 @@ export default function GitScienceSovereignApp() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-mono">
                 <div className="p-4 bg-slate-900/80 rounded-xl border border-slate-800">
-                  <span className="text-slate-500 block text-[10px]">Академический ранг:</span>
-                  <span className="text-emerald-400 font-bold text-sm font-sans">{passportData.academic_rank}</span>
+                  <span className="text-slate-500 block text-[10px]">Уровень активности:</span>
+                  <span className="text-emerald-400 font-bold text-sm font-sans">{passportData.platform_tier || passportData.academic_rank}</span>
                 </div>
                 <div className="p-4 bg-slate-900/80 rounded-xl border border-slate-800">
-                  <span className="text-slate-500 block text-[10px]">Статус:</span>
-                  <span className="text-cyan-300 font-bold">{passportData.status}</span>
+                  <span className="text-slate-500 block text-[10px]">Статус профиля:</span>
+                  <span className="text-cyan-300 font-bold">LOCAL_PROFILE_ACTIVE</span>
                 </div>
               </div>
             </div>
           </div>
         )}
 
-        {/* =====================================================================
-            TAB 7: BLIND PEER-REVIEW
-        ===================================================================== */}
+        {/* BLIND PEER-REVIEW */}
         {activeTab === "review" && (
           <div className="max-w-3xl mx-auto space-y-6">
             <div className="bg-[#0e1726] border border-slate-800 rounded-2xl p-6 shadow-xl space-y-5">
@@ -934,19 +747,30 @@ export default function GitScienceSovereignApp() {
                   <span>📝</span> {t.revHeader}
                 </h2>
                 <p className="text-xs text-slate-400 mt-1">
-                  Объективное анонимное рецензирование с выплатой $150 USDT за валидированную работу.
+                  Объективное рецензирование с защитой от конфликта интересов (автор и соавторы не могут рецензировать работу).
                 </p>
               </div>
 
               <div className="space-y-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-400 mb-1">Код манускрипта</label>
-                  <input
-                    type="text"
-                    value={revTargetCode}
-                    onChange={(e) => setRevTargetCode(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs font-mono text-cyan-300"
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-400 mb-1">Код манускрипта</label>
+                    <input
+                      type="text"
+                      value={revTargetCode}
+                      onChange={(e) => setRevTargetCode(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs font-mono text-cyan-300"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-400 mb-1">ORCID рецензента</label>
+                    <input
+                      type="text"
+                      value={revReviewerOrcid}
+                      onChange={(e) => setRevReviewerOrcid(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs font-mono text-emerald-400"
+                    />
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
@@ -997,7 +821,7 @@ export default function GitScienceSovereignApp() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 mb-1">Рецензия и замечания</label>
+                  <label className="block text-xs font-semibold text-slate-400 mb-1">Текст рецензии</label>
                   <textarea
                     rows={3}
                     value={revComments}
@@ -1014,9 +838,9 @@ export default function GitScienceSovereignApp() {
                 </button>
 
                 {revResult && (
-                  <div className="p-4 bg-emerald-950/30 border border-emerald-500/40 rounded-xl space-y-1 text-xs">
-                    <div className="text-emerald-400 font-bold">✅ {revResult.status}</div>
-                    <div className="text-slate-300">Награда: <span className="text-cyan-300 font-bold">{revResult.reviewer_payout}</span></div>
+                  <div className={`p-4 rounded-xl space-y-1 text-xs border ${revResult.status === "ERROR" ? "bg-red-950/30 border-red-500/40 text-red-300" : "bg-emerald-950/30 border-emerald-500/40 text-emerald-300"}`}>
+                    <div className="font-bold">{revResult.status === "ERROR" ? "🚨 Ошибка" : "✅ Рецензия зафиксирована"}</div>
+                    <div>{revResult.error || `Выплата: ${revResult.reviewer_payout}`}</div>
                   </div>
                 )}
               </div>
@@ -1024,9 +848,7 @@ export default function GitScienceSovereignApp() {
           </div>
         )}
 
-        {/* =====================================================================
-            TAB 8: WASM REAL-TIME SIMULATOR
-        ===================================================================== */}
+        {/* WASM REAL-TIME SIMULATOR */}
         {activeTab === "maas" && (
           <div className="max-w-4xl mx-auto space-y-6">
             <div className="bg-[#0e1726] border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
@@ -1072,9 +894,7 @@ export default function GitScienceSovereignApp() {
           </div>
         )}
 
-        {/* =====================================================================
-            OTHER TABS: AMANAT, COURT, VAMPIRE, INSPECTOR, LIBRARY
-        ===================================================================== */}
+        {/* AMANAT CALCULATOR */}
         {activeTab === "amanat" && (
           <div className="max-w-2xl mx-auto bg-[#0e1726] border border-slate-800 rounded-2xl p-6 space-y-6">
             <h2 className="text-xl font-bold text-slate-100">💳 {t.amanatHeader}</h2>
@@ -1110,6 +930,7 @@ export default function GitScienceSovereignApp() {
           </div>
         )}
 
+        {/* LIBRARY */}
         {activeTab === "library" && (
           <div className="bg-[#0e1726] border border-slate-800 rounded-2xl p-6 space-y-4">
             <h2 className="text-xl font-bold text-slate-100">🏛️ WIPO Global Library</h2>

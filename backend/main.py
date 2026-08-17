@@ -32,7 +32,6 @@ from gitscience_fortress import (
 )
 from gitscience_vampire import VampireProtocolEngine
 from gitscience_zk import ZKDiscoveryEngine
-from gitscience_patsentinel import PatSentinelEngine
 from gitscience_passport import SoulboundPassportEngine
 from gitscience_review import BlindPeerReviewEngine
 
@@ -511,46 +510,6 @@ def reveal_zk_commitment(req: ZKRevealRequest):
 @app.get("/api/v1/zk/list")
 def list_zk_commitments():
     return {"commitments": zk_engine.get_all_commitments()}
-
-
-# =====================================================================
-# 12. PATSENTINEL AI (PATENT PRIOR-ART SHIELD)
-# =====================================================================
-
-class PatSentinelScanRequest(BaseModel):
-    article_title: str = Field(...)
-    formula_str: Optional[str] = None
-    ipc_class: Optional[str] = "A61B"
-
-class USPTOSubmissionRequest(BaseModel):
-    target_patent_app: str = Field(...)
-    article_title: str = Field(...)
-    author_name: str = Field(...)
-    registration_code: str = Field(...)
-    sha256_hash: str = Field(...)
-    anchored_timestamp: str = Field(...)
-    ast_merkle_digest: Optional[str] = None
-
-@app.post("/api/v1/patsentinel/scan")
-def scan_patent_threats(req: PatSentinelScanRequest):
-    threats = PatSentinelEngine.scan_for_patent_threats(
-        article_title=req.article_title,
-        formula_str=req.formula_str,
-        ipc_class=req.ipc_class or "A61B"
-    )
-    return {"status": "SCAN_COMPLETE", "threats_detected": threats}
-
-@app.post("/api/v1/patsentinel/generate-uspto-dossier")
-def generate_uspto_dossier(req: USPTOSubmissionRequest):
-    return PatSentinelEngine.generate_uspto_preissuance_submission(
-        target_patent_app=req.target_patent_app,
-        article_title=req.article_title,
-        author_name=req.author_name,
-        registration_code=req.registration_code,
-        sha256_hash=req.sha256_hash,
-        anchored_timestamp=req.anchored_timestamp,
-        ast_merkle_digest=req.ast_merkle_digest
-    )
 
 
 # =====================================================================

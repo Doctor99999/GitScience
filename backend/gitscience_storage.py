@@ -1,6 +1,7 @@
+# -*- coding: utf-8 -*-
 """
-GitScience Sovereign Storage Engine v3.0-ENTERPRISE
-Стандарты: ISO 14721 OAIS / DataCite Schema 4.4 / Schema.org JSON-LD / Google Scholar.
+GitScience Sovereign Storage Engine v3.1-CANONICAL
+Стандарты: ISO 14721 OAIS / DataCite Kernel 4.4 / WIPO Standards.
 """
 import sqlite3
 import os
@@ -12,7 +13,6 @@ from typing import List, Dict, Optional, Any
 
 BASE_DIR = Path(__file__).resolve().parent
 
-# Кроссплатформенное определение пути хранилища
 env_storage = os.getenv("GITSCIENCE_STORAGE_PATH")
 if env_storage:
     STORAGE_DIR = Path(env_storage)
@@ -34,19 +34,19 @@ def load_protocol_constants() -> dict:
         with open(CONSTANTS_PATH, "r", encoding="utf-8") as f:
             return json.load(f)
     return {
-        "protocol": "GitScience™ Sovereign Protocol",
-        "version": "3.0.0-CANONICAL",
+        "protocol": "GitScience Sovereign Protocol",
+        "version": "3.1.0-CANONICAL",
         "founder": {
             "name": "Salauat Abiltayevich Yeshimov",
             "orcid": "0009-0003-3929-3605",
             "role": "Protocol Architect & Surgical Oncologist"
         },
         "legal_framework": [
-            "35 U.S.C. § 102 (US Patent Act)",
-            "EPC Article 54(2) (European Patent Convention)",
-            "WIPO Paris Convention for the Protection of Industrial Property",
+            "35 U.S.C. § 102 (US Patent Act - Statutory Prior Art)",
+            "EPC Article 54(2) (European Patent Convention - State of the Art)",
+            "WIPO Paris Convention for the Protection of Industrial Property (Article 4)",
             "ISO 14721 OAIS (Open Archival Information System)",
-            "RFC 3161 / OpenTimestamps Cryptographic Evidence"
+            "RFC 3161 / OpenTimestamps Verification"
         ]
     }
 
@@ -55,7 +55,6 @@ def init_db():
     cur = conn.cursor()
     cur.execute("PRAGMA journal_mode=WAL;")
     
-    # Таблица манускриптов
     cur.execute("""
     CREATE TABLE IF NOT EXISTS manuscripts (
         serial_number INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -69,18 +68,17 @@ def init_db():
         formula_math TEXT,
         ast_merkle_digest TEXT,
         credit_roles_json TEXT,
+        license_type TEXT DEFAULT 'CC-BY-4.0',
         file_path TEXT,
         original_filename TEXT,
         sha256_hash TEXT NOT NULL,
         ots_proof_file TEXT,
         git_commit_hash TEXT NOT NULL,
-        rfc3161_token TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         is_genesis_anchor INTEGER DEFAULT 0
     )
     """)
     
-    # Таблица транзакций (Ledger)
     cur.execute("""
     CREATE TABLE IF NOT EXISTS ledger_transactions (
         tx_id TEXT PRIMARY KEY,
@@ -95,7 +93,6 @@ def init_db():
     )
     """)
     
-    # Таблица дел Академического суда
     cur.execute("""
     CREATE TABLE IF NOT EXISTS court_disputes (
         case_id TEXT PRIMARY KEY,
@@ -111,25 +108,31 @@ def init_db():
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
     """)
+    
+    cur.execute("PRAGMA table_info(manuscripts);")
+    cols = [row[1] for row in cur.fetchall()]
+    if "license_type" not in cols:
+        cur.execute("ALTER TABLE manuscripts ADD COLUMN license_type TEXT DEFAULT 'CC-BY-4.0';")
+    if "is_genesis_anchor" not in cols:
+        cur.execute("ALTER TABLE manuscripts ADD COLUMN is_genesis_anchor INTEGER DEFAULT 0;")
     conn.commit()
     
-    # Genesis Root Block #0
     cur.execute("SELECT COUNT(*) FROM manuscripts WHERE is_genesis_anchor = 1")
     if cur.fetchone()[0] == 0:
         genesis_manifest = (
             "GITSCIENCE_SOVEREIGN_GENESIS_ROOT_BLOCK_0\n"
-            "ETHICAL_ANCHOR: QURAN_KAREEM_IMMUTABLE_ROOT\n"
-            "PRINCIPLE: AMANAT_OF_SCIENTIFIC_TRUTH\n"
-            "COGNITIVE_AXIS: RUH_BIOLOGICAL_FIVE_DIMENSIONAL_HOMEOSTASIS\n"
-            "IMMUTABLE_ROOT: READ_ONLY_NO_FORK_ALLOWED"
+            "STANDARD: ISO_14721_OAIS_ARCHIVAL_INFORMATION_PACKAGE\n"
+            "PRINCIPLE: IRREVOCABLE_PRIOR_ART_DISCLOSURE\n"
+            "ETHICAL_ANCHOR: WMA_DECLARATION_OF_HELSINKI_AND_OPEN_SCIENCE\n"
+            "CONSENSUS_RULE: READ_ONLY_IMMUTABLE_ROOT"
         )
         genesis_sha = hashlib.sha256(genesis_manifest.encode('utf-8')).hexdigest()
         genesis_commit = hashlib.sha1(genesis_manifest.encode('utf-8')).hexdigest()
         
         cur.execute("""
         INSERT INTO manuscripts 
-        (serial_number, registration_code, title, author_name, orcid, category, ipc_class, abstract, sha256_hash, ots_proof_file, git_commit_hash, is_genesis_anchor)
-        VALUES (0, 'GS-GENESIS-BLOCK-0', 'The Immutable Root & Ethical Charter of Science', 'Canonical Genesis', '0000-0000-0000-0000', 'Ethical Root Foundation', 'A61B', 'Eternal immutable root anchor of the GitScience ledger.', ?, 'GS-GENESIS-BLOCK-0.ots', ?, 1)
+        (serial_number, registration_code, title, author_name, orcid, category, ipc_class, abstract, license_type, sha256_hash, ots_proof_file, git_commit_hash, is_genesis_anchor)
+        VALUES (0, 'GS-GENESIS-BLOCK-0', 'GitScience Protocol Genesis Root Anchor', 'GitScience Consortium', '0000-0000-0000-0000', 'Protocol Foundation', 'G06F', 'Canonical immutable genesis root anchor of the GitScience ledger.', 'CC0-1.0', ?, 'GS-GENESIS-BLOCK-0.ots', ?, 1)
         """, (genesis_sha, genesis_commit))
         conn.commit()
         
@@ -147,6 +150,7 @@ def save_uploaded_pdf(
     ast_merkle_digest: Optional[str] = None,
     credit_roles: Optional[List[Dict[str, Any]]] = None,
     ipc_class: str = "A61B",
+    license_type: str = "CC-BY-4.0",
     custom_reg_code: Optional[str] = None
 ) -> dict:
     conn = sqlite3.connect(str(DB_PATH))
@@ -154,7 +158,6 @@ def save_uploaded_pdf(
     
     real_sha256 = hashlib.sha256(file_bytes).hexdigest()
     real_git_commit = hashlib.sha1(file_bytes).hexdigest()
-    rfc3161_token = f"TST-{hashlib.sha256(f'{real_sha256}:{datetime.utcnow()}'.encode()).hexdigest()[:16].upper()}"
     
     cur.execute("SELECT COUNT(*) FROM manuscripts WHERE is_genesis_anchor = 0")
     serial_count = cur.fetchone()[0] + 1
@@ -171,12 +174,12 @@ def save_uploaded_pdf(
     
     cur.execute("""
     INSERT INTO manuscripts 
-    (registration_code, title, author_name, orcid, category, ipc_class, abstract, formula_math, ast_merkle_digest, credit_roles_json, file_path, original_filename, sha256_hash, ots_proof_file, git_commit_hash, rfc3161_token, is_genesis_anchor)
+    (registration_code, title, author_name, orcid, category, ipc_class, abstract, formula_math, ast_merkle_digest, credit_roles_json, license_type, file_path, original_filename, sha256_hash, ots_proof_file, git_commit_hash, is_genesis_anchor)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
     """, (
         reg_code, title, author, orcid, category, ipc_class, abstract,
-        formula_math, ast_merkle_digest, credit_json, file_path, filename,
-        real_sha256, ots_file, real_git_commit, rfc3161_token
+        formula_math, ast_merkle_digest, credit_json, license_type, file_path, filename,
+        real_sha256, ots_file, real_git_commit
     ))
     
     conn.commit()
@@ -187,9 +190,9 @@ def save_uploaded_pdf(
         "registration_code": reg_code,
         "sha256_hash": real_sha256,
         "git_commit_hash": real_git_commit,
-        "rfc3161_token": rfc3161_token,
         "ots_proof_file": ots_file,
-        "file_path": file_path
+        "file_path": file_path,
+        "license_type": license_type
     }
 
 def get_all_manuscripts() -> List[Dict]:
@@ -198,7 +201,7 @@ def get_all_manuscripts() -> List[Dict]:
     cur = conn.cursor()
     cur.execute("""
     SELECT serial_number, registration_code, title, author_name, orcid, category, ipc_class, abstract, 
-           formula_math, ast_merkle_digest, credit_roles_json, sha256_hash, git_commit_hash, rfc3161_token, created_at, is_genesis_anchor 
+           formula_math, ast_merkle_digest, credit_roles_json, license_type, sha256_hash, git_commit_hash, created_at, is_genesis_anchor 
     FROM manuscripts 
     WHERE is_genesis_anchor = 0 
     ORDER BY serial_number DESC
@@ -226,12 +229,15 @@ def record_transaction(tx_id: str, amount: float, currency: str, author_share: f
     conn.commit()
     conn.close()
 
-# =====================================================================
-# DATACITE SCHEMA 4.4 & SCHEMA.ORG JSON-LD GENERATOR
-# =====================================================================
+def get_infra_fund_balance() -> float:
+    conn = sqlite3.connect(str(DB_PATH))
+    cur = conn.cursor()
+    cur.execute("SELECT COALESCE(SUM(infra_share), 0.0) FROM ledger_transactions")
+    total_infra = cur.fetchone()[0]
+    conn.close()
+    return float(total_infra)
 
 def generate_datacite_metadata(registration_code: str) -> Optional[Dict[str, Any]]:
-    """Генерация метаданных DataCite Schema 4.4 (DOI Ready)"""
     m = get_manuscript_by_code(registration_code)
     if not m:
         return None
@@ -246,7 +252,6 @@ def generate_datacite_metadata(registration_code: str) -> Optional[Dict[str, Any
         }]
     }]
 
-    # Добавляем CRediT соавторов если есть
     if m.get("credit_roles_json"):
         try:
             extra_authors = json.loads(m["credit_roles_json"])
@@ -264,39 +269,42 @@ def generate_datacite_metadata(registration_code: str) -> Optional[Dict[str, Any
         except Exception:
             pass
 
+    license_name = m.get("license_type", "CC-BY-4.0")
+    license_uri = "https://creativecommons.org/licenses/by/4.0/" if "BY-4.0" in license_name else "https://creativecommons.org/licenses/"
+
     return {
         "data": {
-            "type": "dois",
+            "type": "draft-manuscript-metadata",
             "attributes": {
-                "doi": f"10.gitscience/{m['registration_code']}",
-                "prefix": "10.gitscience",
-                "suffix": m["registration_code"],
+                "registration_authority": "GitScience Sovereign Protocol (Pre-Registration Draft)",
+                "doi_registration_status": "DRAFT_READY_FOR_CROSSREF_OR_DATACITE_REGISTRATION",
                 "identifiers": [
                     {"identifier": m["registration_code"], "identifierType": "GitScience-Sovereign-Code"},
-                    {"identifier": m["sha256_hash"], "identifierType": "SHA-256-Payload-Digest"}
+                    {"identifier": m["sha256_hash"], "identifierType": "SHA-256-Payload-Digest"},
+                    {"identifier": m["git_commit_hash"], "identifierType": "Git-Commit-OID"}
                 ],
                 "creators": creators,
                 "titles": [{"title": m["title"]}],
-                "publisher": "GitScience Sovereign Protocol Archive",
+                "publisher": "GitScience Sovereign Protocol Open Archive",
                 "container": {"type": "Repository", "title": "GitScience Sovereign Open Library"},
                 "publicationYear": int(m["created_at"][:4]) if m.get("created_at") else 2026,
                 "subjects": [
                     {"subject": m["category"]},
-                    {"subject": f"WIPO IPC Class: {m.get('ipc_class', 'A61B')}"}
+                    {"subject": f"WIPO IPC: {m.get('ipc_class', 'A61B')}"}
                 ],
-                "dates": [{"date": m["created_at"], "dateType": "Available"}],
+                "dates": [{"date": m["created_at"], "dateType": "Submitted"}],
                 "language": "en",
                 "types": {
                     "resourceTypeGeneral": "Preprint",
-                    "resourceType": "Peer-Reviewed Sovereign Manuscript & Prior Art Disclosure"
+                    "resourceType": "Sovereign Prior Art Disclosure"
                 },
                 "descriptions": [
                     {"description": m.get("abstract", "Sovereign Prior Art Discovery Record"), "descriptionType": "Abstract"}
                 ],
                 "rightsList": [
                     {
-                        "rights": "Creative Commons Attribution 4.0 International",
-                        "rightsUri": "https://creativecommons.org/licenses/by/4.0/"
+                        "rights": license_name,
+                        "rightsUri": license_uri
                     }
                 ],
                 "schemaVersion": "http://datacite.org/schema/kernel-4"
@@ -305,7 +313,6 @@ def generate_datacite_metadata(registration_code: str) -> Optional[Dict[str, Any
     }
 
 def generate_schema_org_jsonld(registration_code: str) -> Optional[Dict[str, Any]]:
-    """Генерация Schema.org JSON-LD для мгновенной индексации в Google Scholar"""
     m = get_manuscript_by_code(registration_code)
     if not m:
         return None
@@ -328,8 +335,7 @@ def generate_schema_org_jsonld(registration_code: str) -> Optional[Dict[str, Any
             "name": "GitScience Sovereign Protocol",
             "url": "https://gitscience.org"
         },
-        "license": "https://creativecommons.org/licenses/by/4.0/",
+        "license": m.get("license_type", "https://creativecommons.org/licenses/by/4.0/"),
         "encodingFormat": "application/pdf",
-        "url": f"https://gitscience.org/library/view/{m['registration_code']}",
-        "sameAs": f"https://orcid.org/{m['orcid']}"
+        "url": f"https://gitscience.org/library/view/{m['registration_code']}"
     }
