@@ -19,5 +19,5 @@ COPY . .
 # 7. Открываем порт для Render
 EXPOSE 8000
 
-# 8. Команда запуска сервера. Render сам подставит нужный порт через переменную $PORT
-CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# 8. Команда запуска сервера с 4 worker-процессами для высоких нагрузок на Render
+CMD ["sh", "-c", "gunicorn -w 4 -k uvicorn.workers.UvicornWorker main:app --bind 0.0.0.0:${PORT:-8000}"]

@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-GitScience Sovereign Storage Engine v3.1-CANONICAL
+GitScience Sovereign Storage Engine v3.1-ENTERPRISE
 Стандарты: ISO 14721 OAIS / DataCite Kernel 4.4 / WIPO Standards.
+Оптимизировано для высоких нагрузок (SQLite WAL, multi-worker connection pooling).
 """
 import sqlite3
 import os
@@ -29,13 +30,27 @@ CONSTANTS_PATH = BASE_DIR / "PROTOCOL_CONSTANTS.json"
 for p in [STORAGE_DIR, UPLOADS_DIR, CERT_DIR]:
     p.mkdir(parents=True, exist_ok=True)
 
+def get_db_connection() -> sqlite3.Connection:
+    """
+    Возвращает высокопроизводительное потокобезопасное подключение к SQLite.
+    Поддерживает высокие нагрузки при нескольких worker-процессах.
+    """
+    conn = sqlite3.connect(str(DB_PATH), timeout=30.0, check_same_thread=False)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+    cur.execute("PRAGMA journal_mode=WAL;")
+    cur.execute("PRAGMA busy_timeout=5000;")
+    cur.execute("PRAGMA synchronous=NORMAL;")
+    cur.execute("PRAGMA cache_size=-64000;")  # 64MB memory cache
+    return conn
+
 def load_protocol_constants() -> dict:
     if CONSTANTS_PATH.exists():
         with open(CONSTANTS_PATH, "r", encoding="utf-8") as f:
             return json.load(f)
     return {
         "protocol": "GitScience Sovereign Protocol",
-        "version": "3.1.0-CANONICAL",
+        "version": "3.1.0-ENTERPRISE",
         "founder": {
             "name": "Salauat Abiltayevich Yeshimov",
             "orcid": "0009-0003-3929-3605",
@@ -51,9 +66,8 @@ def load_protocol_constants() -> dict:
     }
 
 def init_db():
-    conn = sqlite3.connect(str(DB_PATH))
+    conn = get_db_connection()
     cur = conn.cursor()
-    cur.execute("PRAGMA journal_mode=WAL;")
     
     cur.execute("""
     CREATE TABLE IF NOT EXISTS manuscripts (
@@ -109,14 +123,16 @@ def init_db():
     )
     """)
     
+    # Миграция колонок
     cur.execute("PRAGMA table_info(manuscripts);")
-    cols = [row[1] for row in cur.fetchall()]
+    cols = [row["name"] for row in cur.fetchall()]
     if "license_type" not in cols:
         cur.execute("ALTER TABLE manuscripts ADD COLUMN license_type TEXT DEFAULT 'CC-BY-4.0';")
     if "is_genesis_anchor" not in cols:
         cur.execute("ALTER TABLE manuscripts ADD COLUMN is_genesis_anchor INTEGER DEFAULT 0;")
     conn.commit()
     
+    # Genesis Root Block #0
     cur.execute("SELECT COUNT(*) FROM manuscripts WHERE is_genesis_anchor = 1")
     if cur.fetchone()[0] == 0:
         genesis_manifest = (
@@ -153,7 +169,7 @@ def save_uploaded_pdf(
     license_type: str = "CC-BY-4.0",
     custom_reg_code: Optional[str] = None
 ) -> dict:
-    conn = sqlite3.connect(str(DB_PATH))
+    conn = get_db_connection()
     cur = conn.cursor()
     
     real_sha256 = hashlib.sha256(file_bytes).hexdigest()
@@ -196,8 +212,7 @@ def save_uploaded_pdf(
     }
 
 def get_all_manuscripts() -> List[Dict]:
-    conn = sqlite3.connect(str(DB_PATH))
-    conn.row_factory = sqlite3.Row
+    conn = get_db_connection()
     cur = conn.cursor()
     cur.execute("""
     SELECT serial_number, registration_code, title, author_name, orcid, category, ipc_class, abstract, 
@@ -211,8 +226,7 @@ def get_all_manuscripts() -> List[Dict]:
     return rows
 
 def get_manuscript_by_code(identifier: str) -> Optional[Dict]:
-    conn = sqlite3.connect(str(DB_PATH))
-    conn.row_factory = sqlite3.Row
+    conn = get_db_connection()
     cur = conn.cursor()
     cur.execute("SELECT * FROM manuscripts WHERE registration_code = ? OR serial_number = ? OR sha256_hash = ?", (identifier, identifier, identifier))
     row = cur.fetchone()
@@ -220,7 +234,7 @@ def get_manuscript_by_code(identifier: str) -> Optional[Dict]:
     return dict(row) if row else None
 
 def record_transaction(tx_id: str, amount: float, currency: str, author_share: float, infra_share: float, founder_share: float, author_wallet: str, tx_hash: str):
-    conn = sqlite3.connect(str(DB_PATH))
+    conn = get_db_connection()
     cur = conn.cursor()
     cur.execute("""
     INSERT INTO ledger_transactions (tx_id, amount, currency, author_share, infra_share, founder_share, author_wallet, tx_hash)
@@ -230,7 +244,7 @@ def record_transaction(tx_id: str, amount: float, currency: str, author_share: f
     conn.close()
 
 def get_infra_fund_balance() -> float:
-    conn = sqlite3.connect(str(DB_PATH))
+    conn = get_db_connection()
     cur = conn.cursor()
     cur.execute("SELECT COALESCE(SUM(infra_share), 0.0) FROM ledger_transactions")
     total_infra = cur.fetchone()[0]
