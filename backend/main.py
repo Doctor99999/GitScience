@@ -39,6 +39,9 @@ from gitscience_fhir import ClinicalFHIRGateway, DICOMWebGateway
 from gitscience_fiat import InstitutionalFiatGateway
 from gitscience_ai_review import SovereignAIAuditor
 from gitscience_ipnft import IPNFTEngine
+from gitscience_auth import ScholarAuthService
+from gitscience_web3 import SovereignWeb3Gateway
+from gitscience_invoice_pdf import InstitutionalInvoicePDFGenerator
 import time
 from collections import defaultdict
 from fastapi.responses import Response
@@ -445,6 +448,48 @@ def export_google_scholar_jsonld(registration_code: str):
         raise HTTPException(status_code=404, detail="Манускрипт не найден для генерации JSON-LD")
     return data
 
+@app.get("/api/v1/notary/datacite/{registration_code}/xml")
+def export_datacite_schema_xml(registration_code: str):
+    """Генерирует официальный XML метаданных по стандарту DataCite Metadata Schema 4.4"""
+    article = storage.get_manuscript_by_code(registration_code)
+    if not article:
+        raise HTTPException(status_code=404, detail="Манускрипт не найден для генерации DataCite XML")
+    
+    xml_content = f"""<?xml version="1.0" encoding="UTF-8"?>
+<resource xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xmlns="http://datacite.org/schema/kernel-4"
+          xsi:schemaLocation="http://datacite.org/schema/kernel-4 http://schema.datacite.org/meta/kernel-4.4/metadata.xsd">
+  <identifier identifierType="DOI">10.5281/gitscience.{article['registration_code'].lower()}</identifier>
+  <creators>
+    <creator>
+      <creatorName nameType="Personal">{article['author_name']}</creatorName>
+      <nameIdentifier schemeURI="https://orcid.org/" nameIdentifierScheme="ORCID">{article['orcid']}</nameIdentifier>
+    </creator>
+  </creators>
+  <titles>
+    <title>{article['title']}</title>
+  </titles>
+  <publisher>GitScience Sovereign Protocol</publisher>
+  <publicationYear>{str(article.get('created_at', '2026'))[:4]}</publicationYear>
+  <resourceType resourceTypeGeneral="Preprint">Scientific Prior Art Record</resourceType>
+  <subjects>
+    <subject>{article.get('category', 'Biomedical Science')}</subject>
+    <subject>WIPO IPC: {article.get('ipc_class', 'A61B')}</subject>
+  </subjects>
+  <rightsList>
+    <rights rightsURI="https://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International</rights>
+  </rightsList>
+  <descriptions>
+    <description descriptionType="Abstract">{article.get('abstract', '')}</description>
+  </descriptions>
+  <alternateIdentifiers>
+    <alternateIdentifier alternateIdentifierType="SHA256">{article['sha256_hash']}</alternateIdentifier>
+    <alternateIdentifier alternateIdentifierType="GitCommitOID">{article['git_commit_hash']}</alternateIdentifier>
+    <alternateIdentifier alternateIdentifierType="IPFS_CID">{article.get('ipfs_cid', '')}</alternateIdentifier>
+  </alternateIdentifiers>
+</resource>"""
+    return Response(content=xml_content, media_type="application/xml")
+
 
 # =====================================================================
 # 7. WIPO GLOBAL LIBRARY & PDF STREAM
@@ -785,6 +830,30 @@ def process_fiat_bank_webhook(req: FiatWebhookRequest):
         payment_method=req.payment_method
     )
 
+@app.get("/api/v1/billing/fiat/invoice/{invoice_id}/pdf")
+def download_institutional_invoice_pdf(
+    invoice_id: str,
+    hospital_name: str = Query(default="National Scientific Oncology Center"),
+    tax_id_bin: str = Query(default="BIN-190440023412"),
+    registration_code: str = Query(default="GS-2026-00001"),
+    base_license_fee: float = Query(default=10000.0),
+    fiat_currency: str = Query(default="USD")
+):
+    """Генерирует официальный PDF счет-фактуру для клиник и медицинских центров"""
+    pdf_bytes = InstitutionalInvoicePDFGenerator.generate_invoice_pdf(
+        invoice_id=invoice_id,
+        hospital_name=hospital_name,
+        tax_id_bin=tax_id_bin,
+        registration_code=registration_code,
+        base_license_fee=base_license_fee,
+        fiat_currency=fiat_currency
+    )
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'inline; filename="Invoice_{invoice_id}.pdf"'}
+    )
+
 
 # =====================================================================
 # 18. SOVEREIGN AI PEER-REVIEWER & PRIOR ART SCANNER
@@ -909,21 +978,8 @@ def stop_autonomous_crawler_daemon():
 
 @app.get("/api/v1/wallet/balance/{address}")
 def get_web3_wallet_balance(address: str):
-    """Проверяет баланс кошелька, сеть и накопленные роялти по протоколу Аманата"""
-    clean_addr = address.strip().lower()
-    is_founder = "3929" in clean_addr or "71c2" in clean_addr
-    
-    return {
-        "wallet_address": address,
-        "is_connected": True,
-        "network": "Polygon PoS / Base Mainnet",
-        "network_id": 137,
-        "usdt_balance": 12500.0 if is_founder else 5000.0,
-        "accumulated_royalties_usdt": 3750.0 if is_founder else 550.0,
-        "pending_settlement_usdt": 200.0,
-        "reputation_tokens_gis": 98.4 if is_founder else 45.0,
-        "status": "SOVEREIGN_NODE_ONLINE"
-    }
+    """Проверяет баланс кошелька, сеть и накопленные роялти по протоколу Аманата через Web3 шлюз"""
+    return SovereignWeb3Gateway.get_wallet_live_balance(address)
 
 
 # =====================================================================
@@ -949,3 +1005,55 @@ def register_scholar_profile(req: ScholarRegisterRequest):
         works_count=1,
         citations_count=0
     )
+
+
+# =====================================================================
+# 25. SOVEREIGN SCHOLAR ORCID OAUTH & JWT AUTHENTICATION
+# =====================================================================
+
+class LoginRequest(BaseModel):
+    orcid: str = Field(...)
+    name: Optional[str] = None
+    institution: Optional[str] = None
+    discipline: Optional[str] = None
+
+@app.get("/api/v1/auth/orcid/{orcid}")
+def lookup_orcid_public_profile(orcid: str):
+    """Выполняет реальный запрос в публичный реестр ORCID (API v3.0)"""
+    profile = ScholarAuthService.fetch_orcid_public_profile(orcid)
+    if not profile:
+        raise HTTPException(status_code=400, detail="Невалидный формат ORCID iD")
+    return profile
+
+@app.post("/api/v1/auth/login")
+def authenticate_scholar_orcid(req: LoginRequest):
+    """Аутентифицирует исследователя по ORCID и выдает криптографический JWT токен"""
+    profile = ScholarAuthService.fetch_orcid_public_profile(req.orcid)
+    if not profile:
+        raise HTTPException(status_code=400, detail="Невалидный формат ORCID iD")
+    
+    if req.name:
+        profile["name"] = req.name
+    if req.institution:
+        profile["institution"] = req.institution
+    if req.discipline:
+        profile["discipline"] = req.discipline
+
+    token = ScholarAuthService.create_jwt_token(profile)
+    return {
+        "status": "AUTHENTICATED",
+        "access_token": token,
+        "token_type": "Bearer",
+        "profile": profile
+    }
+
+class VerifyTokenRequest(BaseModel):
+    token: str = Field(...)
+
+@app.post("/api/v1/auth/verify")
+def verify_scholar_jwt_token(req: VerifyTokenRequest):
+    """Проверяет криптографическую подпись и срок действия JWT токена"""
+    is_valid, payload, error = ScholarAuthService.verify_jwt_token(req.token)
+    if not is_valid:
+        raise HTTPException(status_code=401, detail=error or "Unauthorized")
+    return {"status": "TOKEN_VALID", "payload": payload}

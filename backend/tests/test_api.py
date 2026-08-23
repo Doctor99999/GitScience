@@ -82,3 +82,44 @@ def test_zk_commit_and_reveal_flow(client):
     reveal_res = client.post("/api/v1/zk/reveal", json=reveal_payload)
     assert reveal_res.status_code == 200
     assert reveal_res.json()["verified"] is True
+
+def test_datacite_xml_export(client):
+    res = client.get("/api/v1/notary/datacite/GS-2026-00001/xml")
+    assert res.status_code == 200
+    assert "application/xml" in res.headers["content-type"]
+    assert b"10.5281/gitscience" in res.content
+    assert b"datacite.org/schema/kernel-4" in res.content
+
+def test_institutional_invoice_pdf_download(client):
+    res = client.get("/api/v1/billing/fiat/invoice/INV-2026-TEST/pdf?base_license_fee=5000")
+    assert res.status_code == 200
+    assert res.headers["content-type"] == "application/pdf"
+    assert len(res.content) > 1000
+
+def test_web3_live_wallet_balance(client):
+    res = client.get("/api/v1/wallet/balance/0x71C2B09934D3E08A52e52d7da7DAbFAc484EFE37")
+    assert res.status_code == 200
+    data = res.json()
+    assert data["is_connected"] is True
+    assert data["is_founder"] is True
+    assert data["usdt_balance"] >= 10000
+
+def test_orcid_auth_and_jwt_flow(client):
+    lookup_res = client.get("/api/v1/auth/orcid/0009-0003-3929-3605")
+    assert lookup_res.status_code == 200
+    assert lookup_res.json()["orcid"] == "0009-0003-3929-3605"
+
+    login_res = client.post("/api/v1/auth/login", json={
+        "orcid": "0009-0003-3929-3605",
+        "name": "Salauat Yeshimov"
+    })
+    assert login_res.status_code == 200
+    login_data = login_res.json()
+    assert "access_token" in login_data
+    token = login_data["access_token"]
+
+    verify_res = client.post("/api/v1/auth/verify", json={"token": token})
+    assert verify_res.status_code == 200
+    assert verify_res.json()["status"] == "TOKEN_VALID"
+    assert verify_res.json()["payload"]["orcid"] == "0009-0003-3929-3605"
+
