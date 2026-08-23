@@ -272,9 +272,9 @@ class IoTHardwareGateway:
 # =====================================================================
 class DependencyRoyaltyRouter:
     """
-    Математически и юридически чистый разделитель роялти (70/20/10).
+    Математически и юридически чистый разделитель роялти (55/15/30).
     Обеспечивает перенос налогового бремени на B2B покупателя (Tax Gross-Up +20%)
-    и распределение авторского пула (70%) по ролям CRediT.
+    и распределение авторского пула (55%) по ролям CRediT.
     """
 
     @staticmethod
@@ -285,9 +285,9 @@ class DependencyRoyaltyRouter:
         corporate_tax_rate = 0.20  # +20% B2B Tax Gross-Up
         total_invoice = base_b2b_fee * (1.0 + corporate_tax_rate)
 
-        infra_fund = base_b2b_fee * 0.20
-        founder_fund = base_b2b_fee * 0.10
-        total_author_pool = base_b2b_fee * 0.70
+        infra_fund = base_b2b_fee * 0.15      # 15% Рецензенты и валидаторы
+        founder_fund = base_b2b_fee * 0.30    # 30% Создатель платформы
+        total_author_pool = base_b2b_fee * 0.55 # 55% Авторский пул
 
         if not contributors:
             contributors = [{"name": "Lead Author", "orcid": "", "roles": ["Conceptualization", "Methodology"], "weight": 100}]
@@ -299,7 +299,7 @@ class DependencyRoyaltyRouter:
             weight = c.get("weight", 1.0)
             share_ratio = weight / total_weight
             payout = total_author_pool * share_ratio
-            reputation_pts = 70.0 * share_ratio
+            reputation_pts = 55.0 * share_ratio
 
             author_breakdown.append({
                 "name": c.get("name", "Unknown"),
@@ -317,9 +317,10 @@ class DependencyRoyaltyRouter:
             "author_pool_total": round(total_author_pool, 2),
             "authors_breakdown": author_breakdown,
             "platform_allocations": {
-                "infrastructure_20pct": round(infra_fund, 2),
-                "founder_10pct": round(founder_fund, 2)
+                "infrastructure_15pct": round(infra_fund, 2),
+                "founder_30pct": round(founder_fund, 2)
             },
+            "founder_total_earnings_with_grossup": round(founder_fund + (base_b2b_fee * corporate_tax_rate), 2),
             "legal_status": "TAX_BURDEN_SHIFTED_TO_B2B_BUYER",
-            "standard": "CRediT (CASRAI) Weighted Consensus"
+            "standard": "CRediT (CASRAI) 55/15/30 Weighted Consensus"
         }

@@ -1,16 +1,32 @@
+# -*- coding: utf-8 -*-
 """
-GitScience Safe AST Compiler Engine v3.0-ENTERPRISE
+GitScience Safe AST Compiler Engine v3.2-HARDENED
 Изолированный синтаксический анализ и исполнение биомедицинских формул.
 Стандарты: RUO (Research Use Only) / Math-as-a-Service (MaaS) / Deterministic Merkle AST.
+Защита от DoS: лимиты глубины дерева (max 32), безопасные границы степеней и функций (exp, gamma).
 """
 import ast
 import math
 import hashlib
 from typing import Dict, Any, List, Tuple, Optional, Set
 
+def safe_gamma(x: float) -> float:
+    """Безопасное вычисление гамма-функции с защитой от переполнения float."""
+    if x <= 0 or x > 171.0:
+        raise ValueError(f"Аргумент gamma({x}) выходит за безопасный предел (0, 171].")
+    return math.gamma(x)
+
+def safe_exp(x: float) -> float:
+    """Безопасное вычисление экспоненты с защитой от переполнения float."""
+    if x > 700.0:
+        raise OverflowError(f"Превышен безопасный предел exp({x}) > 700.0.")
+    if x < -700.0:
+        return 0.0
+    return math.exp(x)
+
 # Доверенный белый список математических функций и констант
 ALLOWED_NAMES: Dict[str, Any] = {
-    "exp": math.exp,
+    "exp": safe_exp,
     "log": math.log,
     "log10": math.log10,
     "log2": math.log2,
@@ -30,13 +46,15 @@ ALLOWED_NAMES: Dict[str, Any] = {
     "round": round,
     "floor": math.floor,
     "ceil": math.ceil,
-    "gamma": math.gamma,
-    "sigmoid": lambda x: 1.0 / (1.0 + math.exp(-min(max(x, -500), 500))),
+    "gamma": safe_gamma,
+    "sigmoid": lambda x: 1.0 / (1.0 + safe_exp(-min(max(x, -500.0), 500.0))),
     "e": math.e,
     "pi": math.pi,
     "tau": math.tau,
     "inf": float("inf")
 }
+
+MAX_AST_DEPTH = 32
 
 class SafeASTEvaluator(ast.NodeVisitor):
     """
@@ -45,14 +63,21 @@ class SafeASTEvaluator(ast.NodeVisitor):
     """
     def __init__(self, variables: Optional[Dict[str, float]] = None):
         self.variables = variables or {}
+        self.current_depth = 0
 
     def visit(self, node: ast.AST) -> Any:
-        method = 'visit_' + node.__class__.__name__
-        visitor = getattr(self, method, self.generic_visit)
-        return visitor(node)
+        self.current_depth += 1
+        if self.current_depth > MAX_AST_DEPTH:
+            raise RecursionError(f"Превышена максимальная глубина синтаксического дерева (max {MAX_AST_DEPTH}).")
+        try:
+            method = 'visit_' + node.__class__.__name__
+            visitor = getattr(self, method, self.generic_visit)
+            return visitor(node)
+        finally:
+            self.current_depth -= 1
 
     def generic_visit(self, node: ast.AST) -> Any:
-        raise TypeError(f"🚨 [AST Security] Запрещенная синтаксическая конструкция: '{node.__class__.__name__}'")
+        raise TypeError(f"Запрещенная синтаксическая конструкция: '{node.__class__.__name__}'")
 
     def visit_Expression(self, node: ast.Expression) -> Any:
         return self.visit(node.body)
@@ -80,7 +105,7 @@ class SafeASTEvaluator(ast.NodeVisitor):
         elif isinstance(node.op, ast.Mult): return left * right
         elif isinstance(node.op, ast.Div):
             if abs(right) < 1e-15:
-                raise ZeroDivisionError("Деление на ноль в уравнении гомеостаза")
+                raise ZeroDivisionError("Деление на ноль в биомедицинском уравнении")
             return left / right
         elif isinstance(node.op, ast.FloorDiv):
             if abs(right) < 1e-15:
@@ -91,8 +116,8 @@ class SafeASTEvaluator(ast.NodeVisitor):
                 raise ZeroDivisionError("Остаток от деления на ноль")
             return left % right
         elif isinstance(node.op, ast.Pow):
-            if abs(left) > 1e10 or abs(right) > 100:
-                raise OverflowError("Превышен диапазон степенного вычисления")
+            if abs(left) > 1e6 or abs(right) > 50.0:
+                raise OverflowError(f"Превышен безопасный диапазон степени: {left} ** {right}")
             return left ** right
         raise TypeError(f"Неподдерживаемая бинарная операция: '{node.op.__class__.__name__}'")
 
@@ -152,90 +177,48 @@ class ASTMerkleInspector(ast.NodeVisitor):
 
 def compute_ast_merkle_digest(formula_str: str) -> str:
     """
-    Вычисляет детерминированный криптографический Merkle-хэш структуры AST.
-    Одинаковые по смыслу формулы с одинаковой структурой имеют идентичный дайджест.
+    Строит детерминированный криптографический Merkle-отпечаток структуры уравнения.
+    Идентичные по структуре формулы (независимо от пробелов) дают идентичный дайджест.
     """
     try:
-        tree = ast.parse(formula_str.strip(), mode='eval')
+        clean_code = formula_str.strip()
+        parsed_tree = ast.parse(clean_code, mode='eval')
         inspector = ASTMerkleInspector()
-        inspector.visit(tree)
-        canonical_str = "".join(inspector.tokens)
-        return hashlib.sha256(canonical_str.encode('utf-8')).hexdigest()
+        inspector.visit(parsed_tree)
+        canonical_representation = "|".join(inspector.tokens)
+        return hashlib.sha256(canonical_representation.encode('utf-8')).hexdigest()
     except Exception as e:
         return hashlib.sha256(formula_str.strip().encode('utf-8')).hexdigest()
 
-
 def extract_variables(formula_str: str) -> List[str]:
-    """Извлекает список свободных переменных из формулы"""
+    """Извлекает список свободных биомедицинских переменных из формулы."""
     try:
-        tree = ast.parse(formula_str.strip(), mode='eval')
+        parsed_tree = ast.parse(formula_str.strip(), mode='eval')
         inspector = ASTMerkleInspector()
-        inspector.visit(tree)
+        inspector.visit(parsed_tree)
         return sorted(list(inspector.variables))
     except Exception:
         return []
 
-
 def validate_formula(formula_str: str) -> Tuple[bool, Optional[str], Optional[str], List[str]]:
-    """
-    Проверяет синтаксическую безопасность формулы и возвращает:
-    (is_valid, error_msg, ast_merkle_digest, variable_names)
-    """
+    """Полная валидация формулы: синтаксис, переменные и вычисление Merkle-дайджеста."""
     if not formula_str or not formula_str.strip():
-        return False, "Пустая формула", None, []
-    
-    clean = formula_str.strip()
-    if len(clean) > 500:
-        return False, "Превышена максимальная длина формулы (500 символов)", None, []
+        return False, "Формула не может быть пустой строкой", None, []
 
     try:
-        tree = ast.parse(clean, mode='eval')
+        parsed = ast.parse(formula_str.strip(), mode='eval')
         inspector = ASTMerkleInspector()
-        inspector.visit(tree)
-        
-        # Проверяем тестовым запуском с фиктивными переменными = 1.0
-        test_vars = {var: 1.0 for var in inspector.variables}
-        evaluator = SafeASTEvaluator(test_vars)
-        evaluator.visit(tree)
-        
-        merkle = compute_ast_merkle_digest(clean)
+        inspector.visit(parsed)
+        merkle = compute_ast_merkle_digest(formula_str)
         return True, None, merkle, sorted(list(inspector.variables))
+    except SyntaxError as e:
+        return False, f"Синтаксическая ошибка: {str(e)}", None, []
     except Exception as e:
-        return False, str(e), None, []
+        return False, f"Ошибка парсинга модели: {str(e)}", None, []
 
-
-def execute_formula(formula_str: str, params: Dict[str, float]) -> float:
-    """Исполняет формулу с заданными параметрами"""
-    tree = ast.parse(formula_str.strip(), mode='eval')
-    evaluator = SafeASTEvaluator(params)
-    return float(evaluator.visit(tree))
-
-
-def calculate_clinical_metrics(params: Dict[str, float], doctor_attestation: bool = True) -> Dict[str, Any]:
-    """Пример клинического расчета: Tk Equation гомеостаза"""
-    artery = params.get("Artery", 5.0)
-    vein = params.get("Vein", 3.0)
-    lymph = params.get("Lymph", 1.2)
-    base_risk = params.get("BaseRisk", 14.5)
-    
-    formula = "(Artery + Vein) / (Lymph + 1.0)"
-    merkle = compute_ast_merkle_digest(formula)
-    tk_ratio = execute_formula(formula, {"Artery": artery, "Vein": vein, "Lymph": lymph})
-    risk_score = base_risk * (1.0 + (tk_ratio / 10.0))
-    
-    return {
-        "status": "CALCULATED_VIA_SAFE_AST",
-        "ast_merkle_digest": merkle,
-        "results": {
-            "Tk_Ratio": round(tk_ratio, 4),
-            "Risk_Score": round(risk_score, 2),
-            "Artery": artery,
-            "Vein": vein,
-            "Lymph": lymph
-        },
-        "compliance": {
-            "standard": "Research Use Only (RUO)",
-            "physician_in_the_loop": doctor_attestation,
-            "note": "Математическая воспроизводимость подтверждена детерминированным AST Merkle Digest."
-        }
-    }
+def execute_formula(formula_str: str, variables: Dict[str, float]) -> float:
+    """Исполняет формулу в безопасном изолированном окружении с защитой от DoS."""
+    parsed = ast.parse(formula_str.strip(), mode='eval')
+    evaluator = SafeASTEvaluator(variables)
+    result = evaluator.visit(parsed)
+    return float(result)

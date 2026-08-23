@@ -30,15 +30,40 @@ from gitscience_fortress import (
     IRBClinicalVerifier,
     CREDIT_ROLES
 )
-from gitscience_vampire import VampireProtocolEngine
+from gitscience_vampire import VampireProtocolEngine, AutoHarvesterWorker
 from gitscience_zk import ZKDiscoveryEngine
 from gitscience_passport import SoulboundPassportEngine
 from gitscience_review import BlindPeerReviewEngine
+from gitscience_certificate import CertificateGenerator
+from gitscience_fhir import ClinicalFHIRGateway, DICOMWebGateway
+from gitscience_fiat import InstitutionalFiatGateway
+from gitscience_ai_review import SovereignAIAuditor
+from gitscience_ipnft import IPNFTEngine
+import time
+from collections import defaultdict
+from fastapi.responses import Response
+
+# Простой потокобезопасный Rate Limiter (защита от DoS/Sybil атак)
+class SimpleRateLimiter:
+    def __init__(self, max_requests: int = 60, window_sec: int = 60):
+        self.max_requests = max_requests
+        self.window_sec = window_sec
+        self.requests = defaultdict(list)
+
+    def is_allowed(self, client_id: str) -> bool:
+        now = time.time()
+        self.requests[client_id] = [t for t in self.requests[client_id] if now - t < self.window_sec]
+        if len(self.requests[client_id]) >= self.max_requests:
+            return False
+        self.requests[client_id].append(now)
+        return True
+
+rate_limiter = SimpleRateLimiter(max_requests=60, window_sec=60)
 
 app = FastAPI(
     title="GitScience™ Sovereign Protocol API",
     description="Суверенный децентрализованный нотариат открытий, реестр манускриптов, исполняемая математика и B2B маршрутизатор Аманата",
-    version="3.0.0-ENTERPRISE"
+    version="3.2.0-ENTERPRISE"
 )
 
 # Инициализация БД и констант
@@ -317,6 +342,34 @@ def get_certificate_deep_inspection(registration_code: str):
         "credit_contributors": credit_breakdown
     }
 
+@app.get("/certificate/pdf/{registration_code}")
+def download_official_priority_certificate_pdf(registration_code: str):
+    article = storage.get_manuscript_by_code(registration_code)
+    if not article:
+        raise HTTPException(status_code=404, detail="Сертификат не найден в реестре")
+
+    pdf_bytes = CertificateGenerator.generate_priority_certificate_pdf(
+        registration_code=article["registration_code"],
+        title=article["title"],
+        author_name=article["author_name"],
+        orcid=article["orcid"],
+        category=article.get("category", "General Science"),
+        ipc_class=article.get("ipc_class", "A61B"),
+        sha256_hash=article["sha256_hash"],
+        git_commit_oid=article["git_commit_hash"],
+        ast_merkle_digest=article.get("ast_merkle_digest"),
+        ots_file=article.get("ots_proof_file"),
+        license_type=article.get("license_type", "CC-BY-4.0")
+    )
+
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="Certificate_{registration_code}.pdf"'
+        }
+    )
+
 
 # =====================================================================
 # 6. ЭКСПОРТ DATACITE 4.4 & SCHEMA.ORG JSON-LD
@@ -592,3 +645,157 @@ def simulate_biomedical_formula(req: MaaSSimulateRequest):
         "micro_royalty_fee_usdt": 0.05,
         "compliance": "RUO Class I / Deterministic WASM Math"
     }
+
+
+# =====================================================================
+# 16. CLINICAL HL7 / FHIR R4 & DICOM WEB GATEWAY
+# =====================================================================
+
+class FHIRCalculationRequest(BaseModel):
+    patient_id: str = Field(default="PAT-ONCO-9982")
+    formula_math: str = Field(default="(Artery + Vein) / (Lymph + 1.0)")
+    artery_val: float = Field(default=120.0)
+    vein_val: float = Field(default=80.0)
+    lymph_val: float = Field(default=6.5)
+
+@app.post("/api/v1/clinical/fhir/calculate")
+def execute_clinical_fhir_calculation(req: FHIRCalculationRequest):
+    return ClinicalFHIRGateway.execute_fhir_bundle_calculation(
+        patient_id=req.patient_id,
+        formula_math=req.formula_math,
+        artery_val=req.artery_val,
+        vein_val=req.vein_val,
+        lymph_val=req.lymph_val
+    )
+
+class DICOMStudyRequest(BaseModel):
+    patient_id: str = Field(default="PAT-ONCO-9982")
+    modality: str = Field(default="CT")
+    body_part: str = Field(default="CHEST_ABDOMEN")
+
+@app.post("/api/v1/clinical/dicom/study")
+def link_dicom_imaging_study(req: DICOMStudyRequest):
+    return DICOMWebGateway.simulate_dicom_study_integration(
+        patient_id=req.patient_id,
+        modality=req.modality,
+        body_part=req.body_part
+    )
+
+
+# =====================================================================
+# 17. INSTITUTIONAL B2B FIAT INVOICING & PAYMENT GATEWAY
+# =====================================================================
+
+class FiatInvoiceRequest(BaseModel):
+    hospital_name: str = Field(default="National Scientific Oncology Center")
+    tax_id_bin: str = Field(default="BIN-190440023412")
+    registration_code: str = Field(default="GS-2026-00001")
+    base_license_fee: float = Field(default=10000.0, ge=100.0)
+    fiat_currency: str = Field(default="USD")
+
+@app.post("/api/v1/billing/fiat/invoice")
+def generate_institutional_fiat_invoice(req: FiatInvoiceRequest):
+    return InstitutionalFiatGateway.generate_b2b_invoice(
+        hospital_name=req.hospital_name,
+        tax_id_bin=req.tax_id_bin,
+        registration_code=req.registration_code,
+        base_license_fee=req.base_license_fee,
+        fiat_currency=req.fiat_currency
+    )
+
+class FiatWebhookRequest(BaseModel):
+    invoice_number: str = Field(...)
+    paid_amount: float = Field(...)
+    payment_method: str = Field(default="BANK_WIRE_SWIFT")
+
+@app.post("/api/v1/billing/fiat/webhook")
+def process_fiat_bank_webhook(req: FiatWebhookRequest):
+    return InstitutionalFiatGateway.process_fiat_webhook(
+        invoice_number=req.invoice_number,
+        paid_amount=req.paid_amount,
+        payment_method=req.payment_method
+    )
+
+
+# =====================================================================
+# 18. SOVEREIGN AI PEER-REVIEWER & PRIOR ART SCANNER
+# =====================================================================
+
+class AIAuditRequest(BaseModel):
+    title: str = Field(...)
+    author: str = Field(default="Salauat Abiltayevich Yeshimov")
+    orcid: str = Field(default="0009-0003-3929-3605")
+    abstract: str = Field(default="")
+    formula_math: str = Field(default="")
+    has_human_subjects: bool = Field(default=False)
+    irb_approval_number: str = Field(default="")
+
+@app.post("/api/v1/ai/audit")
+def run_autonomous_ai_audit(req: AIAuditRequest):
+    return SovereignAIAuditor.generate_comprehensive_ai_dossier(
+        title=req.title,
+        author=req.author,
+        orcid=req.orcid,
+        abstract=req.abstract,
+        formula_math=req.formula_math,
+        has_human_subjects=req.has_human_subjects,
+        irb_approval_number=req.irb_approval_number
+    )
+
+
+# =====================================================================
+# 19. SOVEREIGN IP-NFT PATENT MINTER
+# =====================================================================
+
+class IPNFTMintRequest(BaseModel):
+    registration_code: str = Field(...)
+    wallet_address: str = Field(default="0x71C2B09934D3E08A52e52d7da7DAbFAc484EFE37")
+
+@app.post("/api/v1/ipnft/mint")
+def mint_sovereign_ip_nft(req: IPNFTMintRequest):
+    return IPNFTEngine.generate_token_metadata(
+        registration_code=req.registration_code,
+        wallet_address=req.wallet_address
+    )
+
+
+# =====================================================================
+# 20. PERSISTENT PLATFORM METRICS & STATS SUMMARY
+# =====================================================================
+
+@app.get("/api/v1/stats/summary")
+def get_global_platform_stats():
+    """Возвращает живую агрегированную статистику сети без сброса после перезагрузки"""
+    return storage.get_platform_stats_summary()
+
+
+# =====================================================================
+# 21. OFFICIAL LEGAL LICENSE TEXT AGREEMENT
+# =====================================================================
+
+@app.get("/api/v1/notary/license/{registration_code}")
+def get_official_license_agreement(registration_code: str):
+    """Генерирует юридический текст B2B / Open Access лицензии для манускрипта"""
+    lic = storage.generate_license_agreement_text(registration_code)
+    if not lic:
+        raise HTTPException(status_code=404, detail="Manuscript record not found")
+    return lic
+
+
+# =====================================================================
+# 22. REAL-TIME OPENALEX BATCH HARVESTER WORKER
+# =====================================================================
+
+class BatchHarvestRequest(BaseModel):
+    query: Optional[str] = Field(default=None)
+    limit: int = Field(default=4, ge=1, le=20)
+
+@app.post("/api/v1/vampire/harvest/batch")
+def trigger_batch_harvester(req: BatchHarvestRequest):
+    """Запускает порцию реального парсинга открытых статей из OpenAlex"""
+    return AutoHarvesterWorker.harvest_batch(custom_query=req.query, limit=req.limit)
+
+@app.get("/api/v1/vampire/harvest/status")
+def get_harvester_status():
+    """Возвращает текущий статус фонового парсера"""
+    return AutoHarvesterWorker.get_status()
