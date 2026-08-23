@@ -1,36 +1,23 @@
 services:
-  # 1. FastAPI Sovereign Backend API
+  # 1. FastAPI Python Backend Service
   - type: web
-    name: gitscience-backend
-    env: python
-    region: frankfurt
-    plan: free
-    branch: main
-    rootDir: backend
+    name: gitscience-api
+    runtime: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn -w 4 -k uvicorn.workers.UvicornWorker main:app --bind 0.0.0.0:$PORT
-    healthCheckPath: /
+    startCommand: gunicorn -w 2 -k uvicorn.workers.UvicornWorker --timeout 120 --keep-alive 5 server:app --bind 0.0.0.0:$PORT
     envVars:
       - key: PYTHON_VERSION
-        value: 3.11.8
-      - key: GITSCIENCE_STORAGE_PATH
-        value: /tmp/gitscience_vault
+        value: 3.11.9
+      - key: PYTHONUNBUFFERED
+        value: "1"
 
-  # 2. Next.js Sovereign Web Frontend
+  # 2. Next.js Frontend Service
   - type: web
     name: gitscience-frontend
-    env: node
-    region: frankfurt
-    plan: free
-    branch: main
+    runtime: node
     rootDir: frontend
     buildCommand: npm install && npm run build
-    startCommand: npm run start -- -p $PORT
+    startCommand: npm run start
     envVars:
       - key: NODE_VERSION
-        value: 20.11.0
-      - key: NEXT_PUBLIC_API_BASE
-        fromService:
-          type: web
-          name: gitscience-backend
-          property: host
+        value: 20.x
