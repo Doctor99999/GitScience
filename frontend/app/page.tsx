@@ -61,9 +61,9 @@ const TRANSLATIONS = {
   KZ: {
     brand: "GitScience™ Sovereign Protocol",
     tagline: "Ғалымдар аманатын қорғау: орындалатын ғылым, ZK-басымдық және суверенді нотариат",
-    loginOrcid: "ORCID арқылы кіру / Тіркелу",
+    loginOrcid: "ORCID: Кіру / Тіркелу",
     switchScholar: "Профильді ауыстыру / Шығу",
-    connectWallet: "Әмиянды қосу",
+    connectWallet: "🦊 Әмиянды қосу",
     disconnectWallet: "Ажырату",
     passkeyBtn: "📱 Touch ID",
     guideBtn: "💡 Көмекші / AI Гид",
@@ -77,6 +77,21 @@ const TRANSLATIONS = {
     tabAmanat: "💳 Аманат Роялти",
     tabCourt: "⚖️ Ғылыми Сот",
     tabVampire: "🧛 Vampire Парсер",
+
+    // Welcome Banner
+    welcomeBannerTitle: "Қош келдіңіз! Ғалымдар аманатын суверенді қорғау протоколы",
+    welcomeBannerSub: "Манускрипттеріңізді WIPO Prior Art Shield арқылы бекітіп, 55/15/30 роялти алу үшін ORCID және Web3 әмияныңызды қосыңыз.",
+    welcomeRegisterBtn: "🧬 ORCID арқылы тіркелу / кіру",
+    welcomeWalletBtn: "🦊 Web3 Әмиянды қосу",
+
+    // Web3 Modal
+    connectWalletTitle: "Web3 Децентрализациялық Әмиянды Қосу",
+    connectWalletSub: "Аманат роялтилері мен IP-NFT авторлық құқықтарыңызды Web3 арқылы басқарыңыз",
+    walletAddressLabel: "Әмиян мекенжайы",
+    walletBalanceLabel: "USDT Балансы",
+    walletRoyaltiesLabel: "Аманат Роялтилері (55% / 30%)",
+    walletNetworkLabel: "Блокчейн Желісі",
+    disconnectWalletBtn: "Әмиянды ажырату ✕",
 
     // Live Stats Footer
     statManuscripts: "Қорғалған манускрипттер",
@@ -124,7 +139,7 @@ const TRANSLATIONS = {
 
     // Tab 3: Library
     libHeader: "WIPO Global Prior Art Library",
-    libSubheader: "Ресми ашық ғылыми реестр және басымдық қорғанысы",
+    libSubheader: "Ресми ашық ғылыми реестр және басымдық қорғанысы (ISO 14721 CAS Vault)",
     libSearchPlaceholder: "Кітапхана бойынша іздеу (атауы, авторы, ORCID)...",
     viewDetailsBtn: "Инспектор",
     readPdfBtn: "PDF оқу 📄",
@@ -201,21 +216,29 @@ const TRANSLATIONS = {
     courtVoteInvalid: "Қабылдамау (Invalid)",
     courtVoteAbstain: "Қалыс қалу (Abstain)",
 
-    // Tab 10: Vampire
-    vampireHeader: "Vampire Protocol: Автономды OpenAlex & PubMed Парсері",
-    vampireSubheader: "Әлемдік ашық манускрипттерді лицензиясын тексеру арқылы қорғауға алу",
-    vampireSearchLabel: "OpenAlex базасынан іздеу",
+    // Tab 10: Vampire Multi-Source
+    vampireHeader: "Vampire Protocol: Автономды Мульти-Дереккөз Сборщигі",
+    vampireSubheader: "OpenAlex (250M+), arXiv.org және Europe PMC ашық манускрипттерін ISO 14721 CAS қоймасына қауіпсіз депонирлеу",
+    vampireSearchLabel: "Ғылыми базалар бойынша іздеу (OpenAlex / arXiv / PubMed)...",
     vampireSearchBtn: "Іздеу 🔎",
-    vampireImportBtn: "Импорттау & Бекіту 📥",
-    vampireHarvestBtn: "🚀 Авто-парсерді іске қосу (Batch Harvest)",
-    vampireLicenseNotice: "Лицензиясы CC-BY / CC0 болса титул парағы қосылады. CC-BY-ND болса өзгеріссіз сақталады.",
+    vampireImportBtn: "CAS Реестрге депонирлеу 📥",
+    vampireHarvestBtn: "🚀 Пакеттік жинау (Batch)",
+    vampireLicenseNotice: "Лицензиясы CC-BY / CC0 болса WIPO Prior Art Shield қосылады. CC-BY-ND болса файл өзгеріссіз сақталады.",
+    sourceAll: "Барлық дереккөздер",
+    sourceOpenAlex: "OpenAlex (250M+)",
+    sourceArxiv: "arXiv Preprints",
+    sourcePubMed: "PubMed Central / PMC",
+    startDaemonBtn: "🟢 Автономды демонда іске қосу",
+    stopDaemonBtn: "🔴 Демонды тоқтату",
+    daemonStatusRunning: "🟢 Автономды демон белсенді (Фонда қауіпсіз жинақтауда)",
+    daemonStatusStopped: "⚪ Автономды демон күту режимінде",
   },
   RU: {
     brand: "GitScience™ Sovereign Protocol",
     tagline: "Защита Аманата каждого ученого: исполняемая наука, ZK-приоритет и суверенный нотариат",
-    loginOrcid: "Войти через ORCID / Регистрация",
+    loginOrcid: "ORCID: Войти / Регистрация",
     switchScholar: "Сменить профиль / Выйти",
-    connectWallet: "Подключить Кошелек",
+    connectWallet: "🦊 Подключить Кошелек",
     disconnectWallet: "Отключить",
     passkeyBtn: "📱 Touch ID",
     guideBtn: "💡 Помощник / AI Гид",
@@ -229,6 +252,19 @@ const TRANSLATIONS = {
     tabAmanat: "💳 Роялти Аманата",
     tabCourt: "⚖️ Научный Суд",
     tabVampire: "🧛 Vampire Парсер",
+
+    welcomeBannerTitle: "Добро пожаловать в суверенный протокол защиты научных открытий GitScience™",
+    welcomeBannerSub: "Защитите приоритет манускрипта через WIPO Prior Art Shield и получайте гарантированные роялти 55/15/30.",
+    welcomeRegisterBtn: "🧬 Войти / Зарегистрироваться через ORCID",
+    welcomeWalletBtn: "🦊 Подключить Web3 Кошелек",
+
+    connectWalletTitle: "Подключение Децентрализованного Web3 Кошелька",
+    connectWalletSub: "Управляйте роялти по протоколу Аманата и патентами IP-NFT (ERC-721 / EIP-2981)",
+    walletAddressLabel: "Адрес кошелька",
+    walletBalanceLabel: "Баланс USDT",
+    walletRoyaltiesLabel: "Накопленные роялти Аманата (55% / 30%)",
+    walletNetworkLabel: "Сеть блокчейна",
+    disconnectWalletBtn: "Отключить кошелек ✕",
 
     statManuscripts: "Защищенных манускриптов",
     statMaas: "Вычислений MaaS",
@@ -272,7 +308,7 @@ const TRANSLATIONS = {
     mintIpNftBtn: "🧬 Токенизировать в IP-NFT Патент (EIP-2981)",
 
     libHeader: "WIPO Global Prior Art Library",
-    libSubheader: "Официальный открытый научный реестр и защита приоритета",
+    libSubheader: "Официальный открытый научный реестр и защита приоритета (ISO 14721 CAS Vault)",
     libSearchPlaceholder: "Поиск по библиотеке (название, автор, ORCID)...",
     viewDetailsBtn: "Инспектор",
     readPdfBtn: "Читать PDF 📄",
@@ -343,20 +379,28 @@ const TRANSLATIONS = {
     courtVoteInvalid: "Отклонить претензию (Invalid)",
     courtVoteAbstain: "Воздержаться (Abstain)",
 
-    vampireHeader: "Vampire Protocol: Автономный парсер OpenAlex & PubMed",
-    vampireSubheader: "Импорт открытых манускриптов со строгой проверкой лицензий Creative Commons",
-    vampireSearchLabel: "Поиск в каталоге OpenAlex",
+    vampireHeader: "Vampire Protocol: Автономный Мульти-Сборщик Научных Статей",
+    vampireSubheader: "Импорт открытых манускриптов из OpenAlex (250M+), arXiv.org и Europe PMC в защищенное CAS хранилище ISO 14721",
+    vampireSearchLabel: "Поиск в научных базах (OpenAlex / arXiv / PubMed)...",
     vampireSearchBtn: "Искать 🔎",
-    vampireImportBtn: "Импортировать & Нотариализовать 📥",
-    vampireHarvestBtn: "🚀 Запустить авто-парсер (Batch Harvest)",
-    vampireLicenseNotice: "Лицензии CC-BY/CC0 получают титульный лист. Работы CC-BY-ND сохраняются строго без изменений.",
+    vampireImportBtn: "Депонировать в CAS Реестр 📥",
+    vampireHarvestBtn: "🚀 Пакетный сбор (Batch)",
+    vampireLicenseNotice: "Лицензии CC-BY/CC0 получают титульный лист WIPO Prior Art Shield. Работы CC-BY-ND сохраняются строго без изменений.",
+    sourceAll: "Все базы данных",
+    sourceOpenAlex: "OpenAlex (250M+)",
+    sourceArxiv: "arXiv Preprints",
+    sourcePubMed: "PubMed Central / PMC",
+    startDaemonBtn: "🟢 Запустить фонового демона",
+    stopDaemonBtn: "🔴 Остановить демона",
+    daemonStatusRunning: "🟢 Фоновый демон активен (Непрерывный сбор)",
+    daemonStatusStopped: "⚪ Фоновый демон в режиме ожидания",
   },
   EN: {
     brand: "GitScience™ Sovereign Protocol",
     tagline: "Preserving the Amanat of every scholar: Executable Science, ZK-Priority & Sovereign Notary",
-    loginOrcid: "Sign in with ORCID / Register",
+    loginOrcid: "ORCID: Sign In / Register",
     switchScholar: "Switch Profile / Logout",
-    connectWallet: "Connect Wallet",
+    connectWallet: "🦊 Connect Wallet",
     disconnectWallet: "Disconnect",
     passkeyBtn: "📱 Touch ID",
     guideBtn: "💡 Guide / AI Assistant",
@@ -370,6 +414,19 @@ const TRANSLATIONS = {
     tabAmanat: "💳 Amanat Royalty",
     tabCourt: "⚖️ Science Court",
     tabVampire: "🧛 Vampire Harvester",
+
+    welcomeBannerTitle: "Welcome to GitScience™ Sovereign Protocol for Scientific Truth",
+    welcomeBannerSub: "Protect your manuscript prior art via WIPO Prior Art Shield and earn guaranteed 55/15/30 royalties.",
+    welcomeRegisterBtn: "🧬 Register / Sign In with ORCID",
+    welcomeWalletBtn: "🦊 Connect Web3 Wallet",
+
+    connectWalletTitle: "Connect Decentralized Web3 Wallet",
+    connectWalletSub: "Manage Amanat royalties (55% / 30%) and IP-NFT patent ownership (ERC-721 / EIP-2981)",
+    walletAddressLabel: "Wallet Address",
+    walletBalanceLabel: "USDT Balance",
+    walletRoyaltiesLabel: "Accumulated Royalties (55% / 30%)",
+    walletNetworkLabel: "Blockchain Network",
+    disconnectWalletBtn: "Disconnect Wallet ✕",
 
     statManuscripts: "Protected Manuscripts",
     statMaas: "MaaS Calculations",
@@ -413,7 +470,7 @@ const TRANSLATIONS = {
     mintIpNftBtn: "🧬 Mint Sovereign IP-NFT Patent (EIP-2981)",
 
     libHeader: "WIPO Global Prior Art Library",
-    libSubheader: "Official open archival registry and priority protection",
+    libSubheader: "Official open archival registry and priority protection (ISO 14721 CAS Vault)",
     libSearchPlaceholder: "Search repository (title, author, ORCID)...",
     viewDetailsBtn: "Inspector",
     readPdfBtn: "Read PDF 📄",
@@ -484,13 +541,21 @@ const TRANSLATIONS = {
     courtVoteInvalid: "Vote Invalid",
     courtVoteAbstain: "Abstain",
 
-    vampireHeader: "Vampire Protocol: Automated OpenAlex & PubMed Harvester",
-    vampireSubheader: "Open-access manuscript importer with strict Creative Commons license inspection",
-    vampireSearchLabel: "Query OpenAlex Scholarly Database",
+    vampireHeader: "Vampire Protocol: Autonomous Multi-Source Harvester",
+    vampireSubheader: "Multi-source open access ingestion from OpenAlex, arXiv and Europe PMC into ISO 14721 CAS Vault",
+    vampireSearchLabel: "Search scholarly archives (OpenAlex / arXiv / PubMed)...",
     vampireSearchBtn: "Search 🔎",
-    vampireImportBtn: "Import & Notarize 📥",
-    vampireHarvestBtn: "🚀 Launch Automated Batch Harvester",
+    vampireImportBtn: "Deposit to CAS Vault 📥",
+    vampireHarvestBtn: "🚀 Batch Harvest",
     vampireLicenseNotice: "CC-BY/CC0 works receive official Prior Art cover. CC-BY-ND works are preserved strictly unaltered.",
+    sourceAll: "All Databases",
+    sourceOpenAlex: "OpenAlex (250M+)",
+    sourceArxiv: "arXiv Preprints",
+    sourcePubMed: "PubMed Central / PMC",
+    startDaemonBtn: "🟢 Start Background Daemon",
+    stopDaemonBtn: "🔴 Stop Daemon",
+    daemonStatusRunning: "🟢 Background Daemon Active (Safe Continuous Ingestion)",
+    daemonStatusStopped: "⚪ Background Daemon Standby",
   },
 };
 
@@ -503,7 +568,7 @@ export default function GitScienceSovereignApp() {
     "notary" | "inspector" | "library" | "zk" | "passport" | "review" | "maas" | "amanat" | "court" | "vampire"
   >("notary");
 
-  // Persistent Live Global Platform Stats (Never resets on refresh)
+  // Persistent Live Global Platform Stats
   const [platformStats, setPlatformStats] = useState<{
     total_notarized_manuscripts: number;
     total_maas_executions: number;
@@ -526,6 +591,15 @@ export default function GitScienceSovereignApp() {
   const [inputInstitution, setInputInstitution] = useState("");
   const [inputDiscipline, setInputDiscipline] = useState("Clinical Oncology & Surgery");
 
+  // Web3 Wallet State
+  const [walletConnected, setWalletConnected] = useState(false);
+  const [walletAddress, setWalletAddress] = useState<string | null>(null);
+  const [walletBalance, setWalletBalance] = useState<number>(0);
+  const [walletRoyalties, setWalletRoyalties] = useState<number>(0);
+  const [walletNetwork, setWalletNetwork] = useState<string>("Polygon PoS / Base Mainnet");
+  const [showWalletModal, setShowWalletModal] = useState(false);
+  const [walletConnecting, setWalletConnecting] = useState(false);
+
   // Interactive AI Assistant / Guide State
   const [showGuideModal, setShowGuideModal] = useState(false);
   const [guideSearch, setGuideSearch] = useState("");
@@ -536,8 +610,8 @@ export default function GitScienceSovereignApp() {
   // 1. Notary State
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState("Coupling of Neuro-Immuno-Oncological Axes & Tk Equation");
-  const [authorName, setAuthorName] = useState("Salauat Abiltayevich Yeshimov");
-  const [orcid, setOrcid] = useState("0009-0003-3929-3605");
+  const [authorName, setAuthorName] = useState("");
+  const [orcid, setOrcid] = useState("");
   const [category, setCategory] = useState("Clinical Oncology & Surgery");
   const [ipcClass, setIpcClass] = useState("A61B");
   const [abstract, setAbstract] = useState(
@@ -564,25 +638,21 @@ export default function GitScienceSovereignApp() {
   const [notarySuccess, setNotarySuccess] = useState<any>(null);
   const [notarySubmitting, setNotarySubmitting] = useState(false);
 
-  // New Enterprise State: AI Auditor, IP-NFT, FHIR, Fiat Invoicing, Passkeys
+  // Enterprise Modules
   const [aiAuditLoading, setAiAuditLoading] = useState(false);
   const [aiAuditResult, setAiAuditResult] = useState<any>(null);
-
   const [ipNftMinting, setIpNftMinting] = useState(false);
   const [ipNftResult, setIpNftResult] = useState<any>(null);
-
   const [fhirLoading, setFhirLoading] = useState(false);
   const [fhirResult, setFhirResult] = useState<any>(null);
-
   const [fiatInvoiceLoading, setFiatInvoiceLoading] = useState(false);
   const [fiatInvoiceResult, setFiatInvoiceResult] = useState<any>(null);
-
   const [passkeyNotice, setPasskeyNotice] = useState<string | null>(null);
 
   // 2. Inspector State
   const [searchInspectCode, setSearchInspectCode] = useState("GS-2026-00001");
   const [inspectedDoc, setInspectedDoc] = useState<any>(null);
-  const [inspectorLoading, setInspectorLoading] = useState(false);
+  const [, setInspectorLoading] = useState(false);
 
   // 3. Library State
   const [libraryArticles, setLibraryArticles] = useState<any[]>([]);
@@ -601,7 +671,7 @@ export default function GitScienceSovereignApp() {
   const [zkRevealPayload, setZkRevealPayload] = useState("");
   const [zkRevealResult, setZkRevealResult] = useState<any>(null);
 
-  // 5. Soulbound Passport State
+  // 5. Passport State
   const [passportData, setPassportData] = useState<any>(null);
 
   // 6. Review State
@@ -612,7 +682,7 @@ export default function GitScienceSovereignApp() {
   const [revEthics, setRevEthics] = useState(10);
   const [revNovelty, setRevNovelty] = useState(9);
   const [revComments, setRevComments] = useState("Flawless mathematical AST reproducibility. WMA Helsinki declaration compliant.");
-  const [revResult, setRevResult] = useState<any>(null);
+  const [, setRevResult] = useState<any>(null);
 
   // 7. MaaS Simulator State
   const [maasCurve, setMaasCurve] = useState<any[]>([
@@ -628,13 +698,13 @@ export default function GitScienceSovereignApp() {
     { input_artery: 10.0, output_tk_homeostasis: 7.2727 },
   ]);
   const [maasFormula, setMaasFormula] = useState("(Artery + Vein) / (Lymph + 1.0)");
-  const [paramArtery, setParamArtery] = useState(5.0);
-  const [paramVein, setParamVein] = useState(3.0);
-  const [paramLymph, setParamLymph] = useState(1.0);
-  const [maasSimulating, setMaasSimulating] = useState(false);
+  const [paramArtery] = useState(5.0);
+  const [paramVein] = useState(3.0);
+  const [paramLymph] = useState(1.0);
+  const [, setMaasSimulating] = useState(false);
 
   // 8. Amanat Calculator State
-  const [baseFee, setBaseFee] = useState(5000);
+  const [baseFee] = useState(5000);
   const [, setLedgerTxResult] = useState<any>(null);
 
   // 9. Science Court State
@@ -652,24 +722,27 @@ export default function GitScienceSovereignApp() {
       votes_abstain: 2,
     },
   ]);
-  const [newDisputeClaimant, setNewDisputeClaimant] = useState("Independent Researcher");
-  const [newDisputeOrcid, setNewDisputeOrcid] = useState("0009-0005-1122-3344");
-  const [newDisputeTarget, setNewDisputeTarget] = useState("GS-2026-00001");
-  const [newDisputeReason, setNewDisputeReason] = useState("Alleged formula overlap with uncredited mathematical paper published in 2024.");
-  const [newDisputeEvidenceHash, setNewDisputeEvidenceHash] = useState("7f4c9a8b1234567890abcdef1234567890abcdef1234567890abcdef12345678");
+  const [newDisputeClaimant] = useState("Independent Researcher");
+  const [newDisputeOrcid] = useState("0009-0005-1122-3344");
+  const [newDisputeTarget] = useState("GS-2026-00001");
+  const [newDisputeReason] = useState("Alleged formula overlap with uncredited mathematical paper published in 2024.");
+  const [newDisputeEvidenceHash] = useState("7f4c9a8b1234567890abcdef1234567890abcdef1234567890abcdef12345678");
   const [courtActionMessage, setCourtActionMessage] = useState<string | null>(null);
 
-  // 10. Vampire State & Harvester
-  const [vampireQuery, setVampireQuery] = useState("Oncology Mathematical Models");
+  // 10. Vampire Multi-Source State & Harvester
+  const [vampireQuery, setVampireQuery] = useState("Oncology Homeostasis");
+  const [vampireSource, setVampireSource] = useState<"all" | "openalex" | "arxiv" | "pubmed">("all");
   const [vampireResults, setVampireResults] = useState<any[]>([]);
   const [vampireSearching, setVampireSearching] = useState(false);
   const [vampireImportResult, setVampireImportResult] = useState<any>(null);
   const [harvestingBatch, setHarvestingBatch] = useState(false);
+  const [daemonRunning, setDaemonRunning] = useState(false);
+  const [daemonStatus, setDaemonStatus] = useState<any>(null);
 
-  // Initial Load & Service Worker Registration
+  // Initial Session Load
   useEffect(() => {
-    // 1. Load cached stats from localStorage
     if (typeof window !== "undefined") {
+      // 1. Stats from localStorage
       const cachedStats = localStorage.getItem("gitscience_live_stats");
       if (cachedStats) {
         try {
@@ -677,31 +750,39 @@ export default function GitScienceSovereignApp() {
         } catch (e) {}
       }
 
-      // 2. Load stored scholar profile
+      // 2. Scholar Profile: Guest Mode by default unless previously logged in
       const cachedScholar = localStorage.getItem("gitscience_active_scholar");
       if (cachedScholar) {
         try {
           const parsed = JSON.parse(cachedScholar);
           setActiveScholar(parsed);
-          setAuthorName(parsed.name || "Salauat Abiltayevich Yeshimov");
-          setOrcid(parsed.orcid || "0009-0003-3929-3605");
+          setAuthorName(parsed.name || "");
+          setOrcid(parsed.orcid || "");
         } catch (e) {
-          setActiveScholar(DEFAULT_FOUNDER_PROFILE);
+          setActiveScholar(null);
         }
       } else {
-        // Default to founder on fresh session
-        setActiveScholar(DEFAULT_FOUNDER_PROFILE);
+        setActiveScholar(null);
+      }
+
+      // 3. Web3 Wallet Address
+      const cachedWallet = localStorage.getItem("gitscience_wallet_address");
+      if (cachedWallet) {
+        setWalletAddress(cachedWallet);
+        setWalletConnected(true);
+        fetchWalletBalance(cachedWallet);
       }
     }
 
     loadPlatformStats();
     loadLibrary();
     loadPassport();
+    loadDaemonStatus();
     handleInspect(searchInspectCode);
 
-    // Periodic stats sync (every 15 seconds)
     const timer = setInterval(() => {
       loadPlatformStats();
+      loadDaemonStatus();
     }, 15000);
 
     if (typeof window !== "undefined" && "serviceWorker" in navigator) {
@@ -724,6 +805,56 @@ export default function GitScienceSovereignApp() {
     } catch (e) {}
   };
 
+  const fetchWalletBalance = async (address: string) => {
+    try {
+      const res = await fetch(`${apiBase}/api/v1/wallet/balance/${address}`);
+      if (res.ok) {
+        const data = await res.json();
+        setWalletBalance(data.usdt_balance || 5000.0);
+        setWalletRoyalties(data.accumulated_royalties_usdt || 550.0);
+        setWalletNetwork(data.network || "Polygon PoS / Base Mainnet");
+      }
+    } catch (e) {
+      setWalletBalance(12500.0);
+      setWalletRoyalties(3750.0);
+    }
+  };
+
+  const handleConnectWallet = async (type: "metamask" | "founder" | "custom") => {
+    setWalletConnecting(true);
+    let targetAddress = "0x71C2B09934D3E08A52e52d7da7DAbFAc484EFE37";
+    if (type === "metamask" && typeof window !== "undefined" && (window as any).ethereum) {
+      try {
+        const accounts = await (window as any).ethereum.request({ method: "eth_requestAccounts" });
+        if (accounts && accounts.length > 0) {
+          targetAddress = accounts[0];
+        }
+      } catch (err) {}
+    } else if (type === "custom") {
+      targetAddress = "0x3A9F408B19D2088cE8d0C2B581290349A15d0284";
+    }
+
+    setWalletAddress(targetAddress);
+    setWalletConnected(true);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("gitscience_wallet_address", targetAddress);
+    }
+    await fetchWalletBalance(targetAddress);
+    setWalletConnecting(false);
+    setShowWalletModal(false);
+  };
+
+  const handleDisconnectWallet = () => {
+    setWalletAddress(null);
+    setWalletConnected(false);
+    setWalletBalance(0);
+    setWalletRoyalties(0);
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("gitscience_wallet_address");
+    }
+    setShowWalletModal(false);
+  };
+
   const handleScholarLogin = (profile: any) => {
     setActiveScholar(profile);
     setAuthorName(profile.name);
@@ -736,10 +867,12 @@ export default function GitScienceSovereignApp() {
 
   const handleScholarLogout = () => {
     setActiveScholar(null);
+    setAuthorName("");
+    setOrcid("");
     if (typeof window !== "undefined") {
       localStorage.removeItem("gitscience_active_scholar");
     }
-    setShowOrcidModal(true);
+    setShowOrcidModal(false);
   };
 
   const loadLibrary = async () => {
@@ -762,8 +895,10 @@ export default function GitScienceSovereignApp() {
         orcid: "0009-0003-3929-3605",
         category: "Clinical Oncology & Surgery",
         ipc_class: "A61B",
-        abstract: "Mathematical formalization of neuro-immuno-oncological axes via deterministic Tk equation.",
+        abstract: "Mathematical formalization of neuro-immuno-oncological axes via deterministic Tk equation. Safe AST reproducibility under RUO.",
         sha256_hash: "a4f89d3c11e74b21908d132a0d1e57c6b548b29f0e132049e6f1a8c903429381",
+        ipfs_cid: "bafyafybeid66vocfct4mpsrh2rcmvos3ezcybfwt5gz6ukep7c5ox2kbnebsi",
+        source_archive: "Sovereign Founder Archive",
         created_at: "2026-08-17 00:00:00",
         license_type: "CC-BY-4.0",
       },
@@ -772,7 +907,8 @@ export default function GitScienceSovereignApp() {
 
   const loadPassport = async () => {
     try {
-      const res = await fetch(`${apiBase}/api/v1/passport/0009-0003-3929-3605`);
+      const targetOrcid = activeScholar?.orcid || "0009-0003-3929-3605";
+      const res = await fetch(`${apiBase}/api/v1/passport/${targetOrcid}`);
       if (res.ok) {
         const data = await res.json();
         setPassportData(data);
@@ -796,7 +932,6 @@ export default function GitScienceSovereignApp() {
     });
   };
 
-  // Inspect Handler
   const handleInspect = async (codeToInspect: string) => {
     setInspectorLoading(true);
     try {
@@ -840,7 +975,6 @@ export default function GitScienceSovereignApp() {
     setInspectorLoading(false);
   };
 
-  // License Text Fetcher
   const handleViewLicense = async (code: string) => {
     try {
       const res = await fetch(`${apiBase}/api/v1/notary/license/${code}`);
@@ -860,7 +994,6 @@ export default function GitScienceSovereignApp() {
     );
   };
 
-  // AI Peer-Reviewer & Stress-Testing Handler
   const handleRunAiAudit = async () => {
     setAiAuditLoading(true);
     try {
@@ -869,8 +1002,8 @@ export default function GitScienceSovereignApp() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title,
-          author: authorName,
-          orcid,
+          author: authorName || "Salauat Abiltayevich Yeshimov",
+          orcid: orcid || "0009-0003-3929-3605",
           abstract,
           formula_math: formulaMath,
           has_human_subjects: hasHumanSubjects,
@@ -898,28 +1031,21 @@ export default function GitScienceSovereignApp() {
         estimated_prior_art_overlap_pct: 7.4,
         novelty_score: 9.2,
         patentability_freedom_to_operate: "HIGH_CONFIDENCE_CLEARANCE",
+        wipo_statutory_readiness: "FULL_STATUTORY_COMPLIANCE",
       },
-      math_stress_testing: {
-        tests_passed: 5,
-        tests_total: 5,
-        singularity_detected: false,
-      },
-      recommendation: "APPROVE_FOR_IMMEDIATE_WIPO_PRIOR_ART",
-      fast_track_notarization_eligible: true,
     });
     setAiAuditLoading(false);
   };
 
-  // IP-NFT Patent Minting Handler
-  const handleMintIpNft = async (regCode: string) => {
+  const handleMintIpNft = async (code: string) => {
     setIpNftMinting(true);
     try {
       const res = await fetch(`${apiBase}/api/v1/ipnft/mint`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          registration_code: regCode,
-          wallet_address: "0x71C2B09934D3E08A52e52d7da7DAbFAc484EFE37",
+          registration_code: code,
+          wallet_address: walletAddress || "0x71C2B09934D3E08A52e52d7da7DAbFAc484EFE37",
         }),
       });
       if (res.ok) {
@@ -930,24 +1056,18 @@ export default function GitScienceSovereignApp() {
       }
     } catch (e) {}
     setIpNftResult({
-      status: "IP_NFT_MINT_READY",
-      token_id: 10842,
-      contract_address: "0x4B825dC642cB6EB9a060e54bf8d69288FbEe4904",
+      status: "SOVEREIGN_IPNFT_MINTED",
+      token_id: 1,
+      contract_standard: "ERC-721 + EIP-2981 Sovereign IP-NFT",
+      token_uri: `ipfs://bafybeid66vocfct4mpsrh2rcmvos3ezcybfwt5gz6ukep7c5ox2kbnebsi`,
+      royalty_basis_points: 3000,
+      founder_royalty_pct: "30.0%",
       network: "Base Mainnet / Polygon PoS",
-      mint_transaction_hash: "0x9f83a4c2e1b789d6e5a4f3b2c1d0e9f8a7b6c5d4e3f2a1b0c9d8e7f6a5b4c3d2",
-      metadata: {
-        name: `GitScience™ IP-NFT: ${title}`,
-        attributes: [
-          { trait_type: "Royalty Standard", value: "EIP-2981 (30% Protocol Treasury)" },
-          { trait_type: "Consensus Model", value: "55% Author / 15% Review / 30% Founder" },
-        ],
-      },
     });
     setIpNftMinting(false);
   };
 
-  // FHIR R4 Clinical Bundle Handler
-  const handleRunFhirBundle = async () => {
+  const handleClinicalFhirTest = async () => {
     setFhirLoading(true);
     try {
       const res = await fetch(`${apiBase}/api/v1/clinical/fhir/calculate`, {
@@ -955,10 +1075,10 @@ export default function GitScienceSovereignApp() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           patient_id: "PAT-ONCO-9982",
-          formula_math: maasFormula,
-          artery_val: paramArtery * 24.0,
-          vein_val: paramVein * 26.0,
-          lymph_val: paramLymph * 6.5,
+          formula_math: formulaMath,
+          artery_val: 120.0,
+          vein_val: 80.0,
+          lymph_val: 6.5,
         }),
       });
       if (res.ok) {
@@ -969,19 +1089,16 @@ export default function GitScienceSovereignApp() {
       }
     } catch (e) {}
     setFhirResult({
-      resourceType: "Bundle",
-      id: "bundle-gs-9982",
-      type: "transaction-response",
-      gitscience_computation: {
-        formula_math: maasFormula,
-        tk_homeostasis_output: 3.6364,
-        regulatory_class: "RUO Class I CDSS",
-      },
+      status: "FHIR_OBSERVATION_GENERATED",
+      patient_id: "PAT-ONCO-9982",
+      standard: "HL7 FHIR R4 Bundle",
+      observation_code: "883-9 (Homeostasis Deterministic Index)",
+      computed_value: 26.6667,
+      interpretation: "PHYSIOLOGICAL_NORMAL_HOMEOSTASIS",
     });
     setFhirLoading(false);
   };
 
-  // Fiat B2B Invoicing Handler
   const handleGenerateFiatInvoice = async () => {
     setFiatInvoiceLoading(true);
     try {
@@ -991,7 +1108,7 @@ export default function GitScienceSovereignApp() {
         body: JSON.stringify({
           hospital_name: "National Scientific Oncology Center",
           tax_id_bin: "BIN-190440023412",
-          registration_code: searchInspectCode || "GS-2026-00001",
+          registration_code: "GS-2026-00001",
           base_license_fee: baseFee,
           fiat_currency: "USD",
         }),
@@ -1004,36 +1121,23 @@ export default function GitScienceSovereignApp() {
       }
     } catch (e) {}
     setFiatInvoiceResult({
-      invoice_number: "INV-GS-2026-B8A912",
-      financial_breakdown: {
-        base_fee: baseFee,
-        b2b_tax_grossup_20pct: baseFee * 0.2,
-        total_payable: baseFee * 1.2,
-        currency: "USD",
-      },
-      amanat_fair_share_settlement: {
-        authors_pool_55pct: baseFee * 0.55,
-        reviewers_pool_15pct: baseFee * 0.15,
-        founder_protocol_30pct: baseFee * 0.3,
-        founder_net_with_tax: baseFee * 0.3 + baseFee * 0.2,
-      },
-      settlement_methods: {
-        bank_wire_swift: {
-          iban: "KZ88000GS20267788990011",
-          swift_bic: "KZGSKZ22",
-        },
-      },
+      invoice_number: "INV-2026-B2B-8941",
+      hospital_name: "National Scientific Oncology Center",
+      base_amount_usd: baseFee,
+      tax_grossup_20pct_usd: baseFee * 0.2,
+      total_payable_usd: baseFee * 1.2,
+      iban_wire: "KZ880000192837465019",
+      swift_code: "KAZKKZKA",
+      status: "ISSUED_AWAITING_WIRE_TRANSFER",
     });
     setFiatInvoiceLoading(false);
   };
 
-  // Biometric Passkey / Touch ID Authentication
-  const handleBiometricAuth = async () => {
-    setPasskeyNotice("Датчик Touch ID / Face ID іске қосылды. Биометриялық қолтаңба сәтті тексерілді! 🛡️");
-    setTimeout(() => setPasskeyNotice(null), 5000);
+  const handleBiometricAuth = () => {
+    setPasskeyNotice("🔐 Touch ID / Windows Hello: Биометриялық суверенді кіру сәтті өтті!");
+    setTimeout(() => setPasskeyNotice(null), 4000);
   };
 
-  // Formula AST Validation
   const handleVerifyFormula = async () => {
     try {
       const res = await fetch(`${apiBase}/api/v1/compiler/verify-formula`, {
@@ -1055,7 +1159,6 @@ export default function GitScienceSovereignApp() {
     });
   };
 
-  // Notarize Manuscript
   const handleNotarize = async () => {
     setNotarySubmitting(true);
     try {
@@ -1064,8 +1167,8 @@ export default function GitScienceSovereignApp() {
         formData.append("file", file);
       }
       formData.append("title", title);
-      formData.append("author_name", authorName);
-      formData.append("orcid", orcid);
+      formData.append("author_name", authorName || "Salauat Abiltayevich Yeshimov");
+      formData.append("orcid", orcid || "0009-0003-3929-3605");
       formData.append("category", category);
       formData.append("ipc_class", ipcClass);
       formData.append("abstract", abstract);
@@ -1097,15 +1200,14 @@ export default function GitScienceSovereignApp() {
     loadPlatformStats();
   };
 
-  // ZK Commit & Reveal
   const handleZkCommit = async () => {
     try {
       const res = await fetch(`${apiBase}/api/v1/zk/commit`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          author_orcid: activeScholar?.orcid || orcid,
-          author_name: activeScholar?.name || authorName,
+          author_orcid: activeScholar?.orcid || orcid || "0009-0003-3929-3605",
+          author_name: activeScholar?.name || authorName || "Salauat Abiltayevich Yeshimov",
           hypothesis_title: zkTitle,
           secret_salt: zkSecret,
           hidden_payload_text: zkPayload,
@@ -1152,7 +1254,6 @@ export default function GitScienceSovereignApp() {
     });
   };
 
-  // Peer Review Submit
   const handleSubmitReview = async () => {
     try {
       const res = await fetch(`${apiBase}/api/v1/review/submit`, {
@@ -1172,14 +1273,10 @@ export default function GitScienceSovereignApp() {
       setRevResult(data);
       loadPlatformStats();
     } catch (e) {
-      setRevResult({
-        status: "ERROR",
-        error: "Ошибка подключения к API рецензирования",
-      });
+      setRevResult({ status: "ERROR", error: "Ошибка API" });
     }
   };
 
-  // MaaS Simulator Calculation
   const handleRunMaas = async () => {
     setMaasSimulating(true);
     try {
@@ -1206,7 +1303,6 @@ export default function GitScienceSovereignApp() {
     setMaasSimulating(false);
   };
 
-  // SVG Chart Polyline Points
   const maxTk = Math.max(...maasCurve.map((p) => p.output_tk_homeostasis), 1.0);
   const minTk = Math.min(...maasCurve.map((p) => p.output_tk_homeostasis), 0.0);
   const svgWidth = 560;
@@ -1222,7 +1318,6 @@ export default function GitScienceSovereignApp() {
     })
     .join(" ");
 
-  // Science Court Actions
   const handleFileDispute = () => {
     const newCase = {
       case_id: `CASE-2026-00${courtCases.length + 1}`,
@@ -1255,17 +1350,16 @@ export default function GitScienceSovereignApp() {
         return c;
       })
     );
-    setCourtActionMessage(`Ваш голос "${voteType.toUpperCase()}" учтен в деле ${caseId}`);
   };
 
-  // Vampire Protocol Search & Import
+  // Multi-Source Search (OpenAlex, arXiv, PubMed)
   const handleVampireSearch = async () => {
     setVampireSearching(true);
     try {
-      const res = await fetch(`${apiBase}/api/v1/vampire/search`, {
+      const res = await fetch(`${apiBase}/api/v1/vampire/search/multisource`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: vampireQuery, limit: 5 }),
+        body: JSON.stringify({ query: vampireQuery, source: vampireSource, limit: 6 }),
       });
       if (res.ok) {
         const data = await res.json();
@@ -1276,24 +1370,26 @@ export default function GitScienceSovereignApp() {
     } catch (e) {}
     setVampireResults([
       {
-        openalex_id: "W4389102941",
-        doi: "https://doi.org/10.1038/s41586-024-001",
-        title: "Mathematical Modeling of Oncological Homeostasis Across Vascular Beds",
-        authors: "K. Chen, H. Tanaka, et al.",
-        publication_year: 2025,
-        cited_by_count: 34,
-        category: "Clinical Oncology & Surgery",
+        source: "OpenAlex",
+        openalex_id: "W2055348159",
+        doi: "https://doi.org/10.1038/nature12034",
+        title: "Macrophage biology in development, homeostasis and disease",
+        authors: "Thomas A. Wynn, Ajay Chawla, Jeffrey W. Pollard",
+        publication_year: 2026,
+        cited_by_count: 4767,
+        category: "Immune cells in oncology",
         license: "cc-by",
       },
       {
-        openalex_id: "W4389102942",
-        doi: "https://doi.org/10.1016/j.cell.2025.04.012",
-        title: "Deterministic Biological Axis Simulation with Safe Sandboxed AST",
-        authors: "M. R. Johnson, S. A. Yeshimov",
+        source: "arXiv",
+        openalex_id: "arXiv:2408.01234",
+        doi: "arXiv:2408.01234",
+        title: "Homeostasis: Design and Implementation of a Self-Stabilizing Compiler",
+        authors: "Dr. A. Smirnov, S. Yeshimov",
         publication_year: 2026,
-        cited_by_count: 12,
-        category: "Healthcare Informatics & AI",
-        license: "cc-by-nc-nd",
+        cited_by_count: 32,
+        category: "Quantitative Physiology & AST Modeling",
+        license: "cc-by",
       },
     ]);
     setVampireSearching(false);
@@ -1318,39 +1414,63 @@ export default function GitScienceSovereignApp() {
       status: "VAMPIRE_IMPORT_SUCCESS",
       registration_code: `GS-2026-VAMP-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
       title: work.title,
+      source: work.source || "OpenAlex",
       license_detected: (work.license || "CC-BY-4.0").toUpperCase(),
-      license_treatment: work.license && work.license.includes("nd") ? "UNALTERED_ORIGINAL_PRESERVED_ND_LICENSE" : "COVER_SHEET_ATTACHED_PERMISSIBLE_LICENSE",
+      license_treatment: "COVER_SHEET_ATTACHED_PERMISSIBLE_LICENSE",
     });
     loadLibrary();
     loadPlatformStats();
   };
 
-  // Launch Automated Batch Harvester
   const handleLaunchBatchHarvester = async () => {
     setHarvestingBatch(true);
     try {
       const res = await fetch(`${apiBase}/api/v1/vampire/harvest/batch`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: vampireQuery, limit: 3 }),
+        body: JSON.stringify({ query: vampireQuery, source: vampireSource, limit: 3 }),
       });
       if (res.ok) {
         const data = await res.json();
         setVampireImportResult({
           status: "BATCH_HARVEST_SUCCESS",
           registration_code: `HARVEST-BATCH-${data.newly_harvested_count}-WORKS`,
-          title: `Automated OpenAlex Harvest (${data.newly_harvested_count} works added)`,
+          title: `Multi-Source Harvest (${data.newly_harvested_count} works added to CAS Vault)`,
           license_detected: "CC-BY / CC0 VALIDATED",
-          license_treatment: "DEPOSITED_TO_LOCAL_SQLITE_WAL_VAULT",
+          license_treatment: "DEPOSITED_TO_LOCAL_CAS_VAULT",
         });
         loadLibrary();
         loadPlatformStats();
+        loadDaemonStatus();
       }
     } catch (e) {}
     setHarvestingBatch(false);
   };
 
-  // Filter Library
+  const handleToggleDaemon = async () => {
+    try {
+      const endpoint = daemonRunning ? "/api/v1/vampire/harvest/daemon/stop" : "/api/v1/vampire/harvest/daemon/start";
+      const res = await fetch(`${apiBase}${endpoint}`, { method: "POST" });
+      if (res.ok) {
+        setDaemonRunning(!daemonRunning);
+        loadDaemonStatus();
+      }
+    } catch (e) {
+      setDaemonRunning(!daemonRunning);
+    }
+  };
+
+  const loadDaemonStatus = async () => {
+    try {
+      const res = await fetch(`${apiBase}/api/v1/vampire/harvest/daemon/status`);
+      if (res.ok) {
+        const data = await res.json();
+        setDaemonStatus(data);
+        setDaemonRunning(data.is_daemon_running || false);
+      }
+    } catch (e) {}
+  };
+
   const filteredLibrary = libraryArticles.filter((art) => {
     const matchesSearch =
       !libSearch ||
@@ -1417,11 +1537,34 @@ export default function GitScienceSovereignApp() {
               ))}
             </div>
 
+            {/* Web3 Wallet Connection Button */}
+            {walletConnected && walletAddress ? (
+              <button
+                onClick={() => setShowWalletModal(true)}
+                className="flex items-center gap-1.5 bg-cyan-950/60 border border-cyan-500/60 px-2.5 sm:px-3 py-1 rounded-lg text-xs font-mono text-cyan-300 hover:bg-cyan-900/60 transition shadow"
+              >
+                <span>🦊</span>
+                <span className="truncate max-w-[85px] sm:max-w-[110px]">
+                  {walletAddress.substring(0, 6)}...{walletAddress.substring(walletAddress.length - 4)}
+                </span>
+                <span className="hidden sm:inline text-amber-300 font-bold">
+                  | ${walletBalance.toLocaleString()}
+                </span>
+              </button>
+            ) : (
+              <button
+                onClick={() => setShowWalletModal(true)}
+                className="bg-slate-900 hover:bg-slate-800 border border-amber-500/50 text-amber-300 font-bold text-xs px-3 py-1.5 rounded-lg shadow transition font-mono flex items-center gap-1"
+              >
+                <span>{t.connectWallet}</span>
+              </button>
+            )}
+
             {/* ORCID Scholar Login/Status Button */}
             {activeScholar ? (
               <div className="flex items-center gap-1.5 bg-emerald-950/50 border border-emerald-600/50 px-2.5 sm:px-3 py-1 rounded-lg text-xs">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                <span className="font-mono text-emerald-300 font-semibold text-[11px] sm:text-xs truncate max-w-[120px] sm:max-w-[180px]">
+                <span className="font-mono text-emerald-300 font-semibold text-[11px] sm:text-xs truncate max-w-[110px] sm:max-w-[160px]">
                   {activeScholar.name}
                 </span>
                 <button
@@ -1448,287 +1591,296 @@ export default function GitScienceSovereignApp() {
             {passkeyNotice}
           </div>
         )}
-
-        {/* MOBILE-RESPONSIVE HORIZONTALLY SCROLLABLE NAVIGATION BAR */}
-        <div className="max-w-7xl mx-auto px-2 sm:px-6 border-t border-slate-800/60 w-full overflow-hidden">
-          <div className="flex overflow-x-auto gap-1.5 py-2 no-scrollbar scroll-smooth snap-x text-xs font-medium">
-            {[
-              { id: "notary", label: t.tabNotary },
-              { id: "inspector", label: t.tabInspector },
-              { id: "library", label: t.tabLibrary },
-              { id: "zk", label: t.tabZk },
-              { id: "passport", label: t.tabPassport },
-              { id: "review", label: t.tabReview },
-              { id: "maas", label: t.tabMaas },
-              { id: "amanat", label: t.tabAmanat },
-              { id: "court", label: t.tabCourt },
-              { id: "vampire", label: t.tabVampire },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => {
-                  setActiveTab(tab.id as any);
-                  if (tab.id === "inspector" && !inspectedDoc) {
-                    handleInspect(searchInspectCode);
-                  }
-                }}
-                className={`px-3 py-1.5 rounded-lg whitespace-nowrap transition flex items-center gap-1 shrink-0 snap-start ${
-                  activeTab === tab.id
-                    ? "bg-slate-800 text-emerald-400 border border-emerald-500/50 font-bold shadow"
-                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-900/60"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-        </div>
       </header>
 
       {/* =====================================================================
-          2. MAIN CONTENT AREA (ALL 10 COMPLETE INTERACTIVE TABS)
+          WELCOME BANNER FOR NEW VISITORS & GUESTS (WHEN NOT LOGGED IN)
       ===================================================================== */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 py-6 space-y-6">
-        {/* =====================================================================
-            TAB 1: SOVEREIGN NOTARY + AI DEEP AUDITOR
-        ===================================================================== */}
+      {!activeScholar && (
+        <div className="bg-gradient-to-r from-emerald-950/60 via-slate-900/80 to-cyan-950/60 border-b border-emerald-500/30 px-3 sm:px-6 py-4">
+          <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3">
+            <div className="space-y-1 text-center md:text-left">
+              <h2 className="text-sm sm:text-base font-bold text-emerald-300 flex items-center justify-center md:justify-start gap-2">
+                <span>🛡️</span> {t.welcomeBannerTitle}
+              </h2>
+              <p className="text-xs text-slate-300 max-w-3xl">
+                {t.welcomeBannerSub}
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
+              <button
+                onClick={() => setShowOrcidModal(true)}
+                className="bg-gradient-to-r from-emerald-500 to-cyan-500 text-slate-950 font-bold text-xs px-4 py-2 rounded-xl shadow transition hover:opacity-95 font-mono"
+              >
+                {t.welcomeRegisterBtn}
+              </button>
+              <button
+                onClick={() => setShowWalletModal(true)}
+                className="bg-slate-900 hover:bg-slate-800 border border-amber-500/50 text-amber-300 font-bold text-xs px-3.5 py-2 rounded-xl shadow transition font-mono"
+              >
+                {t.welcomeWalletBtn}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =====================================================================
+          2. HORIZONTALLY SCROLLABLE NAVIGATION TABS (TOUCH & SNAP READY)
+      ===================================================================== */}
+      <nav className="border-b border-slate-800 bg-[#09111e]/90 backdrop-blur w-full overflow-x-auto no-scrollbar scroll-smooth snap-x">
+        <div className="max-w-7xl mx-auto px-2 sm:px-6 flex gap-1.5 sm:gap-2 py-2.5 min-w-max">
+          {[
+            { id: "notary", label: t.tabNotary },
+            { id: "inspector", label: t.tabInspector },
+            { id: "library", label: t.tabLibrary },
+            { id: "zk", label: t.tabZk },
+            { id: "passport", label: t.tabPassport },
+            { id: "review", label: t.tabReview },
+            { id: "maas", label: t.tabMaas },
+            { id: "amanat", label: t.tabAmanat },
+            { id: "court", label: t.tabCourt },
+            { id: "vampire", label: t.tabVampire },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`snap-start px-3.5 sm:px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all duration-150 flex items-center gap-1.5 ${
+                activeTab === tab.id
+                  ? "bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm font-bold"
+                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </nav>
+
+      {/* =====================================================================
+          MAIN CONTAINER: 10 COMPLETE TABS
+      ===================================================================== */}
+      <main className="max-w-7xl mx-auto px-3 sm:px-6 py-6 flex-1 w-full space-y-8 min-w-0">
+        {/* TAB 1: NOTARY */}
         {activeTab === "notary" && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <div className="lg:col-span-8 space-y-6">
-              <div className="bg-[#0e1726] border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xl space-y-5">
-                <div className="border-b border-slate-800 pb-4">
-                  <h2 className="text-lg sm:text-xl font-bold text-slate-100 flex items-center gap-2">
-                    <span>🛡️</span> {t.uploadHeader}
-                  </h2>
-                  <p className="text-xs text-slate-400 mt-1">{t.uploadSubheader}</p>
+          <div className="space-y-6">
+            <div className="bg-[#0e1726] border border-slate-800 rounded-3xl p-4 sm:p-7 shadow-xl space-y-6">
+              <div className="border-b border-slate-800 pb-4">
+                <h2 className="text-lg sm:text-2xl font-bold text-slate-100 flex items-center gap-2">
+                  <span>🛡️</span> {t.uploadHeader}
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-400 mt-1">{t.uploadSubheader}</p>
+              </div>
+
+              {/* Dropzone */}
+              <div
+                onClick={() => document.getElementById("pdfUploadInput")?.click()}
+                className="border-2 border-dashed border-slate-700 hover:border-emerald-500/80 bg-slate-900/60 hover:bg-slate-900/90 rounded-2xl p-6 text-center cursor-pointer transition flex flex-col items-center justify-center gap-2"
+              >
+                <input
+                  id="pdfUploadInput"
+                  type="file"
+                  accept=".pdf"
+                  className="hidden"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      setFile(e.target.files[0]);
+                    }
+                  }}
+                />
+                <span className="text-3xl">📄</span>
+                <p className="text-xs sm:text-sm font-medium text-slate-300">
+                  {file ? `Таңдалған файл: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)` : t.dropzoneText}
+                </p>
+                <span className="text-[11px] text-slate-500 font-mono">
+                  ISO 14721 OAIS • SHA-256 CAS Vault • WIPO Legal Proof
+                </span>
+              </div>
+
+              {/* Metadata Form */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                <div>
+                  <label className="block text-slate-400 font-semibold mb-1">{t.paperTitle} *</label>
+                  <input
+                    type="text"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:border-emerald-500 outline-none"
+                  />
                 </div>
 
-                {/* PDF Dropzone */}
-                <div className="border-2 border-dashed border-slate-700 hover:border-emerald-500 rounded-xl p-5 sm:p-6 text-center cursor-pointer transition bg-slate-900/50">
+                <div>
+                  <label className="block text-slate-400 font-semibold mb-1">{t.leadAuthor} *</label>
                   <input
-                    type="file"
-                    accept=".pdf"
-                    onChange={(e) => setFile(e.target.files?.[0] || null)}
-                    className="hidden"
-                    id="pdf-upload"
+                    type="text"
+                    value={authorName}
+                    onChange={(e) => setAuthorName(e.target.value)}
+                    placeholder="Salauat Abiltayevich Yeshimov"
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:border-emerald-500 outline-none"
                   />
-                  <label htmlFor="pdf-upload" className="cursor-pointer block">
-                    <div className="text-3xl mb-2">📄</div>
-                    <div className="text-xs sm:text-sm font-semibold text-slate-200">{file ? file.name : t.dropzoneText}</div>
-                    <div className="text-[11px] text-slate-500 mt-1">PDF • Max 50MB • ISO 14721 Compliant</div>
+                </div>
+
+                <div>
+                  <label className="block text-slate-400 font-semibold mb-1">{t.orcidId} *</label>
+                  <input
+                    type="text"
+                    value={orcid}
+                    onChange={(e) => setOrcid(e.target.value)}
+                    placeholder="0009-0003-3929-3605"
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 font-mono text-emerald-400 focus:border-emerald-500 outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-400 font-semibold mb-1">{t.categoryLabel}</label>
+                  <select
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:border-emerald-500 outline-none"
+                  >
+                    <option value="Clinical Oncology & Surgery">Clinical Oncology & Surgery</option>
+                    <option value="Molecular Biology & Genetics">Molecular Biology & Genetics</option>
+                    <option value="Healthcare Informatics & AI">Healthcare Informatics & AI</option>
+                    <option value="Computational Systems & Algorithms">Computational Systems & Algorithms</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-slate-400 font-semibold mb-1">{t.ipcLabel}</label>
+                  <select
+                    value={ipcClass}
+                    onChange={(e) => setIpcClass(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:border-emerald-500 outline-none"
+                  >
+                    {IPC_CLASSES.map((c) => (
+                      <option key={c.code} value={c.code}>
+                        {lang === "KZ" ? c.name_kz : lang === "RU" ? c.name_ru : c.name_en}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex items-center gap-3 pt-6">
+                  <input
+                    type="checkbox"
+                    id="irbCheck"
+                    checked={hasHumanSubjects}
+                    onChange={(e) => setHasHumanSubjects(e.target.checked)}
+                    className="w-4 h-4 rounded text-emerald-500 focus:ring-emerald-500 bg-slate-900 border-slate-700"
+                  />
+                  <label htmlFor="irbCheck" className="text-slate-300 select-none cursor-pointer">
+                    {t.irbCheck}
                   </label>
                 </div>
+              </div>
 
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-400 mb-1">{t.paperTitle} *</label>
-                    <input
-                      type="text"
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs sm:text-sm text-slate-100 focus:border-emerald-500 outline-none"
-                    />
-                  </div>
+              {/* Abstract */}
+              <div className="text-xs">
+                <label className="block text-slate-400 font-semibold mb-1">{t.abstractLabel}</label>
+                <textarea
+                  rows={3}
+                  value={abstract}
+                  onChange={(e) => setAbstract(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:border-emerald-500 outline-none"
+                />
+              </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-400 mb-1">{t.leadAuthor}</label>
-                      <input
-                        type="text"
-                        value={authorName}
-                        onChange={(e) => setAuthorName(e.target.value)}
-                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100 focus:border-emerald-500 outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-400 mb-1">{t.orcidId}</label>
-                      <input
-                        type="text"
-                        value={orcid}
-                        onChange={(e) => setOrcid(e.target.value)}
-                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs font-mono text-emerald-400 focus:border-emerald-500 outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-400 mb-1">{t.ipcLabel}</label>
-                      <select
-                        value={ipcClass}
-                        onChange={(e) => setIpcClass(e.target.value)}
-                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100 font-mono focus:border-emerald-500 outline-none"
-                      >
-                        {IPC_CLASSES.map((ipc) => (
-                          <option key={ipc.code} value={ipc.code}>
-                            {ipc.code} - {ipc[`name_${lang.toLowerCase() as "kz" | "ru" | "en"}`]}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Abstract */}
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-400 mb-1">{t.abstractLabel}</label>
-                    <textarea
-                      rows={3}
-                      value={abstract}
-                      onChange={(e) => setAbstract(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-300 focus:border-emerald-500 outline-none"
-                    />
-                  </div>
-
-                  {/* Safe AST Formula & AI Deep Audit Buttons */}
-                  <div className="p-4 bg-slate-950 rounded-xl border border-slate-800 space-y-3">
-                    <div className="flex flex-wrap justify-between items-center gap-2">
-                      <label className="text-xs font-semibold text-cyan-300">{t.formulaLabel}</label>
-                      <div className="flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          onClick={handleVerifyFormula}
-                          className="text-[11px] bg-cyan-950 text-cyan-300 border border-cyan-700/60 px-3 py-1 rounded hover:bg-cyan-900 transition"
-                        >
-                          {t.verifyFormulaBtn}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleRunAiAudit}
-                          disabled={aiAuditLoading}
-                          className="text-[11px] bg-purple-950 text-purple-300 border border-purple-700/60 px-3 py-1 rounded hover:bg-purple-900 transition font-bold"
-                        >
-                          {aiAuditLoading ? "Аудит..." : t.aiAuditBtn}
-                        </button>
-                      </div>
-                    </div>
-                    <input
-                      type="text"
-                      value={formulaMath}
-                      onChange={(e) => setFormulaMath(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs font-mono text-cyan-200 focus:border-cyan-500 outline-none"
-                    />
-                    {astVerification && (
-                      <div className="p-2.5 bg-slate-900 rounded border border-cyan-800 text-[11px] font-mono space-y-1">
-                        <div className="text-emerald-400 font-bold">✓ AST Verified: {astVerification.status}</div>
-                        <div className="text-slate-400 text-[10px] break-all">Merkle Digest: {astVerification.ast_merkle_digest}</div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* AI Audit Result Box */}
-                  {aiAuditResult && (
-                    <div className="p-4 bg-purple-950/40 border border-purple-500/40 rounded-xl space-y-3 text-xs">
-                      <div className="flex justify-between items-center border-b border-purple-800/60 pb-2">
-                        <span className="font-bold text-purple-300 font-mono">🤖 Sovereign AI Deep Audit Dossier</span>
-                        <span className="text-[10px] text-emerald-400 font-mono font-bold">
-                          Index: {aiAuditResult.ai_composite_scores?.composite_quality_index} / 10
-                        </span>
-                      </div>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center font-mono text-[11px]">
-                        <div className="p-2 bg-slate-900 rounded">
-                          <span className="text-slate-400 block text-[10px]">Math Rigor</span>
-                          <strong className="text-emerald-400">{aiAuditResult.ai_composite_scores?.math_rigor_score} / 10</strong>
-                        </div>
-                        <div className="p-2 bg-slate-900 rounded">
-                          <span className="text-slate-400 block text-[10px]">Novelty</span>
-                          <strong className="text-cyan-400">{aiAuditResult.ai_composite_scores?.novelty_score} / 10</strong>
-                        </div>
-                        <div className="p-2 bg-slate-900 rounded">
-                          <span className="text-slate-400 block text-[10px]">Prior Art Overlap</span>
-                          <strong className="text-amber-300">{aiAuditResult.prior_art_clearance?.estimated_prior_art_overlap_pct}%</strong>
-                        </div>
-                        <div className="p-2 bg-slate-900 rounded">
-                          <span className="text-slate-400 block text-[10px]">Singularities</span>
-                          <strong className="text-emerald-400">0 (Safe)</strong>
-                        </div>
-                      </div>
-                      <div className="text-[11px] text-slate-300 font-mono">
-                        Recommendation: <strong className="text-emerald-400">{aiAuditResult.recommendation}</strong>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* IRB Ethics */}
-                  <div className="p-4 bg-slate-950 rounded-xl border border-slate-800 space-y-3">
-                    <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={hasHumanSubjects}
-                        onChange={(e) => setHasHumanSubjects(e.target.checked)}
-                        className="rounded accent-emerald-500"
-                      />
-                      <span>{t.irbCheck}</span>
-                    </label>
-                    {hasHumanSubjects && (
-                      <div>
-                        <label className="block text-[11px] text-slate-400 mb-1">{t.irbNumber} *</label>
-                        <input
-                          type="text"
-                          value={irbNumber}
-                          onChange={(e) => setIrbNumber(e.target.value)}
-                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-amber-300 font-mono"
-                        />
-                      </div>
-                    )}
-                  </div>
-
+              {/* Safe AST Formula */}
+              <div className="text-xs space-y-2">
+                <label className="block text-slate-400 font-semibold">{t.formulaLabel}</label>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input
+                    type="text"
+                    value={formulaMath}
+                    onChange={(e) => setFormulaMath(e.target.value)}
+                    placeholder="(Artery + Vein) / (Lymph + 1.0)"
+                    className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 font-mono text-cyan-300 focus:border-emerald-500 outline-none"
+                  />
                   <button
-                    onClick={handleNotarize}
-                    disabled={notarySubmitting}
-                    className="w-full bg-gradient-to-r from-emerald-500 to-cyan-600 hover:from-emerald-400 hover:to-cyan-500 text-slate-950 font-bold text-xs sm:text-sm py-3.5 rounded-xl transition shadow-lg shadow-emerald-500/20"
+                    onClick={handleVerifyFormula}
+                    className="bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-500/40 px-4 py-2 rounded-xl font-mono text-xs transition"
                   >
-                    {notarySubmitting ? "Нотариализация..." : t.notarizeBtn}
+                    {t.verifyFormulaBtn}
                   </button>
-
-                  {notarySuccess && (
-                    <div className="p-4 sm:p-5 bg-emerald-950/50 border border-emerald-500/50 rounded-2xl space-y-3 text-xs font-mono">
-                      <h4 className="text-emerald-400 font-bold text-sm font-sans flex items-center gap-2">
-                        <span>✅</span> {t.notarySuccessTitle}
-                      </h4>
-                      <div>{t.notaryCertId}: <strong className="text-cyan-300">{notarySuccess.registration_code}</strong></div>
-                      <div className="text-[11px] break-all text-slate-400">{t.notarySha}: {notarySuccess.sha256_hash}</div>
-                      <div className="text-[11px] break-all text-slate-400">{t.notaryOid}: {notarySuccess.git_commit_hash || notarySuccess.git_commit_oid}</div>
-
-                      <a
-                        href={`${apiBase}/certificate/pdf/${notarySuccess.registration_code}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center justify-center w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs py-2.5 rounded-xl transition shadow"
-                      >
-                        {t.downloadCertPdfBtn}
-                      </a>
-                    </div>
-                  )}
                 </div>
-              </div>
-            </div>
 
-            {/* Sidebar */}
-            <div className="lg:col-span-4 space-y-6">
-              <div className="bg-[#0e1726] border border-slate-800 rounded-2xl p-5 sm:p-6 space-y-4">
-                <h3 className="text-sm font-bold text-slate-100">🌿 Аманат каждого ученого</h3>
-                <p className="text-xs text-slate-400 leading-relaxed">
-                  Неотзывный WIPO Prior Art Shield и детерминированная математика Safe AST гарантируют защиту вашего открытия.
-                </p>
-                <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 text-[11px] font-mono text-emerald-400 space-y-1">
-                  <div>• WIPO Paris Convention Art. 4</div>
-                  <div>• 35 U.S.C. § 102 Statutory Prior Art</div>
-                  <div>• ISO 14721 OAIS Archival Standard</div>
-                  <div>• RUO Class I CDSS Decision Support</div>
-                </div>
+                {astVerification && (
+                  <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 font-mono text-[11px] space-y-1 text-slate-300">
+                    <div className="text-emerald-400 font-bold">✅ Safe AST Компиляция: {astVerification.status}</div>
+                    <div className="truncate">AST Merkle Digest: <strong className="text-cyan-300">{astVerification.ast_merkle_digest}</strong></div>
+                  </div>
+                )}
               </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                <button
+                  onClick={handleRunAiAudit}
+                  disabled={aiAuditLoading}
+                  className="flex-1 bg-purple-950/80 hover:bg-purple-900 border border-purple-500/60 text-purple-200 font-bold py-3 rounded-xl text-xs sm:text-sm transition shadow"
+                >
+                  {aiAuditLoading ? "ИИ-Аудит жүріп жатыр..." : t.aiAuditBtn}
+                </button>
+
+                <button
+                  onClick={handleNotarize}
+                  disabled={notarySubmitting}
+                  className="flex-1 bg-gradient-to-r from-emerald-500 to-cyan-500 text-slate-950 font-bold py-3 rounded-xl text-xs sm:text-sm shadow-lg shadow-emerald-500/20 hover:opacity-95 transition"
+                >
+                  {notarySubmitting ? "Тізілімге бекітілуде..." : t.notarizeBtn}
+                </button>
+              </div>
+
+              {/* AI Audit Result */}
+              {aiAuditResult && (
+                <div className="p-4 bg-purple-950/30 border border-purple-500/40 rounded-2xl space-y-3 text-xs font-mono">
+                  <div className="flex justify-between items-center text-purple-300 font-bold">
+                    <span>🤖 AI Audit Dossier: {aiAuditResult.dossier_id}</span>
+                    <span className="text-emerald-400">Score: {aiAuditResult.ai_composite_scores?.composite_quality_index}/10</span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+                    <div className="p-2 bg-slate-900 rounded-lg">Math: {aiAuditResult.ai_composite_scores?.math_rigor_score}/10</div>
+                    <div className="p-2 bg-slate-900 rounded-lg">Methodology: {aiAuditResult.ai_composite_scores?.methodology_score}/10</div>
+                    <div className="p-2 bg-slate-900 rounded-lg">Novelty: {aiAuditResult.ai_composite_scores?.novelty_score}/10</div>
+                    <div className="p-2 bg-slate-900 rounded-lg">Bioethics: {aiAuditResult.ai_composite_scores?.bioethics_score}/10</div>
+                  </div>
+                </div>
+              )}
+
+              {/* Notary Success Banner */}
+              {notarySuccess && (
+                <div className="p-5 bg-emerald-950/40 border border-emerald-500/50 rounded-2xl space-y-3 text-xs font-mono shadow-xl">
+                  <div className="text-emerald-400 font-bold text-sm sm:text-base flex items-center gap-2">
+                    <span>🛡️</span> {t.notarySuccessTitle}
+                  </div>
+                  <div className="space-y-1 text-slate-300 text-[11px]">
+                    <div>{t.notaryCertId}: <strong className="text-cyan-300">{notarySuccess.registration_code}</strong></div>
+                    <div className="truncate">{t.notarySha}: <strong className="text-emerald-300">{notarySuccess.sha256_hash}</strong></div>
+                    <div className="truncate">{t.notaryOid}: <strong className="text-purple-300">{notarySuccess.git_commit_hash}</strong></div>
+                  </div>
+                  <a
+                    href={`${apiBase}/certificate/pdf/${notarySuccess.registration_code}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-block w-full text-center bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold py-2.5 rounded-xl transition text-xs font-sans mt-2"
+                  >
+                    {t.downloadCertPdfBtn}
+                  </a>
+                </div>
+              )}
             </div>
           </div>
         )}
 
-        {/* =====================================================================
-            TAB 2: 3-LAYER INSPECTOR & IP-NFT PATENT MINTER
-        ===================================================================== */}
+        {/* TAB 2: INSPECTOR */}
         {activeTab === "inspector" && (
           <div className="space-y-6">
-            <div className="bg-[#0e1726] border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xl space-y-4">
+            <div className="bg-[#0e1726] border border-slate-800 rounded-3xl p-4 sm:p-7 shadow-xl space-y-5">
               <div>
-                <h2 className="text-lg sm:text-xl font-bold text-slate-100 flex items-center gap-2">
+                <h2 className="text-lg sm:text-2xl font-bold text-slate-100 flex items-center gap-2">
                   <span>🔍</span> {t.inspectHeader}
                 </h2>
-                <p className="text-xs text-slate-400 mt-1">{t.inspectSubheader}</p>
+                <p className="text-xs sm:text-sm text-slate-400 mt-1">{t.inspectSubheader}</p>
               </div>
 
               <div className="flex flex-col sm:flex-row gap-3">
@@ -1737,366 +1889,317 @@ export default function GitScienceSovereignApp() {
                   value={searchInspectCode}
                   onChange={(e) => setSearchInspectCode(e.target.value)}
                   placeholder={t.inspectSearchPlaceholder}
-                  className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-xs font-mono text-cyan-300 focus:border-cyan-500 outline-none"
+                  className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-xs text-slate-100 focus:border-emerald-500 outline-none font-mono"
                 />
                 <button
                   onClick={() => handleInspect(searchInspectCode)}
-                  disabled={inspectorLoading}
-                  className="bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold text-xs px-6 py-2.5 rounded-xl transition shrink-0"
+                  className="bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold text-xs px-6 py-2.5 rounded-xl transition font-mono"
                 >
-                  {inspectorLoading ? "..." : t.inspectSearchBtn}
+                  {t.inspectSearchBtn}
                 </button>
               </div>
-            </div>
 
-            {inspectedDoc && (
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  {/* Layer 1: Legal */}
-                  <div className="bg-[#0e1726] border border-slate-800 rounded-2xl p-5 space-y-4 shadow-lg flex flex-col justify-between">
-                    <div>
-                      <div className="border-b border-slate-800 pb-3">
-                        <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30 font-bold">
-                          Layer 1
-                        </span>
-                        <h3 className="text-sm font-bold text-slate-100 mt-2">{t.layer1Title}</h3>
-                      </div>
+              {inspectedDoc && (
+                <div className="space-y-4 pt-2">
+                  <div className="p-4 bg-slate-900/90 rounded-2xl border border-slate-800 space-y-2">
+                    <span className="text-[10px] font-mono uppercase text-emerald-400 px-2 py-0.5 rounded bg-emerald-950 border border-emerald-500/40">
+                      {inspectedDoc.registration_code}
+                    </span>
+                    <h3 className="font-bold text-base sm:text-lg text-slate-100">{inspectedDoc.title}</h3>
+                    <p className="text-xs text-slate-400">
+                      Автор: <strong className="text-slate-200">{inspectedDoc.author_name}</strong> (ORCID: {inspectedDoc.orcid})
+                    </p>
+                  </div>
 
-                      <div className="space-y-2 text-xs font-mono mt-3">
-                        <div className="text-slate-400">Код: <strong className="text-cyan-300">{inspectedDoc.registration_code}</strong></div>
-                        <div className="text-slate-200 font-sans font-bold">{inspectedDoc.title}</div>
-                        <div className="text-slate-400 font-sans">Автор: <strong className="text-slate-200">{inspectedDoc.author_name}</strong></div>
-                        <div className="text-emerald-400">ORCID: {inspectedDoc.orcid}</div>
-                        <div className="text-slate-400">WIPO IPC: <strong className="text-amber-300">{inspectedDoc.ipc_class || "A61B"}</strong></div>
-                        <div className="text-slate-400">Лицензия: <strong className="text-slate-200">{inspectedDoc.license_type || "CC-BY-4.0"}</strong></div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* Layer 1 */}
+                    <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 space-y-2 text-xs font-mono">
+                      <strong className="text-emerald-400 block font-bold text-xs">{t.layer1Title}</strong>
+                      <div className="text-[11px] text-slate-400 space-y-1">
+                        <div>WIPO IPC: <span className="text-slate-200">{inspectedDoc.ipc_class}</span></div>
+                        <div>Лицензия: <span className="text-slate-200">{inspectedDoc.license_type}</span></div>
+                        <div>Закон: <span className="text-slate-200">35 U.S.C. § 102(a)(1)</span></div>
                       </div>
                     </div>
 
+                    {/* Layer 2 */}
+                    <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 space-y-2 text-xs font-mono">
+                      <strong className="text-cyan-400 block font-bold text-xs">{t.layer2Title}</strong>
+                      <div className="text-[11px] text-slate-400 space-y-1">
+                        <div className="truncate">SHA-256: <span className="text-slate-200">{inspectedDoc.sha256_hash}</span></div>
+                        <div className="truncate">Git OID: <span className="text-slate-200">{inspectedDoc.git_commit_hash}</span></div>
+                        <div>Anchor: <span className="text-emerald-400">Bitcoin OTS Anchored</span></div>
+                      </div>
+                    </div>
+
+                    {/* Layer 3 */}
+                    <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 space-y-2 text-xs font-mono">
+                      <strong className="text-purple-400 block font-bold text-xs">{t.layer3Title}</strong>
+                      <div className="text-[11px] text-slate-400 space-y-1">
+                        <div>Формула: <span className="text-cyan-300">{inspectedDoc.formula_math}</span></div>
+                        <div className="truncate">AST Merkle: <span className="text-slate-200">{inspectedDoc.ast_merkle_digest}</span></div>
+                        <div>Режим: <span className="text-amber-300">RUO Class I CDSS</span></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 pt-2">
                     <button
                       onClick={() => handleViewLicense(inspectedDoc.registration_code)}
-                      className="w-full bg-slate-900 hover:bg-slate-800 border border-slate-700 text-cyan-300 text-xs py-2 rounded-lg transition font-mono font-bold"
+                      className="bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 text-xs px-4 py-2 rounded-xl font-mono transition"
                     >
                       {t.downloadLicenseBtn}
                     </button>
+                    <button
+                      onClick={() => handleMintIpNft(inspectedDoc.registration_code)}
+                      disabled={ipNftMinting}
+                      className="bg-purple-950/80 hover:bg-purple-900 border border-purple-500/50 text-purple-300 text-xs px-4 py-2 rounded-xl font-mono transition"
+                    >
+                      {ipNftMinting ? "Токенизация..." : t.mintIpNftBtn}
+                    </button>
+                    <a
+                      href={`${apiBase}/certificate/pdf/${inspectedDoc.registration_code}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold text-xs px-4 py-2 rounded-xl transition font-sans inline-block"
+                    >
+                      {t.downloadCertPdfBtn}
+                    </a>
                   </div>
 
-                  {/* Layer 2: Crypto */}
-                  <div className="bg-[#0e1726] border border-slate-800 rounded-2xl p-5 space-y-4 shadow-lg flex flex-col justify-between">
-                    <div>
-                      <div className="border-b border-slate-800 pb-3">
-                        <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold">
-                          Layer 2
-                        </span>
-                        <h3 className="text-sm font-bold text-slate-100 mt-2">{t.layer2Title}</h3>
-                      </div>
-
-                      <div className="space-y-2 text-xs font-mono mt-3">
-                        <div>
-                          <span className="text-slate-500 block text-[10px]">SHA-256 Digest:</span>
-                          <span className="text-slate-300 text-[10px] break-all">{inspectedDoc.sha256_hash}</span>
-                        </div>
-                        <div>
-                          <span className="text-slate-500 block text-[10px]">Git Commit OID:</span>
-                          <span className="text-slate-300 text-[10px] break-all">{inspectedDoc.git_commit_hash}</span>
-                        </div>
-                        <div>
-                          <span className="text-slate-500 block text-[10px]">RFC 3161 TSA:</span>
-                          <span className="text-cyan-300 text-[11px]">SYSTEM_TIME_STAMP_TOKEN</span>
-                        </div>
-                        <div>
-                          <span className="text-slate-500 block text-[10px]">Bitcoin OpenTimestamps:</span>
-                          <span className="text-emerald-400 text-[11px]">PENDING_BITCOIN_CALENDAR_ATTESTATION</span>
-                        </div>
-                      </div>
+                  {ipNftResult && (
+                    <div className="p-4 bg-purple-950/40 border border-purple-500/40 rounded-2xl text-xs font-mono space-y-1">
+                      <div className="text-purple-300 font-bold">🧬 Sovereign IP-NFT Патент токенизирован:</div>
+                      <div>Standard: <span className="text-slate-200">{ipNftResult.contract_standard}</span></div>
+                      <div>Royalty to Founder: <span className="text-emerald-400 font-bold">{ipNftResult.founder_royalty_pct}</span></div>
                     </div>
-
-                    <div className="pt-3 space-y-2">
-                      <a
-                        href={`${apiBase}/certificate/pdf/${inspectedDoc.registration_code}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center justify-center w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs py-2 rounded-lg transition shadow"
-                      >
-                        {t.downloadCertPdfBtn}
-                      </a>
-                      <div className="grid grid-cols-2 gap-2">
-                        <button
-                          onClick={() => alert(`DataCite 4.4 JSON exported for ${inspectedDoc.registration_code}`)}
-                          className="w-full bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 text-[10px] py-1.5 rounded-lg transition truncate"
-                        >
-                          DataCite JSON
-                        </button>
-                        <button
-                          onClick={() => alert(`Schema.org JSON-LD exported for ${inspectedDoc.registration_code}`)}
-                          className="w-full bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 text-[10px] py-1.5 rounded-lg transition truncate"
-                        >
-                          Google Scholar
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Layer 3: Math MaaS */}
-                  <div className="bg-[#0e1726] border border-slate-800 rounded-2xl p-5 space-y-4 shadow-lg flex flex-col justify-between">
-                    <div>
-                      <div className="border-b border-slate-800 pb-3">
-                        <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30 font-bold">
-                          Layer 3
-                        </span>
-                        <h3 className="text-sm font-bold text-slate-100 mt-2">{t.layer3Title}</h3>
-                      </div>
-
-                      <div className="space-y-3 text-xs font-mono mt-3">
-                        <div>
-                          <span className="text-slate-500 block text-[10px]">AST Formula:</span>
-                          <span className="text-cyan-300 font-bold break-all">{inspectedDoc.formula_math || "(Artery + Vein) / (Lymph + 1.0)"}</span>
-                        </div>
-                        <div>
-                          <span className="text-slate-500 block text-[10px]">AST Merkle Digest:</span>
-                          <span className="text-purple-300 text-[10px] break-all">{inspectedDoc.ast_merkle_digest || "9f83a4c2e1b789d6e5a4f3b2c1d0e9f8a7b6c5d4e3f2a1b0c9d8e7f6a5b4c3d2"}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <button
-                        onClick={() => handleMintIpNft(inspectedDoc.registration_code)}
-                        disabled={ipNftMinting}
-                        className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs py-2 rounded-lg transition shadow"
-                      >
-                        {ipNftMinting ? "Токенизация..." : t.mintIpNftBtn}
-                      </button>
-                    </div>
-                  </div>
+                  )}
                 </div>
-
-                {ipNftResult && (
-                  <div className="p-5 bg-purple-950/40 border border-purple-500/50 rounded-2xl space-y-2 text-xs font-mono">
-                    <div className="flex justify-between items-center text-purple-300 font-bold">
-                      <span>🧬 Sovereign IP-NFT Minted Successfully!</span>
-                      <span className="text-emerald-400">Token ID: #{ipNftResult.token_id}</span>
-                    </div>
-                    <div className="text-slate-400">Contract: <strong className="text-slate-200">{ipNftResult.contract_address}</strong></div>
-                    <div className="text-slate-400">Network: <strong className="text-cyan-300">{ipNftResult.network}</strong></div>
-                    <div className="text-slate-400 text-[10px] break-all">Tx Hash: {ipNftResult.mint_transaction_hash}</div>
-                  </div>
-                )}
-              </div>
-            )}
+              )}
+            </div>
           </div>
         )}
 
-        {/* =====================================================================
-            TAB 3: WIPO GLOBAL LIBRARY
-        ===================================================================== */}
+        {/* TAB 3: LIBRARY (ISO 14721 CAS VAULT) */}
         {activeTab === "library" && (
           <div className="space-y-6">
-            <div className="bg-[#0e1726] border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xl space-y-4">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="bg-[#0e1726] border border-slate-800 rounded-3xl p-4 sm:p-7 shadow-xl space-y-5">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-800 pb-4">
                 <div>
-                  <h2 className="text-lg sm:text-xl font-bold text-slate-100 flex items-center gap-2">
+                  <h2 className="text-lg sm:text-2xl font-bold text-slate-100 flex items-center gap-2">
                     <span>🏛️</span> {t.libHeader}
                   </h2>
-                  <p className="text-xs text-slate-400 mt-1">{t.libSubheader}</p>
+                  <p className="text-xs sm:text-sm text-slate-400 mt-1">{t.libSubheader}</p>
                 </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {IPC_CLASSES.map((ipc) => (
-                    <button
-                      key={ipc.code}
-                      onClick={() => setLibIpcFilter(ipc.code)}
-                      className={`text-xs px-2.5 py-1 rounded-lg font-mono transition ${
-                        libIpcFilter === ipc.code
-                          ? "bg-emerald-500 text-slate-950 font-bold"
-                          : "bg-slate-900 border border-slate-700 text-slate-400 hover:text-slate-200"
-                      }`}
-                    >
-                      {ipc.code}
-                    </button>
-                  ))}
+                <div className="text-xs font-mono text-emerald-400 px-3 py-1 bg-emerald-950/60 rounded-xl border border-emerald-500/40">
+                  Total: {filteredLibrary.length} works
                 </div>
               </div>
 
-              <input
-                type="text"
-                value={libSearch}
-                onChange={(e) => setLibSearch(e.target.value)}
-                placeholder={t.libSearchPlaceholder}
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-xs text-slate-100 focus:border-emerald-500 outline-none"
-              />
-            </div>
+              {/* Search and Filters */}
+              <div className="flex flex-col sm:flex-row gap-3">
+                <input
+                  type="text"
+                  value={libSearch}
+                  onChange={(e) => setLibSearch(e.target.value)}
+                  placeholder={t.libSearchPlaceholder}
+                  className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-xs text-slate-100 focus:border-emerald-500 outline-none"
+                />
+                <select
+                  value={libIpcFilter}
+                  onChange={(e) => setLibIpcFilter(e.target.value)}
+                  className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-100 focus:border-emerald-500 outline-none"
+                >
+                  {IPC_CLASSES.map((c) => (
+                    <option key={c.code} value={c.code}>
+                      {lang === "KZ" ? c.name_kz : lang === "RU" ? c.name_ru : c.name_en}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {filteredLibrary.map((art) => (
-                <div key={art.registration_code} className="bg-[#0e1726] border border-slate-800 hover:border-slate-700 rounded-2xl p-4 sm:p-5 space-y-3 transition shadow-lg flex flex-col justify-between">
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs font-mono text-cyan-400 font-bold">{art.registration_code}</span>
-                      <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                        {art.license_type || "CC-BY-4.0"}
-                      </span>
-                    </div>
-                    <h4 className="font-bold text-sm text-slate-100 line-clamp-2">{art.title}</h4>
-                    <p className="text-xs text-slate-400 truncate">Автор: <strong className="text-slate-300">{art.author_name}</strong> ({art.orcid})</p>
-                    <p className="text-xs text-slate-400 line-clamp-2">{art.abstract}</p>
-                  </div>
-
-                  <div className="flex gap-2 pt-2">
-                    <button
-                      onClick={() => {
-                        setSearchInspectCode(art.registration_code);
-                        handleInspect(art.registration_code);
-                        setActiveTab("inspector");
-                      }}
-                      className="flex-1 bg-cyan-600/30 hover:bg-cyan-600/50 text-cyan-300 border border-cyan-500/40 text-xs py-1.5 rounded-lg font-bold transition"
-                    >
-                      {t.viewDetailsBtn}
-                    </button>
-                    <button
-                      onClick={() => setActivePdfUrl(`${apiBase}/download/${art.registration_code}`)}
-                      className="flex-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs py-1.5 rounded-lg font-bold transition"
-                    >
-                      {t.readPdfBtn}
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {activePdfUrl && (
-              <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-                <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-4xl h-[80vh] flex flex-col overflow-hidden shadow-2xl">
-                  <div className="flex justify-between items-center p-4 border-b border-slate-800">
-                    <h3 className="text-sm font-bold text-slate-100">PDF Reader • GitScience Vault</h3>
+              {/* Embedded PDF Viewer Modal */}
+              {activePdfUrl && (
+                <div className="bg-slate-950 border border-slate-700 rounded-2xl p-4 space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-mono text-cyan-300 font-bold">📄 PDF Viewer (ISO 14721 CAS Stream)</span>
                     <button
                       onClick={() => setActivePdfUrl(null)}
-                      className="text-xs bg-red-600/30 hover:bg-red-600/50 text-red-300 border border-red-500/40 px-3 py-1 rounded-lg font-bold"
+                      className="text-xs text-red-400 hover:text-red-300 font-mono font-bold"
                     >
                       {t.closePdfBtn}
                     </button>
                   </div>
-                  <iframe src={activePdfUrl} className="flex-1 w-full h-full bg-slate-950" />
+                  <iframe src={activePdfUrl} className="w-full h-[550px] rounded-xl border border-slate-800" />
                 </div>
+              )}
+
+              {/* Library Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {filteredLibrary.map((art) => (
+                  <div
+                    key={art.registration_code}
+                    className="bg-slate-900/90 border border-slate-800 hover:border-emerald-500/50 rounded-2xl p-4 sm:p-5 space-y-3 transition flex flex-col justify-between shadow-lg"
+                  >
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-mono text-cyan-400 font-bold">{art.registration_code}</span>
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/40">
+                          {art.license_type || "CC-BY-4.0"}
+                        </span>
+                      </div>
+                      <h3 className="font-bold text-sm sm:text-base text-slate-100 line-clamp-2">{art.title}</h3>
+                      <p className="text-xs text-slate-400 truncate">
+                        Автор: <strong className="text-slate-200">{art.author_name}</strong>
+                      </p>
+                      <div className="text-[11px] text-slate-500 font-mono space-y-0.5">
+                        <div className="truncate">IPFS CID: <span className="text-cyan-400">{art.ipfs_cid || "bafyafybeid6..."}</span></div>
+                        <div>Дереккөз: <span className="text-amber-300">{art.source_archive || "Sovereign Notary"}</span></div>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2 pt-2 border-t border-slate-800/80">
+                      <button
+                        onClick={() => {
+                          setSearchInspectCode(art.registration_code);
+                          setActiveTab("inspector");
+                          handleInspect(art.registration_code);
+                        }}
+                        className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs py-2 rounded-xl font-mono transition"
+                      >
+                        {t.viewDetailsBtn}
+                      </button>
+                      <button
+                        onClick={() => setActivePdfUrl(`${apiBase}/certificate/pdf/${art.registration_code}`)}
+                        className="flex-1 bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 border border-emerald-500/40 text-xs py-2 rounded-xl font-mono transition font-bold"
+                      >
+                        {t.readPdfBtn}
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
-            )}
+            </div>
           </div>
         )}
 
-        {/* =====================================================================
-            TAB 4: ZK-DISCOVERY
-        ===================================================================== */}
+        {/* TAB 4: ZK-DISCOVERY */}
         {activeTab === "zk" && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <div className="lg:col-span-6 space-y-6">
-              <div className="bg-[#0e1726] border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xl space-y-5">
-                <div>
-                  <h2 className="text-lg sm:text-xl font-bold text-slate-100 flex items-center gap-2">
-                    <span>🔒</span> {t.zkHeader}
-                  </h2>
-                  <p className="text-xs text-slate-400 mt-1">{t.zkSubheader}</p>
-                </div>
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* ZK Commit */}
+              <div className="bg-[#0e1726] border border-slate-800 rounded-3xl p-4 sm:p-6 shadow-xl space-y-4">
+                <h3 className="text-base sm:text-lg font-bold text-slate-100 flex items-center gap-2">
+                  <span>🔒</span> {t.zkHeader}
+                </h3>
+                <p className="text-xs text-slate-400">{t.zkSubheader}</p>
 
-                <div className="space-y-4">
+                <div className="space-y-3 text-xs">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-400 mb-1">{t.zkHypothesisTitle}</label>
+                    <label className="block text-slate-400 font-semibold mb-1">{t.zkHypothesisTitle}</label>
                     <input
                       type="text"
                       value={zkTitle}
                       onChange={(e) => setZkTitle(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100 focus:border-emerald-500 outline-none"
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:border-emerald-500 outline-none"
                     />
                   </div>
+
                   <div>
-                    <label className="block text-xs font-semibold text-slate-400 mb-1">{t.zkSecretLabel} *</label>
+                    <label className="block text-slate-400 font-semibold mb-1">{t.zkSecretLabel}</label>
                     <input
-                      type="password"
+                      type="text"
                       value={zkSecret}
                       onChange={(e) => setZkSecret(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs font-mono text-cyan-300 focus:border-cyan-500 outline-none"
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 font-mono focus:border-emerald-500 outline-none"
                     />
                   </div>
+
                   <div>
-                    <label className="block text-xs font-semibold text-slate-400 mb-1">{t.zkPayloadLabel}</label>
+                    <label className="block text-slate-400 font-semibold mb-1">{t.zkPayloadLabel}</label>
                     <textarea
                       rows={3}
                       value={zkPayload}
                       onChange={(e) => setZkPayload(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-300 focus:border-emerald-500 outline-none"
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:border-emerald-500 outline-none"
                     />
                   </div>
+
                   <div>
-                    <label className="block text-xs font-semibold text-slate-400 mb-1">{t.zkFormulaLabel}</label>
+                    <label className="block text-slate-400 font-semibold mb-1">{t.zkFormulaLabel}</label>
                     <input
                       type="text"
                       value={zkFormula}
                       onChange={(e) => setZkFormula(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs font-mono text-emerald-400 focus:border-emerald-500 outline-none"
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-cyan-300 font-mono focus:border-emerald-500 outline-none"
                     />
                   </div>
 
                   <button
                     onClick={handleZkCommit}
-                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold text-xs py-3 rounded-xl transition"
+                    className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 font-bold py-2.5 rounded-xl text-xs shadow transition hover:opacity-95 font-mono"
                   >
                     {t.zkCommitBtn}
                   </button>
+
+                  {zkCommitResult && (
+                    <div className="p-3 bg-cyan-950/40 border border-cyan-500/40 rounded-xl text-[11px] font-mono space-y-1">
+                      <div className="text-cyan-300 font-bold">Commitment ID: {zkCommitResult.commitment_id}</div>
+                      <div className="truncate text-slate-400">Hash: {zkCommitResult.zk_commitment_hash}</div>
+                    </div>
+                  )}
                 </div>
-
-                {zkCommitResult && (
-                  <div className="p-4 bg-slate-950 border border-emerald-500/40 rounded-xl space-y-2 font-mono text-xs">
-                    <div className="text-emerald-400 font-bold">✅ Слепой ZK-депозит зафиксирован:</div>
-                    <div className="text-slate-300">ID: <span className="text-cyan-300">{zkCommitResult.commitment_id}</span></div>
-                    <div className="text-slate-400 text-[10px] break-all">ZK-Hash: {zkCommitResult.zk_commitment_hash}</div>
-                  </div>
-                )}
               </div>
-            </div>
 
-            <div className="lg:col-span-6 space-y-6">
-              <div className="bg-[#0e1726] border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xl space-y-5">
-                <h3 className="text-lg font-bold text-slate-100 flex items-center gap-2">
+              {/* ZK Reveal */}
+              <div className="bg-[#0e1726] border border-slate-800 rounded-3xl p-4 sm:p-6 shadow-xl space-y-4">
+                <h3 className="text-base sm:text-lg font-bold text-slate-100 flex items-center gap-2">
                   <span>🔓</span> {t.zkRevealTitle}
                 </h3>
-                <div className="space-y-4">
+                <p className="text-xs text-slate-400">Раскройте ключ и подтвердите приоритет</p>
+
+                <div className="space-y-3 text-xs">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-400 mb-1">{t.zkRevealCommitId}</label>
+                    <label className="block text-slate-400 font-semibold mb-1">{t.zkRevealCommitId}</label>
                     <input
                       type="text"
                       value={zkRevealId}
                       onChange={(e) => setZkRevealId(e.target.value)}
-                      placeholder="e.g. ZK-C906A929DF"
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs font-mono text-cyan-300 focus:border-cyan-500 outline-none"
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 font-mono focus:border-emerald-500 outline-none"
                     />
                   </div>
+
                   <div>
-                    <label className="block text-xs font-semibold text-slate-400 mb-1">{t.zkSecretLabel}</label>
+                    <label className="block text-slate-400 font-semibold mb-1">{t.zkSecretLabel}</label>
                     <input
-                      type="password"
+                      type="text"
                       value={zkRevealSecret}
                       onChange={(e) => setZkRevealSecret(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs font-mono focus:border-cyan-500 outline-none"
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 font-mono focus:border-emerald-500 outline-none"
                     />
                   </div>
+
                   <div>
-                    <label className="block text-xs font-semibold text-slate-400 mb-1">{t.zkPayloadLabel}</label>
+                    <label className="block text-slate-400 font-semibold mb-1">{t.zkPayloadLabel}</label>
                     <textarea
                       rows={3}
                       value={zkRevealPayload}
                       onChange={(e) => setZkRevealPayload(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-300 focus:border-emerald-500 outline-none"
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:border-emerald-500 outline-none"
                     />
                   </div>
 
                   <button
                     onClick={handleZkReveal}
-                    className="w-full bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold text-xs py-3 rounded-xl transition"
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold py-2.5 rounded-xl text-xs transition font-mono"
                   >
                     {t.zkRevealBtn}
                   </button>
 
                   {zkRevealResult && (
-                    <div className="p-4 bg-emerald-950/40 border border-emerald-500/40 rounded-xl space-y-2 text-xs">
-                      <div className="text-emerald-400 font-bold font-mono">🏆 {zkRevealResult.status || (zkRevealResult.verified ? "VERIFIED" : "FAILED")}</div>
-                      <p className="text-slate-300">{zkRevealResult.legal_effect || zkRevealResult.error}</p>
+                    <div className="p-3 bg-emerald-950/40 border border-emerald-500/40 rounded-xl text-[11px] font-mono space-y-1">
+                      <div className="text-emerald-300 font-bold">✅ Результат: {zkRevealResult.status}</div>
+                      <div className="text-slate-300">{zkRevealResult.legal_effect}</div>
                     </div>
                   )}
                 </div>
@@ -2105,62 +2208,60 @@ export default function GitScienceSovereignApp() {
           </div>
         )}
 
-        {/* =====================================================================
-            TAB 5: SCHOLAR PROFILE & GIS
-        ===================================================================== */}
-        {activeTab === "passport" && passportData && (
-          <div className="max-w-4xl mx-auto space-y-6">
-            <div className="bg-gradient-to-br from-[#0e1f38] to-[#070d18] border border-cyan-500/40 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 border-b border-slate-800 pb-6">
+        {/* TAB 5: PASSPORT */}
+        {activeTab === "passport" && (
+          <div className="space-y-6">
+            <div className="bg-[#0e1726] border border-slate-800 rounded-3xl p-4 sm:p-7 shadow-xl space-y-6">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-800 pb-4">
                 <div>
-                  <span className="text-xs font-mono px-3 py-1 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold uppercase">
-                    Sovereign Scholar Profile
-                  </span>
-                  <h2 className="text-xl sm:text-2xl font-bold text-slate-50 mt-2">{passportData.scholar_name}</h2>
-                  <p className="text-xs text-slate-400 font-mono mt-1">ORCID: {passportData.orcid} • {passportData.institution}</p>
+                  <h2 className="text-lg sm:text-2xl font-bold text-slate-100 flex items-center gap-2">
+                    <span>🧬</span> {t.passHeader}
+                  </h2>
+                  <p className="text-xs sm:text-sm text-slate-400 mt-1">{t.passSubheader}</p>
                 </div>
-                <div className="text-center bg-slate-950/80 p-4 sm:p-5 rounded-2xl border border-cyan-500/30 shrink-0">
-                  <span className="text-[11px] text-slate-400 block font-mono">{t.passScoreLabel}</span>
-                  <span className="text-2xl sm:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400 font-mono">
-                    {passportData.git_impact_score}
-                  </span>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-mono">
-                <div className="p-4 bg-slate-900/80 rounded-xl border border-slate-800">
-                  <span className="text-slate-500 block text-[10px]">{t.passTierLabel}:</span>
-                  <span className="text-emerald-400 font-bold text-sm font-sans">{passportData.platform_tier || passportData.academic_rank}</span>
-                </div>
-                <div className="p-4 bg-slate-900/80 rounded-xl border border-slate-800">
-                  <span className="text-slate-500 block text-[10px]">Статус профиля:</span>
-                  <span className="text-cyan-300 font-bold">SOVEREIGN_PASSPORT_ACTIVE</span>
+                <div className="text-right">
+                  <span className="text-[10px] text-slate-500 font-mono uppercase">{t.passScoreLabel}</span>
+                  <div className="text-2xl font-bold text-emerald-400 font-mono">
+                    {passportData?.git_impact_score || "184.0"} GIS
+                  </div>
                 </div>
               </div>
 
-              {passportData.gis_breakdown && (
-                <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 space-y-2 text-xs font-mono">
-                  <h4 className="text-slate-300 font-bold font-sans">Детализация активности (GIS Breakdown):</h4>
-                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-center text-[11px]">
-                    <div className="p-2 bg-slate-900 rounded">
-                      <span className="text-slate-500 block">{t.passCitationsPts}</span>
-                      <strong className="text-cyan-300">{passportData.gis_breakdown.citations_pts} pts</strong>
+              {passportData && (
+                <div className="space-y-5">
+                  <div className="p-4 bg-slate-900 rounded-2xl border border-slate-800 flex flex-col sm:flex-row justify-between gap-3">
+                    <div>
+                      <h3 className="font-bold text-base text-slate-100">{passportData.scholar_name}</h3>
+                      <p className="text-xs text-slate-400">{passportData.institution}</p>
+                      <p className="text-xs font-mono text-emerald-400 mt-1">ORCID: {passportData.orcid}</p>
                     </div>
-                    <div className="p-2 bg-slate-900 rounded">
-                      <span className="text-slate-500 block">{t.passWorksPts}</span>
-                      <strong className="text-cyan-300">{passportData.gis_breakdown.works_pts} pts</strong>
+                    <div className="sm:text-right">
+                      <span className="text-xs px-3 py-1 rounded-full bg-purple-950 text-purple-300 border border-purple-500/40 font-mono font-bold">
+                        {passportData.platform_tier}
+                      </span>
                     </div>
-                    <div className="p-2 bg-slate-900 rounded">
-                      <span className="text-slate-500 block">{t.passMaasPts}</span>
-                      <strong className="text-cyan-300">{passportData.gis_breakdown.maas_executions_pts} pts</strong>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs font-mono text-center">
+                    <div className="p-3 bg-slate-950 rounded-xl border border-slate-800">
+                      <span className="text-slate-500 block text-[10px]">{t.passCitationsPts}</span>
+                      <strong className="text-cyan-400 text-base">{passportData.gis_breakdown?.citations_pts}</strong>
                     </div>
-                    <div className="p-2 bg-slate-900 rounded">
-                      <span className="text-slate-500 block">{t.passCreditPts}</span>
-                      <strong className="text-cyan-300">{passportData.gis_breakdown.credit_leadership_pts} pts</strong>
+                    <div className="p-3 bg-slate-950 rounded-xl border border-slate-800">
+                      <span className="text-slate-500 block text-[10px]">{t.passWorksPts}</span>
+                      <strong className="text-emerald-400 text-base">{passportData.gis_breakdown?.works_pts}</strong>
                     </div>
-                    <div className="p-2 bg-slate-900 rounded">
-                      <span className="text-slate-500 block">{t.passCourtPts}</span>
-                      <strong className="text-cyan-300">{passportData.gis_breakdown.court_vindication_pts} pts</strong>
+                    <div className="p-3 bg-slate-950 rounded-xl border border-slate-800">
+                      <span className="text-slate-500 block text-[10px]">{t.passMaasPts}</span>
+                      <strong className="text-purple-400 text-base">{passportData.gis_breakdown?.maas_executions_pts}</strong>
+                    </div>
+                    <div className="p-3 bg-slate-950 rounded-xl border border-slate-800">
+                      <span className="text-slate-500 block text-[10px]">{t.passCreditPts}</span>
+                      <strong className="text-amber-400 text-base">{passportData.gis_breakdown?.credit_leadership_pts}</strong>
+                    </div>
+                    <div className="p-3 bg-slate-950 rounded-xl border border-slate-800">
+                      <span className="text-slate-500 block text-[10px]">{t.passCourtPts}</span>
+                      <strong className="text-emerald-400 text-base">{passportData.gis_breakdown?.court_vindication_pts}</strong>
                     </div>
                   </div>
                 </div>
@@ -2169,512 +2270,317 @@ export default function GitScienceSovereignApp() {
           </div>
         )}
 
-        {/* =====================================================================
-            TAB 6: BLIND PEER-REVIEW
-        ===================================================================== */}
+        {/* TAB 6: REVIEW */}
         {activeTab === "review" && (
-          <div className="max-w-3xl mx-auto space-y-6">
-            <div className="bg-[#0e1726] border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xl space-y-5">
+          <div className="space-y-6">
+            <div className="bg-[#0e1726] border border-slate-800 rounded-3xl p-4 sm:p-7 shadow-xl space-y-5">
               <div>
-                <h2 className="text-lg sm:text-xl font-bold text-slate-100 flex items-center gap-2">
+                <h2 className="text-lg sm:text-2xl font-bold text-slate-100 flex items-center gap-2">
                   <span>📝</span> {t.revHeader}
                 </h2>
-                <p className="text-xs text-slate-400 mt-1">{t.revSubheader}</p>
+                <p className="text-xs sm:text-sm text-slate-400 mt-1">{t.revSubheader}</p>
               </div>
 
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-400 mb-1">{t.revTargetLabel}</label>
-                    <input
-                      type="text"
-                      value={revTargetCode}
-                      onChange={(e) => setRevTargetCode(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs font-mono text-cyan-300 focus:border-cyan-500 outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-400 mb-1">{t.revReviewerLabel}</label>
-                    <input
-                      type="text"
-                      value={revReviewerOrcid}
-                      onChange={(e) => setRevReviewerOrcid(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs font-mono text-emerald-400 focus:border-emerald-500 outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                  <div>
-                    <label className="block text-slate-400 mb-1">{t.revMathScore}</label>
-                    <input
-                      type="number"
-                      min={1}
-                      max={10}
-                      value={revMath}
-                      onChange={(e) => setRevMath(Number(e.target.value))}
-                      className="w-full bg-slate-900 border border-slate-700 rounded p-1.5 text-center font-bold text-emerald-400"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-slate-400 mb-1">{t.revMethodScore}</label>
-                    <input
-                      type="number"
-                      min={1}
-                      max={10}
-                      value={revMethod}
-                      onChange={(e) => setRevMethod(Number(e.target.value))}
-                      className="w-full bg-slate-900 border border-slate-700 rounded p-1.5 text-center font-bold text-emerald-400"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-slate-400 mb-1">{t.revEthicsScore}</label>
-                    <input
-                      type="number"
-                      min={1}
-                      max={10}
-                      value={revEthics}
-                      onChange={(e) => setRevEthics(Number(e.target.value))}
-                      className="w-full bg-slate-900 border border-slate-700 rounded p-1.5 text-center font-bold text-emerald-400"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-slate-400 mb-1">{t.revNoveltyScore}</label>
-                    <input
-                      type="number"
-                      min={1}
-                      max={10}
-                      value={revNovelty}
-                      onChange={(e) => setRevNovelty(Number(e.target.value))}
-                      className="w-full bg-slate-900 border border-slate-700 rounded p-1.5 text-center font-bold text-emerald-400"
-                    />
-                  </div>
-                </div>
-
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 mb-1">{t.revCommentsLabel}</label>
-                  <textarea
-                    rows={3}
-                    value={revComments}
-                    onChange={(e) => setRevComments(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200 focus:border-emerald-500 outline-none"
+                  <label className="block text-slate-400 font-semibold mb-1">{t.revTargetLabel}</label>
+                  <input
+                    type="text"
+                    value={revTargetCode}
+                    onChange={(e) => setRevTargetCode(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 font-mono focus:border-emerald-500 outline-none"
                   />
                 </div>
 
-                <button
-                  onClick={handleSubmitReview}
-                  className="w-full bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold text-xs py-3 rounded-xl transition"
-                >
-                  {t.revSubmitBtn}
-                </button>
+                <div>
+                  <label className="block text-slate-400 font-semibold mb-1">{t.revReviewerLabel}</label>
+                  <input
+                    type="text"
+                    value={revReviewerOrcid}
+                    onChange={(e) => setRevReviewerOrcid(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 font-mono focus:border-emerald-500 outline-none"
+                  />
+                </div>
 
-                {revResult && (
-                  <div className={`p-4 rounded-xl space-y-1 text-xs border ${revResult.status === "ERROR" ? "bg-red-950/30 border-red-500/40 text-red-300" : "bg-emerald-950/30 border-emerald-500/40 text-emerald-300"}`}>
-                    <div className="font-bold">{revResult.status === "ERROR" ? "🚨 Ошибка" : "✅ Рецензия зафиксирована"}</div>
-                    <div>{revResult.error || `Выплата: ${revResult.reviewer_payout}`}</div>
-                  </div>
-                )}
+                <div>
+                  <label className="block text-slate-400 font-semibold mb-1">{t.revMathScore}: {revMath}</label>
+                  <input
+                    type="range"
+                    min="1"
+                    max="10"
+                    value={revMath}
+                    onChange={(e) => setRevMath(Number(e.target.value))}
+                    className="w-full accent-emerald-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-400 font-semibold mb-1">{t.revMethodScore}: {revMethod}</label>
+                  <input
+                    type="range"
+                    min="1"
+                    max="10"
+                    value={revMethod}
+                    onChange={(e) => setRevMethod(Number(e.target.value))}
+                    className="w-full accent-emerald-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-400 font-semibold mb-1">{t.revEthicsScore}: {revEthics}</label>
+                  <input
+                    type="range"
+                    min="1"
+                    max="10"
+                    value={revEthics}
+                    onChange={(e) => setRevEthics(Number(e.target.value))}
+                    className="w-full accent-emerald-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-400 font-semibold mb-1">{t.revNoveltyScore}: {revNovelty}</label>
+                  <input
+                    type="range"
+                    min="1"
+                    max="10"
+                    value={revNovelty}
+                    onChange={(e) => setRevNovelty(Number(e.target.value))}
+                    className="w-full accent-emerald-500"
+                  />
+                </div>
               </div>
+
+              <div className="text-xs">
+                <label className="block text-slate-400 font-semibold mb-1">{t.revCommentsLabel}</label>
+                <textarea
+                  rows={3}
+                  value={revComments}
+                  onChange={(e) => setRevComments(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:border-emerald-500 outline-none"
+                />
+              </div>
+
+              <button
+                onClick={handleSubmitReview}
+                className="w-full bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold py-3 rounded-xl text-xs sm:text-sm transition font-mono"
+              >
+                {t.revSubmitBtn}
+              </button>
             </div>
           </div>
         )}
 
-        {/* =====================================================================
-            TAB 7: WASM MAAS & CLINICAL FHIR/DICOM EHR GATEWAY
-        ===================================================================== */}
+        {/* TAB 7: MAAS SIMULATOR */}
         {activeTab === "maas" && (
-          <div className="max-w-4xl mx-auto space-y-6">
-            <div className="bg-[#0e1726] border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xl space-y-6">
-              <div>
-                <h2 className="text-lg sm:text-xl font-bold text-slate-100 flex items-center gap-2">
-                  <span>⚡</span> {t.maasHeader}
-                </h2>
-                <p className="text-xs text-slate-400 mt-1">{t.maasSubheader}</p>
+          <div className="space-y-6">
+            <div className="bg-[#0e1726] border border-slate-800 rounded-3xl p-4 sm:p-7 shadow-xl space-y-5">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-800 pb-4">
+                <div>
+                  <h2 className="text-lg sm:text-2xl font-bold text-slate-100 flex items-center gap-2">
+                    <span>⚡</span> {t.maasHeader}
+                  </h2>
+                  <p className="text-xs sm:text-sm text-slate-400 mt-1">{t.maasSubheader}</p>
+                </div>
+                <button
+                  onClick={handleClinicalFhirTest}
+                  disabled={fhirLoading}
+                  className="bg-cyan-950 hover:bg-cyan-900 border border-cyan-500/50 text-cyan-300 text-xs px-3.5 py-1.5 rounded-xl font-mono transition"
+                >
+                  {fhirLoading ? "FHIR..." : t.fhirGatewayBtn}
+                </button>
               </div>
 
-              <div className="space-y-3">
-                <label className="block text-xs font-semibold text-slate-400">{t.maasFormulaLabel}</label>
-                <div className="flex flex-col sm:flex-row gap-3">
+              <div className="space-y-3 text-xs">
+                <label className="block text-slate-400 font-semibold">{t.maasFormulaLabel}</label>
+                <div className="flex flex-col sm:flex-row gap-2">
                   <input
                     type="text"
                     value={maasFormula}
                     onChange={(e) => setMaasFormula(e.target.value)}
-                    className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3.5 py-2 text-xs font-mono text-cyan-300 focus:border-cyan-500 outline-none"
+                    className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-cyan-300 font-mono focus:border-emerald-500 outline-none"
                   />
-                  <div className="flex gap-2">
-                    <button
-                      onClick={handleRunMaas}
-                      disabled={maasSimulating}
-                      className="bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold text-xs px-5 py-2 rounded-lg transition"
-                    >
-                      {maasSimulating ? "..." : t.maasRunBtn}
-                    </button>
-                    <button
-                      onClick={handleRunFhirBundle}
-                      disabled={fhirLoading}
-                      className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-4 py-2 rounded-lg transition"
-                    >
-                      {fhirLoading ? "..." : t.fhirGatewayBtn}
-                    </button>
-                  </div>
+                  <button
+                    onClick={handleRunMaas}
+                    className="bg-gradient-to-r from-emerald-500 to-cyan-500 text-slate-950 font-bold px-6 py-2 rounded-xl transition font-mono"
+                  >
+                    {t.maasRunBtn}
+                  </button>
                 </div>
               </div>
 
-              {/* FHIR Output Box */}
+              {/* 2D Homeostasis Visual Curve */}
+              <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 space-y-3">
+                <div className="flex justify-between items-center text-xs font-mono text-slate-400">
+                  <span className="text-emerald-400 font-bold">{t.maasVisualCurveTitle}</span>
+                  <span>Safe AST Isolated Kernel</span>
+                </div>
+
+                <div className="w-full overflow-hidden flex justify-center">
+                  <svg viewBox={`0 0 ${svgWidth} ${svgHeight}`} className="w-full h-auto max-h-[220px] bg-slate-900/60 rounded-xl p-2">
+                    <polyline fill="none" stroke="#10b981" strokeWidth="2.5" points={svgPolyline} />
+                  </svg>
+                </div>
+              </div>
+
               {fhirResult && (
-                <div className="p-4 bg-blue-950/40 border border-blue-500/40 rounded-xl space-y-2 text-xs font-mono">
-                  <div className="flex justify-between items-center text-blue-300 font-bold">
-                    <span>🏥 HL7 FHIR R4 Bundle Executed (DamuMed / Epic Ready)</span>
-                    <span className="text-emerald-400">Status: final (200 OK)</span>
-                  </div>
-                  <div>Resource: <strong className="text-slate-200">{fhirResult.resourceType} ({fhirResult.id})</strong></div>
-                  <div>Tk Output: <strong className="text-cyan-300">{fhirResult.gitscience_computation?.tk_homeostasis_output}</strong></div>
-                  <div className="text-slate-400 text-[10px]">Regulatory: {fhirResult.gitscience_computation?.regulatory_class}</div>
-                </div>
-              )}
-
-              {/* Real-time Parameter Controls */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 bg-slate-950 rounded-2xl border border-slate-800">
-                <div>
-                  <div className="flex justify-between text-xs font-mono mb-1">
-                    <span className="text-slate-400">Artery Axis:</span>
-                    <span className="text-cyan-300 font-bold">{paramArtery.toFixed(1)}</span>
-                  </div>
-                  <input
-                    type="range"
-                    min={1}
-                    max={20}
-                    step={0.5}
-                    value={paramArtery}
-                    onChange={(e) => {
-                      setParamArtery(Number(e.target.value));
-                      handleRunMaas();
-                    }}
-                    className="w-full h-1.5 bg-slate-800 rounded appearance-none cursor-pointer accent-cyan-400"
-                  />
-                </div>
-                <div>
-                  <div className="flex justify-between text-xs font-mono mb-1">
-                    <span className="text-slate-400">Vein Axis:</span>
-                    <span className="text-emerald-400 font-bold">{paramVein.toFixed(1)}</span>
-                  </div>
-                  <input
-                    type="range"
-                    min={0.5}
-                    max={15}
-                    step={0.5}
-                    value={paramVein}
-                    onChange={(e) => {
-                      setParamVein(Number(e.target.value));
-                      handleRunMaas();
-                    }}
-                    className="w-full h-1.5 bg-slate-800 rounded appearance-none cursor-pointer accent-emerald-400"
-                  />
-                </div>
-                <div>
-                  <div className="flex justify-between text-xs font-mono mb-1">
-                    <span className="text-slate-400">Lymph Axis:</span>
-                    <span className="text-purple-400 font-bold">{paramLymph.toFixed(1)}</span>
-                  </div>
-                  <input
-                    type="range"
-                    min={0.1}
-                    max={10}
-                    step={0.1}
-                    value={paramLymph}
-                    onChange={(e) => {
-                      setParamLymph(Number(e.target.value));
-                      handleRunMaas();
-                    }}
-                    className="w-full h-1.5 bg-slate-800 rounded appearance-none cursor-pointer accent-purple-400"
-                  />
-                </div>
-              </div>
-
-              {/* Fully Responsive SVG Homeostasis Curve */}
-              {maasCurve.length > 0 && (
-                <div className="p-4 sm:p-5 bg-slate-950 rounded-2xl border border-slate-800 space-y-3 w-full overflow-hidden">
-                  <div className="flex justify-between items-center">
-                    <h4 className="text-xs font-bold text-slate-200 uppercase font-mono flex items-center gap-2">
-                      <span>📈</span> {t.maasVisualCurveTitle}
-                    </h4>
-                    <span className="text-[10px] font-mono text-emerald-400">
-                      Tk Max: {maxTk.toFixed(2)} | Min: {minTk.toFixed(2)}
-                    </span>
-                  </div>
-
-                  <div className="w-full overflow-x-auto">
-                    <svg viewBox={`0 0 ${svgWidth} ${svgHeight}`} className="w-full h-44 sm:h-48 bg-slate-900/60 rounded-xl">
-                      <line x1={padding} y1={padding} x2={padding} y2={svgHeight - padding} stroke="#334155" strokeDasharray="3,3" />
-                      <line x1={padding} y1={svgHeight - padding} x2={svgWidth - padding} y2={svgHeight - padding} stroke="#334155" />
-                      <polyline
-                        fill="none"
-                        stroke="#10b981"
-                        strokeWidth="3"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        points={svgPolyline}
-                      />
-                      {maasCurve.map((pt, i) => {
-                        const x = padding + (i / (maasCurve.length - 1 || 1)) * (svgWidth - padding * 2);
-                        const normalizedY = (pt.output_tk_homeostasis - minTk) / (maxTk - minTk || 1);
-                        const y = svgHeight - padding - normalizedY * (svgHeight - padding * 2);
-                        return (
-                          <g key={i}>
-                            <circle cx={x} cy={y} r="4" fill="#38bdf8" stroke="#070d18" strokeWidth="1.5" />
-                          </g>
-                        );
-                      })}
-                    </svg>
-                  </div>
+                <div className="p-4 bg-cyan-950/40 border border-cyan-500/40 rounded-2xl text-xs font-mono space-y-1">
+                  <div className="text-cyan-300 font-bold">🏥 HL7 FHIR R4 Bundle Observation:</div>
+                  <div>Patient ID: <span className="text-slate-200">{fhirResult.patient_id}</span></div>
+                  <div>Status: <span className="text-emerald-400">{fhirResult.interpretation}</span></div>
                 </div>
               )}
             </div>
           </div>
         )}
 
-        {/* =====================================================================
-            TAB 8: AMANAT ROYALTY & FIAT B2B INVOICING
-        ===================================================================== */}
+        {/* TAB 8: AMANAT ROYALTY */}
         {activeTab === "amanat" && (
-          <div className="max-w-3xl mx-auto space-y-6">
-            <div className="bg-[#0e1726] border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xl space-y-6">
+          <div className="space-y-6">
+            <div className="bg-[#0e1726] border border-slate-800 rounded-3xl p-4 sm:p-7 shadow-xl space-y-5">
               <div>
-                <h2 className="text-lg sm:text-xl font-bold text-slate-100 flex items-center gap-2">
+                <h2 className="text-lg sm:text-2xl font-bold text-slate-100 flex items-center gap-2">
                   <span>💳</span> {t.amanatHeader}
                 </h2>
-                <p className="text-xs text-slate-400 mt-1">{t.amanatSubheader}</p>
+                <p className="text-xs sm:text-sm text-slate-400 mt-1">{t.amanatSubheader}</p>
               </div>
 
-              <div className="space-y-4">
-                <div className="flex justify-between text-xs font-mono">
-                  <span>{t.amanatBaseFee}:</span>
-                  <span className="text-cyan-300 font-bold">${baseFee} USDT</span>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 text-xs font-mono">
+                <div className="p-4 bg-slate-900 rounded-2xl border border-slate-800">
+                  <span className="text-slate-500 block text-[10px] uppercase">{t.amanatAuthorPool}</span>
+                  <strong className="text-emerald-400 text-xl font-bold">${(baseFee * 0.55).toLocaleString()}</strong>
+                  <p className="text-[10px] text-slate-500 mt-1">14 CRediT үлесімен</p>
                 </div>
-                <input
-                  type="range"
-                  min={500}
-                  max={50000}
-                  step={500}
-                  value={baseFee}
-                  onChange={(e) => setBaseFee(Number(e.target.value))}
-                  className="w-full h-2 bg-slate-900 rounded-lg appearance-none cursor-pointer accent-emerald-500"
-                />
-
-                <div className="p-4 sm:p-5 bg-slate-950 rounded-2xl font-mono text-xs space-y-3 border border-slate-800">
-                  <div className="flex justify-between items-center text-xs sm:text-sm border-b border-slate-800 pb-2">
-                    <span className="text-slate-300">{t.amanatInvoiceTotal}</span>
-                    <span className="text-cyan-300 font-bold text-sm sm:text-base">${(baseFee * 1.2).toFixed(2)} USDT</span>
-                  </div>
-                  <div className="flex justify-between text-emerald-400 font-bold">
-                    <span>{t.amanatAuthorPool}</span>
-                    <span>${(baseFee * 0.55).toFixed(2)} USDT</span>
-                  </div>
-                  <div className="flex justify-between text-slate-400">
-                    <span>{t.amanatInfraPool}</span>
-                    <span>${(baseFee * 0.15).toFixed(2)} USDT</span>
-                  </div>
-                  <div className="flex justify-between text-cyan-400 font-semibold">
-                    <span>{t.amanatFounderPool}</span>
-                    <span>${(baseFee * 0.30).toFixed(2)} USDT</span>
-                  </div>
-                  <div className="flex justify-between text-amber-300 font-bold border-t border-slate-800/80 pt-2">
-                    <span>{t.amanatFounderGrossUp}</span>
-                    <span>${(baseFee * 0.30 + baseFee * 0.20).toFixed(2)} USDT</span>
-                  </div>
+                <div className="p-4 bg-slate-900 rounded-2xl border border-slate-800">
+                  <span className="text-slate-500 block text-[10px] uppercase">{t.amanatInfraPool}</span>
+                  <strong className="text-cyan-400 text-xl font-bold">${(baseFee * 0.15).toLocaleString()}</strong>
+                  <p className="text-[10px] text-slate-500 mt-1">Рецензенттер & Нодалар</p>
                 </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <button
-                    onClick={() => {
-                      setLedgerTxResult({
-                        tx_id: `TX-${Math.random().toString(36).substring(2, 10).toUpperCase()}`,
-                        status: "RECORDED_IN_LEDGER",
-                        timestamp: new Date().toISOString(),
-                      });
-                      loadPlatformStats();
-                    }}
-                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold text-xs py-3 rounded-xl transition"
-                  >
-                    {t.amanatRecordBtn}
-                  </button>
-                  <button
-                    onClick={handleGenerateFiatInvoice}
-                    disabled={fiatInvoiceLoading}
-                    className="w-full bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 font-bold text-xs py-3 rounded-xl transition"
-                  >
-                    {fiatInvoiceLoading ? "..." : t.genFiatInvoiceBtn}
-                  </button>
+                <div className="p-4 bg-slate-900 rounded-2xl border border-slate-800">
+                  <span className="text-slate-500 block text-[10px] uppercase">{t.amanatFounderPool}</span>
+                  <strong className="text-purple-400 text-xl font-bold">${(baseFee * 0.3).toLocaleString()}</strong>
+                  <p className="text-[10px] text-slate-500 mt-1">30% Создатель</p>
                 </div>
-
-                {fiatInvoiceResult && (
-                  <div className="p-4 sm:p-5 bg-slate-950 border border-cyan-500/40 rounded-2xl text-xs font-mono space-y-2">
-                    <div className="flex justify-between items-center text-cyan-300 font-bold">
-                      <span>📄 Institutional B2B Tax Invoice</span>
-                      <span>{fiatInvoiceResult.invoice_number}</span>
-                    </div>
-                    <div className="text-slate-400">Buyer: {fiatInvoiceResult.buyer?.organization || "National Scientific Oncology Center"}</div>
-                    <div className="text-slate-400">Total Payable: <strong className="text-slate-100">${fiatInvoiceResult.financial_breakdown?.total_payable} USD</strong></div>
-                    <div className="text-slate-400">IBAN: <span className="text-emerald-400">{fiatInvoiceResult.settlement_methods?.bank_wire_swift?.iban}</span> • SWIFT: <span className="text-emerald-400">{fiatInvoiceResult.settlement_methods?.bank_wire_swift?.swift_bic}</span></div>
-                  </div>
-                )}
+                <div className="p-4 bg-slate-900 rounded-2xl border border-slate-800">
+                  <span className="text-slate-500 block text-[10px] uppercase">{t.amanatInvoiceTotal}</span>
+                  <strong className="text-amber-300 text-xl font-bold">${(baseFee * 1.2).toLocaleString()}</strong>
+                  <p className="text-[10px] text-slate-500 mt-1">+20% Клиника салығы</p>
+                </div>
               </div>
+
+              <div className="flex flex-wrap gap-3 pt-2">
+                <button
+                  onClick={handleGenerateFiatInvoice}
+                  disabled={fiatInvoiceLoading}
+                  className="bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 font-mono text-xs px-4 py-2.5 rounded-xl transition"
+                >
+                  {fiatInvoiceLoading ? "Инвойс..." : t.genFiatInvoiceBtn}
+                </button>
+                <button
+                  onClick={() => {
+                    setLedgerTxResult({ tx_hash: "0x7f8b9c0d1e2f3a4b", status: "SETTLED" });
+                    loadPlatformStats();
+                  }}
+                  className="bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold text-xs px-5 py-2.5 rounded-xl transition font-mono"
+                >
+                  {t.amanatRecordBtn}
+                </button>
+              </div>
+
+              {fiatInvoiceResult && (
+                <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 text-xs font-mono space-y-1">
+                  <div className="text-amber-300 font-bold">📄 B2B Инвойс: {fiatInvoiceResult.invoice_number}</div>
+                  <div>Клиника: <span className="text-slate-200">{fiatInvoiceResult.hospital_name}</span></div>
+                  <div>IBAN: <span className="text-cyan-300">{fiatInvoiceResult.iban_wire}</span> (SWIFT: {fiatInvoiceResult.swift_code})</div>
+                </div>
+              )}
             </div>
           </div>
         )}
 
-        {/* =====================================================================
-            TAB 9: SCIENCE COURT & DISPUTES
-        ===================================================================== */}
+        {/* TAB 9: SCIENCE COURT */}
         {activeTab === "court" && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <div className="lg:col-span-6 space-y-6">
-              <div className="bg-[#0e1726] border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xl space-y-5">
-                <div>
-                  <h2 className="text-lg sm:text-xl font-bold text-slate-100 flex items-center gap-2">
-                    <span>⚖️</span> {t.courtFileTitle}
-                  </h2>
-                  <p className="text-xs text-slate-400 mt-1">{t.courtSubheader}</p>
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-400 mb-1">{t.courtClaimantName}</label>
-                    <input
-                      type="text"
-                      value={newDisputeClaimant}
-                      onChange={(e) => setNewDisputeClaimant(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100 focus:border-emerald-500 outline-none"
-                    />
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-400 mb-1">{t.courtClaimantOrcid}</label>
-                      <input
-                        type="text"
-                        value={newDisputeOrcid}
-                        onChange={(e) => setNewDisputeOrcid(e.target.value)}
-                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs font-mono text-emerald-400 focus:border-emerald-500 outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-400 mb-1">{t.courtTargetCode}</label>
-                      <input
-                        type="text"
-                        value={newDisputeTarget}
-                        onChange={(e) => setNewDisputeTarget(e.target.value)}
-                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs font-mono text-cyan-300 focus:border-cyan-500 outline-none"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-400 mb-1">{t.courtReasonLabel}</label>
-                    <textarea
-                      rows={3}
-                      value={newDisputeReason}
-                      onChange={(e) => setNewDisputeReason(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-300 focus:border-emerald-500 outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-400 mb-1">{t.courtEvidenceHash}</label>
-                    <input
-                      type="text"
-                      value={newDisputeEvidenceHash}
-                      onChange={(e) => setNewDisputeEvidenceHash(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs font-mono text-slate-400 focus:border-slate-500 outline-none"
-                    />
-                  </div>
-
-                  <button
-                    onClick={handleFileDispute}
-                    className="w-full bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold text-xs py-3 rounded-xl transition"
-                  >
-                    {t.courtSubmitBtn}
-                  </button>
-                </div>
+          <div className="space-y-6">
+            <div className="bg-[#0e1726] border border-slate-800 rounded-3xl p-4 sm:p-7 shadow-xl space-y-5">
+              <div>
+                <h2 className="text-lg sm:text-2xl font-bold text-slate-100 flex items-center gap-2">
+                  <span>⚖️</span> {t.courtHeader}
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-400 mt-1">{t.courtSubheader}</p>
               </div>
-            </div>
 
-            <div className="lg:col-span-6 space-y-6">
-              <div className="bg-[#0e1726] border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xl space-y-5">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-bold text-slate-100 flex items-center gap-2">
-                    <span>🏛️</span> {t.courtActiveCases}
-                  </h3>
-                  <span className="text-xs font-mono text-slate-400">Cases: {courtCases.length}</span>
-                </div>
-
-                {courtActionMessage && (
-                  <div className="p-3 bg-emerald-950/40 border border-emerald-500/40 rounded-xl text-xs text-emerald-300 font-mono">
-                    {courtActionMessage}
-                  </div>
-                )}
-
-                <div className="space-y-4">
-                  {courtCases.map((c) => (
-                    <div key={c.case_id} className="bg-slate-900/90 border border-slate-800 rounded-xl p-4 space-y-3">
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="font-mono text-cyan-300 font-bold">{c.case_id}</span>
-                        <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono text-[10px] font-bold">
-                          {c.status}
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-300">{c.reason}</p>
-                      <div className="text-[11px] text-slate-500 font-mono">
-                        Target: <strong className="text-slate-400">{c.target_code}</strong> • Claimant: {c.claimant_name}
-                      </div>
-
-                      <div className="flex gap-2 text-[10px] font-mono">
-                        <span className="text-emerald-400 font-bold">Valid: {c.votes_valid}</span>
-                        <span className="text-red-400 font-bold">Invalid: {c.votes_invalid}</span>
-                        <span className="text-slate-400">Abstain: {c.votes_abstain}</span>
-                      </div>
-
-                      <div className="flex gap-2 pt-1">
-                        <button
-                          onClick={() => handleVoteCase(c.case_id, "valid")}
-                          className="flex-1 bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 border border-emerald-500/40 text-[11px] py-1 rounded font-bold transition"
-                        >
-                          {t.courtVoteValid}
-                        </button>
-                        <button
-                          onClick={() => handleVoteCase(c.case_id, "invalid")}
-                          className="flex-1 bg-red-600/30 hover:bg-red-600/50 text-red-300 border border-red-500/40 text-[11px] py-1 rounded font-bold transition"
-                        >
-                          {t.courtVoteInvalid}
-                        </button>
-                        <button
-                          onClick={() => handleVoteCase(c.case_id, "abstain")}
-                          className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-[11px] py-1 rounded font-bold transition"
-                        >
-                          {t.courtVoteAbstain}
-                        </button>
-                      </div>
+              <div className="space-y-3">
+                {courtCases.map((c) => (
+                  <div key={c.case_id} className="p-4 bg-slate-900 rounded-2xl border border-slate-800 space-y-2 text-xs">
+                    <div className="flex justify-between items-center font-mono">
+                      <span className="text-cyan-300 font-bold">{c.case_id}</span>
+                      <span className="text-amber-300">{c.status}</span>
                     </div>
-                  ))}
-                </div>
+                    <p className="text-slate-200">{c.reason}</p>
+                    <div className="flex gap-2 pt-2">
+                      <button
+                        onClick={() => handleVoteCase(c.case_id, "valid")}
+                        className="bg-emerald-950 hover:bg-emerald-900 border border-emerald-500/40 text-emerald-300 px-3 py-1 rounded-lg text-xs font-mono"
+                      >
+                        {t.courtVoteValid} ({c.votes_valid})
+                      </button>
+                      <button
+                        onClick={() => handleVoteCase(c.case_id, "invalid")}
+                        className="bg-red-950 hover:bg-red-900 border border-red-500/40 text-red-300 px-3 py-1 rounded-lg text-xs font-mono"
+                      >
+                        {t.courtVoteInvalid} ({c.votes_invalid})
+                      </button>
+                      <button
+                        onClick={() => handleVoteCase(c.case_id, "abstain")}
+                        className="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1 rounded-lg text-xs font-mono"
+                      >
+                        {t.courtVoteAbstain} ({c.votes_abstain})
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
         )}
 
-        {/* =====================================================================
-            TAB 10: VAMPIRE PROTOCOL & REAL-TIME BATCH HARVESTER
-        ===================================================================== */}
+        {/* TAB 10: VAMPIRE MULTI-SOURCE HARVESTER & CAS VAULT */}
         {activeTab === "vampire" && (
           <div className="space-y-6">
-            <div className="bg-[#0e1726] border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xl space-y-4">
+            <div className="bg-[#0e1726] border border-slate-800 rounded-3xl p-4 sm:p-7 shadow-xl space-y-5">
               <div>
-                <h2 className="text-lg sm:text-xl font-bold text-slate-100 flex items-center gap-2">
+                <h2 className="text-lg sm:text-2xl font-bold text-slate-100 flex items-center gap-2">
                   <span>🧛</span> {t.vampireHeader}
                 </h2>
-                <p className="text-xs text-slate-400 mt-1">{t.vampireSubheader}</p>
-                <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 text-[11px] text-cyan-300 font-mono mt-3">
+                <p className="text-xs sm:text-sm text-slate-400 mt-1">{t.vampireSubheader}</p>
+                <div className="p-3 bg-slate-950 rounded-2xl border border-slate-800 text-[11px] text-cyan-300 font-mono mt-3">
                   ⚖️ {t.vampireLicenseNotice}
                 </div>
               </div>
 
+              {/* Source Selector */}
+              <div className="flex flex-wrap gap-2 text-xs font-mono">
+                {[
+                  { id: "all", label: `🌐 ${t.sourceAll}` },
+                  { id: "openalex", label: `🏛️ ${t.sourceOpenAlex}` },
+                  { id: "arxiv", label: `📄 ${t.sourceArxiv}` },
+                  { id: "pubmed", label: `🏥 ${t.sourcePubMed}` },
+                ].map((s) => (
+                  <button
+                    key={s.id}
+                    onClick={() => setVampireSource(s.id as any)}
+                    className={`px-3 py-1.5 rounded-xl border transition ${
+                      vampireSource === s.id
+                        ? "bg-emerald-500/20 border-emerald-500 text-emerald-300 font-bold"
+                        : "bg-slate-900 border-slate-700 text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Search Bar & Daemon Controller */}
               <div className="flex flex-col sm:flex-row gap-3">
                 <input
                   type="text"
@@ -2683,59 +2589,83 @@ export default function GitScienceSovereignApp() {
                   placeholder={t.vampireSearchLabel}
                   className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-xs text-slate-100 focus:border-emerald-500 outline-none"
                 />
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <button
                     onClick={handleVampireSearch}
                     disabled={vampireSearching}
-                    className="bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold text-xs px-5 py-2.5 rounded-xl transition shrink-0"
+                    className="bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold text-xs px-5 py-2.5 rounded-xl transition shrink-0 font-mono"
                   >
                     {vampireSearching ? "..." : t.vampireSearchBtn}
                   </button>
                   <button
                     onClick={handleLaunchBatchHarvester}
                     disabled={harvestingBatch}
-                    className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition shadow shrink-0"
+                    className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition shadow shrink-0 font-mono"
                   >
-                    {harvestingBatch ? "Сбор..." : t.vampireHarvestBtn}
+                    {harvestingBatch ? "..." : t.vampireHarvestBtn}
+                  </button>
+                  <button
+                    onClick={handleToggleDaemon}
+                    className={`px-4 py-2.5 rounded-xl text-xs font-mono font-bold transition shrink-0 ${
+                      daemonRunning
+                        ? "bg-red-950/80 hover:bg-red-900 border border-red-500/60 text-red-300"
+                        : "bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-500/60 text-emerald-300"
+                    }`}
+                  >
+                    {daemonRunning ? t.stopDaemonBtn : t.startDaemonBtn}
                   </button>
                 </div>
               </div>
 
+              {/* Daemon Status Card */}
+              <div className="p-3.5 bg-slate-950 rounded-2xl border border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-xs font-mono">
+                <div className="flex items-center gap-2">
+                  <span className={`w-2.5 h-2.5 rounded-full ${daemonRunning ? "bg-emerald-400 animate-ping" : "bg-slate-600"}`}></span>
+                  <span className={daemonRunning ? "text-emerald-300" : "text-slate-400"}>
+                    {daemonRunning ? t.daemonStatusRunning : t.daemonStatusStopped}
+                  </span>
+                </div>
+                <div className="text-slate-400 text-[11px]">
+                  Тақырып: <strong className="text-cyan-300">{daemonStatus?.current_active_topic || "Oncology Homeostasis"}</strong>
+                </div>
+              </div>
+
               {vampireImportResult && (
-                <div className="p-4 bg-emerald-950/40 border border-emerald-500/40 rounded-xl space-y-1 text-xs font-mono">
-                  <div className="text-emerald-400 font-bold">✅ Результат парсера OpenAlex:</div>
-                  <div>Код: <strong className="text-cyan-300">{vampireImportResult.registration_code}</strong></div>
-                  <div>Лицензия: <strong className="text-amber-300">{vampireImportResult.license_detected}</strong> ({vampireImportResult.license_treatment})</div>
+                <div className="p-4 bg-emerald-950/40 border border-emerald-500/40 rounded-2xl space-y-1 text-xs font-mono">
+                  <div className="text-emerald-400 font-bold">✅ Реестрге сәтті депонирленді:</div>
+                  <div>Тіркеу коды: <strong className="text-cyan-300">{vampireImportResult.registration_code}</strong></div>
+                  <div>Дереккөз: <strong className="text-amber-300">{vampireImportResult.source || "OpenAlex"}</strong> ({vampireImportResult.license_detected})</div>
+                </div>
+              )}
+
+              {/* Search Results */}
+              {vampireResults.length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                  {vampireResults.map((work, i) => (
+                    <div key={i} className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-5 space-y-3 shadow-lg flex flex-col justify-between">
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs font-mono text-cyan-400 font-bold">[{work.source || "OpenAlex"}] {work.openalex_id}</span>
+                          <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                            {work.license || "CC-BY"}
+                          </span>
+                        </div>
+                        <h4 className="font-bold text-sm text-slate-100 line-clamp-2">{work.title}</h4>
+                        <p className="text-xs text-slate-400 truncate">Авторлар: <strong className="text-slate-300">{work.authors}</strong> ({work.publication_year})</p>
+                        <p className="text-[11px] text-slate-500">DOI: {work.doi}</p>
+                      </div>
+
+                      <button
+                        onClick={() => handleVampireImport(work)}
+                        className="w-full bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 border border-emerald-500/40 text-xs py-2 rounded-xl font-bold transition font-mono"
+                      >
+                        {t.vampireImportBtn}
+                      </button>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
-
-            {vampireResults.length > 0 && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {vampireResults.map((work, i) => (
-                  <div key={i} className="bg-[#0e1726] border border-slate-800 rounded-2xl p-4 sm:p-5 space-y-3 shadow-lg flex flex-col justify-between">
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs font-mono text-cyan-400 font-bold">{work.openalex_id}</span>
-                        <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">
-                          {work.license || "CC-BY"}
-                        </span>
-                      </div>
-                      <h4 className="font-bold text-sm text-slate-100 line-clamp-2">{work.title}</h4>
-                      <p className="text-xs text-slate-400 truncate">Авторы: <strong className="text-slate-300">{work.authors}</strong> ({work.publication_year})</p>
-                      <p className="text-[11px] text-slate-500">Цитирований: {work.cited_by_count}</p>
-                    </div>
-
-                    <button
-                      onClick={() => handleVampireImport(work)}
-                      className="w-full bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 border border-emerald-500/40 text-xs py-2 rounded-lg font-bold transition"
-                    >
-                      {t.vampireImportBtn}
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
         )}
       </main>
@@ -2896,7 +2826,112 @@ export default function GitScienceSovereignApp() {
       )}
 
       {/* =====================================================================
-          5. MODAL: INTERACTIVE SOVEREIGN AI ASSISTANT / GUIDE DRAWER
+          5. MODAL: WEB3 WALLET CONNECTION
+      ===================================================================== */}
+      {showWalletModal && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-[#0e1726] border border-amber-500/40 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl p-5 sm:p-7 space-y-5">
+            <div className="flex justify-between items-start border-b border-slate-800 pb-3">
+              <div>
+                <h3 className="text-lg font-bold text-slate-100 flex items-center gap-2">
+                  <span>🦊</span> {t.connectWalletTitle}
+                </h3>
+                <p className="text-xs text-amber-300/80 mt-0.5">
+                  {t.connectWalletSub}
+                </p>
+              </div>
+              <button
+                onClick={() => setShowWalletModal(false)}
+                className="text-slate-400 hover:text-slate-100 text-lg font-bold p-1"
+              >
+                ✕
+              </button>
+            </div>
+
+            {walletConnected && walletAddress ? (
+              <div className="space-y-4 text-xs font-mono">
+                <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 space-y-2">
+                  <div>
+                    <span className="text-slate-500 block text-[10px] uppercase">{t.walletAddressLabel}</span>
+                    <strong className="text-cyan-300 text-xs break-all">{walletAddress}</strong>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800/80">
+                    <div>
+                      <span className="text-slate-500 block text-[10px] uppercase">{t.walletBalanceLabel}</span>
+                      <strong className="text-emerald-400 text-base font-bold">${walletBalance.toLocaleString()}</strong>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 block text-[10px] uppercase">Amanat 30% / 55%</span>
+                      <strong className="text-purple-400 text-base font-bold">${walletRoyalties.toLocaleString()}</strong>
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block text-[10px] uppercase">{t.walletNetworkLabel}</span>
+                    <span className="text-slate-300 text-xs">{walletNetwork}</span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={handleDisconnectWallet}
+                  className="w-full bg-red-950/40 hover:bg-red-900/40 border border-red-500/40 text-red-300 font-bold py-2.5 rounded-xl transition text-xs"
+                >
+                  {t.disconnectWalletBtn}
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3 text-xs">
+                <button
+                  onClick={() => handleConnectWallet("metamask")}
+                  disabled={walletConnecting}
+                  className="w-full p-3.5 bg-slate-900 hover:bg-slate-800 border border-amber-500/40 rounded-2xl flex items-center justify-between transition"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">🦊</span>
+                    <div className="text-left">
+                      <strong className="text-slate-100 block text-xs">MetaMask / Browser Web3</strong>
+                      <span className="text-[10px] text-slate-400">Polygon PoS & Base Mainnet</span>
+                    </div>
+                  </div>
+                  <span className="text-xs text-amber-300 font-mono font-bold">Қосылу →</span>
+                </button>
+
+                <button
+                  onClick={() => handleConnectWallet("founder")}
+                  disabled={walletConnecting}
+                  className="w-full p-3.5 bg-slate-900 hover:bg-slate-800 border border-cyan-500/40 rounded-2xl flex items-center justify-between transition"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">⚡</span>
+                    <div className="text-left">
+                      <strong className="text-cyan-300 block text-xs">Founder Treasury Node</strong>
+                      <span className="text-[10px] text-slate-400">Salauat Yeshimov Protocol Wallet</span>
+                    </div>
+                  </div>
+                  <span className="text-xs text-cyan-300 font-mono font-bold">12,500 USDT →</span>
+                </button>
+
+                <button
+                  onClick={() => handleConnectWallet("custom")}
+                  disabled={walletConnecting}
+                  className="w-full p-3.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 rounded-2xl flex items-center justify-between transition"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">🛡️</span>
+                    <div className="text-left">
+                      <strong className="text-slate-200 block text-xs">Independent Scholar Node</strong>
+                      <span className="text-[10px] text-slate-400">Sovereign In-Browser Keystore</span>
+                    </div>
+                  </div>
+                  <span className="text-xs text-slate-300 font-mono font-bold">5,000 USDT →</span>
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* =====================================================================
+          6. MODAL: INTERACTIVE SOVEREIGN AI ASSISTANT / GUIDE DRAWER
       ===================================================================== */}
       {showGuideModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
@@ -2927,7 +2962,6 @@ export default function GitScienceSovereignApp() {
             />
 
             <div className="overflow-y-auto space-y-4 pr-1 text-xs">
-              {/* 4 Pillars Card */}
               <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 space-y-2">
                 <h4 className="font-bold text-emerald-400 text-sm">🏛️ GitScience™ 4 халықаралық құқықтық бағанасы:</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] font-mono">
@@ -2950,7 +2984,6 @@ export default function GitScienceSovereignApp() {
                 </div>
               </div>
 
-              {/* Step-by-Step Guides */}
               <div className="space-y-3">
                 <div className="p-3.5 bg-slate-900 rounded-xl border border-slate-800 space-y-1">
                   <strong className="text-slate-200 block text-xs">🔹 1-қадам: Манускриптті қалай бекітемін?</strong>
@@ -2977,7 +3010,7 @@ export default function GitScienceSovereignApp() {
       )}
 
       {/* =====================================================================
-          6. MODAL: OFFICIAL LICENSE AGREEMENT VIEWER
+          7. MODAL: OFFICIAL LICENSE AGREEMENT VIEWER
       ===================================================================== */}
       {licenseModalContent && (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
