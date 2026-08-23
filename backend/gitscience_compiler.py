@@ -207,6 +207,13 @@ def validate_formula(formula_str: str) -> Tuple[bool, Optional[str], Optional[st
 
     try:
         parsed = ast.parse(formula_str.strip(), mode='eval')
+        for node in ast.walk(parsed):
+            if isinstance(node, (ast.Attribute, ast.Import, ast.ImportFrom, ast.Subscript, ast.List, ast.Dict, ast.Lambda)):
+                return False, f"Запрещенная синтаксическая конструкция: '{node.__class__.__name__}'", None, []
+            if isinstance(node, ast.Call):
+                if not isinstance(node.func, ast.Name) or node.func.id not in ALLOWED_NAMES:
+                    return False, "Вызов неразрешенной функции в формуле", None, []
+
         inspector = ASTMerkleInspector()
         inspector.visit(parsed)
         merkle = compute_ast_merkle_digest(formula_str)

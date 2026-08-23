@@ -135,6 +135,33 @@ def init_db():
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
     """)
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS credit_contributions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        registration_code TEXT NOT NULL,
+        contributor_name TEXT NOT NULL,
+        contributor_orcid TEXT NOT NULL,
+        roles_json TEXT NOT NULL,
+        weight_pct REAL DEFAULT 100.0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+
+    # Полнотекстовый индекс (FTS5)
+    try:
+        cur.execute("""
+        CREATE VIRTUAL TABLE IF NOT EXISTS manuscripts_fts USING fts5(
+            registration_code,
+            title,
+            author_name,
+            orcid,
+            abstract,
+            category
+        )
+        """)
+    except Exception:
+        pass
     
     # Миграция колонок
     cur.execute("PRAGMA table_info(manuscripts);")
@@ -252,6 +279,27 @@ def save_uploaded_pdf(
         formula_math, ast_merkle_digest, credit_json, license_type, file_path, filename,
         real_sha256, ots_file, real_git_commit, ipfs_cid, source_archive
     ))
+
+    # Сохранение структурированных CRediT ролей
+    if credit_roles:
+        for c in credit_roles:
+            c_name = c.get("name", author)
+            c_orcid = c.get("orcid", orcid)
+            c_roles = json.dumps(c.get("roles", ["Conceptualization"]), ensure_ascii=False)
+            c_weight = float(c.get("weight", 100.0))
+            cur.execute("""
+            INSERT INTO credit_contributions (registration_code, contributor_name, contributor_orcid, roles_json, weight_pct)
+            VALUES (?, ?, ?, ?, ?)
+            """, (reg_code, c_name, c_orcid, c_roles, c_weight))
+
+    # Обновление FTS5 индекса
+    try:
+        cur.execute("""
+        INSERT INTO manuscripts_fts (registration_code, title, author_name, orcid, abstract, category)
+        VALUES (?, ?, ?, ?, ?, ?)
+        """, (reg_code, title, author, orcid, abstract or "", category))
+    except Exception:
+        pass
     
     conn.commit()
     conn.close()
@@ -267,6 +315,55 @@ def save_uploaded_pdf(
         "file_path": file_path,
         "license_type": license_type
     }
+
+def get_credit_contributions(registration_code: str) -> List[Dict[str, Any]]:
+    """Возвращает детальную матрицу вклада CRediT для манускрипта"""
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM credit_contributions WHERE registration_code = ? ORDER BY weight_pct DESC", (registration_code,))
+    rows = []
+    for r in cur.fetchall():
+        d = dict(r)
+        try:
+            d["roles"] = json.loads(d["roles_json"])
+        except Exception:
+            d["roles"] = []
+        rows.append(d)
+    conn.close()
+    return rows
+
+def search_manuscripts_fts(query_str: str) -> List[Dict]:
+    """Полнотекстовый поиск по реестру (FTS5 с fallback)"""
+    conn = get_db_connection()
+    cur = conn.cursor()
+    clean_q = query_str.strip().replace("'", "").replace('"', '')
+    if not clean_q:
+        return get_all_manuscripts()
+    try:
+        cur.execute("""
+        SELECT m.* FROM manuscripts m
+        JOIN manuscripts_fts f ON m.registration_code = f.registration_code
+        WHERE manuscripts_fts MATCH ? AND m.is_genesis_anchor = 0
+        ORDER BY m.serial_number DESC
+        """, (f"{clean_q}*",))
+        rows = [dict(r) for r in cur.fetchall()]
+        if rows:
+            conn.close()
+            return rows
+    except Exception:
+        pass
+    
+    # Fallback to standard LIKE
+    pattern = f"%{clean_q}%"
+    cur.execute("""
+    SELECT * FROM manuscripts 
+    WHERE (title LIKE ? OR author_name LIKE ? OR orcid LIKE ? OR registration_code LIKE ?)
+      AND is_genesis_anchor = 0
+    ORDER BY serial_number DESC
+    """, (pattern, pattern, pattern, pattern))
+    rows = [dict(r) for r in cur.fetchall()]
+    conn.close()
+    return rows
 
 def get_all_manuscripts() -> List[Dict]:
     conn = get_db_connection()

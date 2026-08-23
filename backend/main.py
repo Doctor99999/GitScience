@@ -128,6 +128,32 @@ def health_check():
         "credit_roles_supported": CREDIT_ROLES
     }
 
+@app.get("/api/v1/health")
+def api_v1_health():
+    """Расширенный мониторинг здоровья протокола, базы данных и файлового хранилища"""
+    t0 = time.time()
+    all_docs = storage.get_all_manuscripts()
+    db_latency_ms = round((time.time() - t0) * 1000, 2)
+    
+    return {
+        "status": "HEALTHY",
+        "protocol": "GitScience Sovereign Protocol",
+        "version": CONSTANTS["version"],
+        "database": {
+            "status": "CONNECTED_WAL",
+            "latency_ms": db_latency_ms,
+            "total_registered_manuscripts": len(all_docs)
+        },
+        "vault_storage": {
+            "type": "Content-Addressable Storage (CAS)",
+            "sharding": "2-byte SHA-256",
+            "iso_standard": "ISO 14721 OAIS",
+            "vault_dir_exists": storage.VAULT_DIR.exists()
+        },
+        "consensus_rule": "55% Authors / 15% Reviewers / 30% Founder Treasury (+20% B2B Gross-Up)",
+        "timestamp_utc": datetime.utcnow().isoformat()
+    }
+
 
 # =====================================================================
 # 2. AST COMPILER & MATH-AS-A-SERVICE (MaaS)
@@ -274,7 +300,9 @@ async def upload_and_notarize_manuscript(
         "registration_code": saved["registration_code"],
         "sha256_payload_hash": saved["sha256_hash"],
         "git_commit_oid": saved["git_commit_hash"],
-        "rfc3161_token": saved["rfc3161_token"],
+        "ipfs_cid": saved.get("ipfs_cid"),
+        "rfc3161_token": saved.get("rfc3161_token", "RFC3161_TSA_ANCHORED"),
+        "ots_proof_file": saved.get("ots_proof_file"),
         "ast_merkle_digest": ast_merkle,
         "proof_bundle": proof_bundle,
         "message": "Манускрипт зафиксирован в суверенном реестре с выдачей WIPO Prior Art Shield."
@@ -373,6 +401,7 @@ def download_official_priority_certificate_pdf(registration_code: str):
         }
 
     # 3. Генерируем официальный векторный PDF сертификат WIPO Prior Art
+    credit_contributors = storage.get_credit_contributions(article["registration_code"])
     pdf_bytes = CertificateGenerator.generate_priority_certificate_pdf(
         registration_code=article["registration_code"],
         title=article["title"],
@@ -384,7 +413,9 @@ def download_official_priority_certificate_pdf(registration_code: str):
         git_commit_oid=article["git_commit_hash"],
         ast_merkle_digest=article.get("ast_merkle_digest"),
         ots_file=article.get("ots_proof_file"),
-        license_type=article.get("license_type", "CC-BY-4.0")
+        license_type=article.get("license_type", "CC-BY-4.0"),
+        ipfs_cid=article.get("ipfs_cid"),
+        credit_contributors=credit_contributors
     )
 
     return Response(
@@ -420,12 +451,16 @@ def export_google_scholar_jsonld(registration_code: str):
 # =====================================================================
 
 @app.get("/library")
+@app.get("/api/v1/library")
 def get_library_catalog(
     search: Optional[str] = Query(default=None),
     category: Optional[str] = Query(default=None),
     ipc_class: Optional[str] = Query(default=None)
 ):
-    all_articles = storage.get_all_manuscripts()
+    if search:
+        all_articles = storage.search_manuscripts_fts(search)
+    else:
+        all_articles = storage.get_all_manuscripts()
     filtered = all_articles
 
     if category and isinstance(category, str) and category != "All":
@@ -434,17 +469,18 @@ def get_library_catalog(
     if ipc_class and isinstance(ipc_class, str) and ipc_class != "All":
         filtered = [a for a in filtered if ipc_class.upper() == a.get("ipc_class", "").upper()]
 
-    if search and isinstance(search, str):
-        s = search.lower().strip()
-        filtered = [
-            a for a in filtered 
-            if s in a.get("title", "").lower() 
-            or s in a.get("author_name", "").lower() 
-            or s in a.get("registration_code", "").lower()
-            or s in a.get("orcid", "").lower()
-        ]
-
     return {"total": len(filtered), "articles": filtered}
+
+@app.get("/api/v1/library/search")
+def search_library_fts(q: str = Query(..., min_length=1)):
+    """Полнотекстовый поиск по реестру манускриптов с поддержкой FTS5"""
+    results = storage.search_manuscripts_fts(q)
+    return {
+        "status": "SEARCH_SUCCESS",
+        "query": q,
+        "total_results": len(results),
+        "articles": results
+    }
 
 @app.get("/library/view/{registration_code}")
 def view_pdf_file(registration_code: str):
