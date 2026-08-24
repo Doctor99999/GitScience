@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 /**
  * @title AmanatSplitter
  * @dev GitScience Sovereign Protocol Revenue Splitter
- * Implements the 55/15/30 Consensus Rule.
+ * Implements the 70/20/10 Consensus Rule.
  */
 contract AmanatSplitter {
     address public immutable founderTreasury;
@@ -24,7 +24,7 @@ contract AmanatSplitter {
     }
     
     /**
-     * @dev Distribute royalty payment according to the 55/15/30 split.
+     * @dev Distribute royalty payment according to the 70/20/10 split.
      * Overages or remainders due to division stay in the contract (dust).
      * 
      * @param author The verified wallet address of the manuscript author
