@@ -23,6 +23,19 @@ storage/
 *.sqlite3
 *.db
 backend/*.db
+backend/storage/
+
+# Environment variables (CRITICAL: никогда не коммитить секреты)
+.env
+.env.local
+.env.production
+
+# Docker runtime data
+postgres_data/
+
+# IDE
+.vscode/
+.idea/
 
 # OS
 .DS_Store

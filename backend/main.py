@@ -2,7 +2,7 @@
 GitScience™ Sovereign Protocol API v3.0-ENTERPRISE
 Стандарты: WIPO Prior Art / CRediT CASRAI / DataCite 4.4 / RFC 3161 / OTS / ISO 14721
 """
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form, status, Query, Body
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, status, Query, Body, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field
@@ -17,8 +17,10 @@ try:
     import requests
 except ImportError:
     requests = None
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Any, Optional, List
+import time
+from collections import defaultdict
 
 import gitscience_storage as storage
 import gitscience_compiler as compiler
@@ -42,13 +44,10 @@ from gitscience_ipnft import IPNFTEngine
 from gitscience_auth import ScholarAuthService
 from gitscience_web3 import SovereignWeb3Gateway
 from gitscience_invoice_pdf import InstitutionalInvoicePDFGenerator
-import time
-from collections import defaultdict
-from fastapi.responses import Response
 
 # Простой потокобезопасный Rate Limiter (защита от DoS/Sybil атак)
 class SimpleRateLimiter:
-    def __init__(self, max_requests: int = 60, window_sec: int = 60):
+    def __init__(self, max_requests: int = 120, window_sec: int = 60):
         self.max_requests = max_requests
         self.window_sec = window_sec
         self.requests = defaultdict(list)
@@ -61,7 +60,7 @@ class SimpleRateLimiter:
         self.requests[client_id].append(now)
         return True
 
-rate_limiter = SimpleRateLimiter(max_requests=60, window_sec=60)
+rate_limiter = SimpleRateLimiter(max_requests=120, window_sec=60)
 
 app = FastAPI(
     title="GitScience™ Sovereign Protocol API",
@@ -77,22 +76,35 @@ court_engine = ScienceCourt(storage.STORAGE_DIR)
 # Безопасный CORS для веб-приложений и расширений
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Разрешено для локальной разработки и децентрализованных шлюзов
+    allow_origins=os.environ.get("ALLOWED_ORIGINS", "*").split(","),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.middleware("http")
+async def rate_limiting_middleware(request: Request, call_next):
+    """Глобальный Rate Limiting middleware для защиты API от DoS и парсинг-ботов"""
+    path = request.url.path
+    if not (path.startswith("/api/docs") or path.startswith("/api/redoc") or path == "/api/v1/health" or path == "/openapi.json"):
+        client_ip = request.client.host if request.client else "127.0.0.1"
+        if not rate_limiter.is_allowed(client_ip):
+            return JSONResponse(
+                status_code=429,
+                content={"detail": "Too Many Requests. Rate limit exceeded."}
+            )
+    return await call_next(request)
 
 # =====================================================================
 # PYDANTIC МОДЕЛИ
 # =====================================================================
 
 class FormulaVerifyRequest(BaseModel):
-    formula: str = Field(..., example="(Artery + Vein) / (Lymph + 1.0)")
+    formula: str = Field(..., json_schema_extra={"example": "(Artery + Vein) / (Lymph + 1.0)"})
     sample_params: Optional[Dict[str, float]] = None
 
 class BillingCalculateRequest(BaseModel):
-    base_amount: float = Field(..., gt=0, example=1000.0)
+    base_amount: float = Field(..., gt=0, json_schema_extra={"example": 1000.0})
     contributors: Optional[List[Dict[str, Any]]] = None
 
 class CourtDisputeRequest(BaseModel):
@@ -126,7 +138,7 @@ def health_check():
         "protocol": CONSTANTS["protocol"],
         "version": CONSTANTS["version"],
         "engine": "Safe AST Compiler + Git Engine + SQLite WAL (ISO 14721 OAIS)",
-        "timestamp_utc": datetime.utcnow().isoformat(),
+        "timestamp_utc": datetime.now(timezone.utc).isoformat(),
         "standards": CONSTANTS["legal_framework"],
         "credit_roles_supported": CREDIT_ROLES
     }
@@ -154,7 +166,7 @@ def api_v1_health():
             "vault_dir_exists": storage.VAULT_DIR.exists()
         },
         "consensus_rule": "55% Authors / 15% Reviewers / 30% Founder Treasury (+20% B2B Gross-Up)",
-        "timestamp_utc": datetime.utcnow().isoformat()
+        "timestamp_utc": datetime.now(timezone.utc).isoformat()
     }
 
 
@@ -268,6 +280,8 @@ async def upload_and_notarize_manuscript(
     file_bytes = await file.read()
     if len(file_bytes) == 0:
         raise HTTPException(status_code=400, detail="Файл статьи пуст")
+    if len(file_bytes) > 50 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="Превышен максимальный лимит размера файла (50 МБ)")
 
     # Парсинг ролей CRediT
     try:
@@ -375,19 +389,10 @@ def get_certificate_deep_inspection(registration_code: str):
 
 @app.get("/certificate/pdf/{registration_code}")
 @app.get("/download/{registration_code}")
-@app.get("/library/view/{registration_code}")
 def download_official_priority_certificate_pdf(registration_code: str):
     article = storage.get_manuscript_by_code(registration_code)
 
-    # 1. Если физический файл загружен/спарсен на диск и существует, отдаем его
-    if article and article.get("file_path") and os.path.exists(article["file_path"]):
-        return FileResponse(
-            article["file_path"],
-            media_type="application/pdf",
-            filename=article.get("original_filename") or f"{registration_code}.pdf"
-        )
-
-    # 2. Если статьи нет в базе, используем базовые метаданные для гарантированной выдачи
+    # 1. Если статьи нет в базе, используем базовые метаданные для гарантированной выдачи
     if not article:
         article = {
             "registration_code": registration_code,
@@ -529,11 +534,35 @@ def search_library_fts(q: str = Query(..., min_length=1)):
 
 @app.get("/library/view/{registration_code}")
 def view_pdf_file(registration_code: str):
-    article = storage.get_manuscript_by_code(registration_code)
+    clean_code = registration_code.strip()
+    if not re.match(r"^[A-Za-z0-9_\-]+$", clean_code):
+        raise HTTPException(status_code=400, detail="Неверный формат регистрационного кода")
+    
+    article = storage.get_manuscript_by_code(clean_code)
     if not article or not article.get("file_path"):
         raise HTTPException(status_code=404, detail="Файл статьи не найден в реестре")
     
-    file_path = article["file_path"]
+    file_path = os.path.abspath(article["file_path"])
+    if file_path.startswith("s3://"):
+        from fastapi.responses import RedirectResponse
+        bucket = file_path.split("/")[2]
+        key = "/".join(file_path.split("/")[3:])
+        if storage.s3_client:
+            presigned_url = storage.s3_client.generate_presigned_url(
+                'get_object',
+                Params={'Bucket': bucket, 'Key': key},
+                ExpiresIn=3600
+            )
+            return RedirectResponse(presigned_url)
+        else:
+            raise HTTPException(status_code=500, detail="S3 client not configured but S3 URL found")
+            
+    storage_root = os.path.abspath(storage.STORAGE_DIR)
+    
+    # Path Traversal Guard: запрещаем выход за пределы директории хранилища
+    if not file_path.startswith(storage_root) and not os.path.exists(file_path):
+        raise HTTPException(status_code=403, detail="Доступ запрещен: путь за пределами хранилища")
+    
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="Физический PDF-файл отсутствует на сервере")
         
@@ -559,7 +588,7 @@ def process_fair_share_payment(req: BillingCalculateRequest):
     )
     
     tx_id = f"tx_{uuid.uuid4().hex[:12]}"
-    tx_hash = f"0x{hashlib.sha256(f'{tx_id}{datetime.utcnow()}'.encode()).hexdigest()}"
+    tx_hash = f"0x{hashlib.sha256(f'{tx_id}{datetime.now(timezone.utc)}'.encode()).hexdigest()}"
     
     storage.record_transaction(
         tx_id=tx_id,

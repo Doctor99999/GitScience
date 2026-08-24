@@ -9,11 +9,12 @@ import base64
 import json
 import time
 import re
+import os
 import urllib.request
 import urllib.error
 from typing import Dict, Any, Optional, Tuple
 
-JWT_SECRET = "gitscience-sovereign-amanat-protocol-secret-key-2026"
+JWT_SECRET = os.environ.get("JWT_SECRET", "gitscience-sovereign-amanat-protocol-secret-key-2026")
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRATION_SECONDS = 86400 * 7  # 7 days
 

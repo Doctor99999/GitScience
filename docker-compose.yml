@@ -1,11 +1,62 @@
 version: '3.8'
 
 services:
-  gitscience-node:
-    build: .
-    container_name: gitscience_p2p_node
-    ports:
-      - "8000:8000"
-    volumes:
-      - ./gitscience_data:/app/gitscience_data
+  db:
+    image: postgres:15-alpine
+    container_name: gitscience_db
     restart: always
+    environment:
+      POSTGRES_USER: gitscience
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gitscience_password}
+      POSTGRES_DB: gitscience_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gitscience -d gitscience_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: ./backend
+    container_name: gitscience_backend
+    restart: always
+    environment:
+      - DATABASE_URL=postgresql://gitscience:${POSTGRES_PASSWORD:-gitscience_password}@db:5432/gitscience_db
+      - JWT_SECRET=${JWT_SECRET:-gitscience-sovereign-amanat-protocol-secret-key-2026}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-https://gitscience.org,https://www.gitscience.org,http://localhost}
+      - POLYGON_RPC_URL=${POLYGON_RPC_URL:-https://polygon-rpc.com}
+      - BASE_RPC_URL=${BASE_RPC_URL:-https://mainnet.base.org}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
+      - AWS_BUCKET_NAME=${AWS_BUCKET_NAME:-gitscience-vault}
+      - AWS_ENDPOINT_URL=${AWS_ENDPOINT_URL:-}
+      - AWS_REGION=${AWS_REGION:-auto}
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - vault_data:/app/storage
+
+  frontend:
+    build: ./frontend
+    container_name: gitscience_frontend
+    restart: always
+    environment:
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-/api}
+    depends_on:
+      - backend
+
+  nginx:
+    build: ./nginx
+    container_name: gitscience_nginx
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - frontend
+      - backend
+
+volumes:
+  postgres_data:
+  vault_data:

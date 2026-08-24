@@ -39,17 +39,17 @@ export default function NavigationTabs({
   ];
 
   return (
-    <nav className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 text-xs font-mono select-none">
+    <nav className="flex items-center gap-2 overflow-x-auto no-scrollbar py-2 text-sm font-medium border-b border-white/10 px-4">
       {tabs.map((tab) => {
         const isActive = activeTab === tab.key;
         return (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-2xl shrink-0 transition-all font-semibold flex items-center gap-1.5 ${
+            className={`px-4 py-2 rounded-full shrink-0 transition-colors ${
               isActive
-                ? "bg-gradient-to-r from-emerald-500 to-cyan-500 text-slate-950 font-bold shadow-lg shadow-emerald-500/20 scale-[1.02]"
-                : "bg-[#0e1726]/90 text-slate-400 hover:text-slate-200 hover:bg-slate-900 border border-slate-800"
+                ? "bg-white text-black font-semibold"
+                : "text-[#86868b] hover:text-white hover:bg-[#1d1d1f]"
             }`}
           >
             <span>{tab.label}</span>

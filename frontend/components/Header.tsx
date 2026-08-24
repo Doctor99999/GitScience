@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { ConnectKitButton } from "connectkit";
 
 interface HeaderProps {
   lang: "KZ" | "RU" | "EN";
@@ -32,50 +33,50 @@ export default function Header({
   passkeyNotice,
 }: HeaderProps) {
   return (
-    <header className="border-b border-slate-800/80 bg-[#0b1322]/95 backdrop-blur sticky top-0 z-40 shadow-md w-full">
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-cyan-600 flex items-center justify-center shadow-lg shadow-emerald-500/20 font-bold text-slate-950 text-lg sm:text-xl tracking-tighter border border-emerald-300/30 shrink-0">
+    <header className="border-b border-white/10 bg-black/80 backdrop-blur-xl sticky top-0 z-40 w-full">
+      <div className="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-4 min-w-0">
+          <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center font-bold text-black text-lg tracking-tighter shrink-0">
             GS
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <h1 className="font-bold text-base sm:text-lg text-slate-50 tracking-tight truncate">{t.brand}</h1>
-              <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-bold shrink-0">
-                v3.3
+              <h1 className="font-semibold text-lg sm:text-xl text-white tracking-tight truncate">{t.brand}</h1>
+              <span className="text-[10px] uppercase px-2 py-0.5 rounded-full bg-white/10 text-white border border-white/20 font-medium shrink-0">
+                PRO
               </span>
             </div>
-            <p className="text-[11px] text-slate-400 hidden md:block truncate">{t.tagline}</p>
+            <p className="text-[12px] text-[#86868b] hidden md:block truncate tracking-tight">{t.tagline}</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+        <div className="flex items-center gap-3 shrink-0">
           {/* AI Guide Button */}
           <button
             onClick={() => setShowGuideModal(true)}
-            className="inline-flex items-center gap-1 bg-purple-950/80 hover:bg-purple-900 border border-purple-500/50 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-mono text-purple-300 transition shadow"
+            className="apple-btn-secondary px-3 py-1.5 text-xs font-medium transition"
           >
-            <span>{t.guideBtn}</span>
+            {t.guideBtn}
           </button>
 
           {/* Biometric Touch ID */}
           <button
             onClick={handleBiometricAuth}
-            className="hidden lg:inline-flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 border border-cyan-500/40 px-3 py-1.5 rounded-lg text-xs font-mono text-cyan-300 transition shadow"
+            className="hidden lg:inline-flex apple-btn-secondary px-3 py-1.5 text-xs font-medium transition items-center gap-1.5"
           >
-            <span>{t.passkeyBtn}</span>
+            <span>Touch ID</span>
           </button>
 
           {/* Language Selector: KZ FIRST */}
-          <div className="flex bg-slate-900/90 border border-slate-700/80 rounded-lg p-0.5 text-xs font-mono">
+          <div className="flex bg-[#1d1d1f] rounded-full p-1 text-xs font-medium border border-white/10">
             {(["KZ", "RU", "EN"] as const).map((l) => (
               <button
                 key={l}
                 onClick={() => setLang(l)}
-                className={`px-2 sm:px-2.5 py-1 rounded-md transition font-semibold ${
+                className={`px-3 py-1 rounded-full transition ${
                   lang === l
-                    ? "bg-emerald-500 text-slate-950 font-bold shadow"
-                    : "text-slate-400 hover:text-slate-200"
+                    ? "bg-white text-black font-semibold shadow-sm"
+                    : "text-[#86868b] hover:text-white"
                 }`}
               >
                 {l}
@@ -83,28 +84,8 @@ export default function Header({
             ))}
           </div>
 
-          {/* Web3 Wallet Connection Button */}
-          {walletConnected && walletAddress ? (
-            <button
-              onClick={() => setShowWalletModal(true)}
-              className="flex items-center gap-1.5 bg-cyan-950/60 border border-cyan-500/60 px-2.5 sm:px-3 py-1 rounded-lg text-xs font-mono text-cyan-300 hover:bg-cyan-900/60 transition shadow"
-            >
-              <span>🦊</span>
-              <span className="truncate max-w-[85px] sm:max-w-[110px]">
-                {walletAddress.substring(0, 6)}...{walletAddress.substring(walletAddress.length - 4)}
-              </span>
-              <span className="hidden sm:inline text-amber-300 font-bold">
-                | ${walletBalance.toLocaleString()}
-              </span>
-            </button>
-          ) : (
-            <button
-              onClick={() => setShowWalletModal(true)}
-              className="bg-slate-900 hover:bg-slate-800 border border-amber-500/50 text-amber-300 font-bold text-xs px-3 py-1.5 rounded-lg shadow transition font-mono flex items-center gap-1"
-            >
-              <span>{t.connectWallet}</span>
-            </button>
-          )}
+          {/* Web3 Wallet Connection Button (ConnectKit) */}
+          <ConnectKitButton />
 
           {/* ORCID Scholar Login/Status Button */}
           {activeScholar ? (

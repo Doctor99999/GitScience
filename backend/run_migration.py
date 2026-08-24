@@ -1,9 +1,11 @@
-# -*- coding: utf-8 -*-
-"""
+import os
+
+new_storage = """# -*- coding: utf-8 -*-
+\"\"\"
 GitScience Sovereign Storage Engine v4.0-ENTERPRISE
 Стандарты: ISO 14721 OAIS / DataCite Kernel 4.4 / WIPO Standards.
 Поддержка PostgreSQL + AWS S3 / Cloudflare R2
-"""
+\"\"\"
 import os
 import json
 import hashlib
@@ -19,8 +21,8 @@ BASE_DIR = Path(__file__).resolve().parent
 env_storage = os.getenv("GITSCIENCE_STORAGE_PATH")
 if env_storage:
     STORAGE_DIR = Path(env_storage)
-elif os.path.exists("F:\\"):
-    STORAGE_DIR = Path("F:\\GitScience_Vault")
+elif os.path.exists("F:\\\\"):
+    STORAGE_DIR = Path("F:\\\\GitScience_Vault")
 else:
     STORAGE_DIR = BASE_DIR / "storage"
 
@@ -53,16 +55,6 @@ if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
 engine = sa.create_engine(DATABASE_URL, pool_pre_ping=True)
-
-# Enable WAL mode for SQLite
-if DATABASE_URL.startswith("sqlite"):
-    @sa.event.listens_for(engine, "connect")
-    def set_sqlite_pragma(dbapi_connection, connection_record):
-        cursor = dbapi_connection.cursor()
-        cursor.execute("PRAGMA journal_mode=WAL")
-        cursor.execute("PRAGMA synchronous=NORMAL")
-        cursor.close()
-
 metadata = sa.MetaData()
 
 # SQLAlchemy Tables
@@ -136,29 +128,29 @@ def compute_ipfs_cid(data: bytes) -> str:
     multihash = bytes([0x12, 0x20]) + sha256_hash
     cid_bytes = bytes([0x01, 0x70]) + multihash
     b32 = base64.b32encode(cid_bytes).decode('ascii').rstrip('=').lower()
-    return f"bafy{b32}"
+    return f\"bafy{b32}\"
 
 def get_db_connection():
     return engine.connect()
 
 def load_protocol_constants() -> dict:
     if CONSTANTS_PATH.exists():
-        with open(CONSTANTS_PATH, "r", encoding="utf-8") as f:
+        with open(CONSTANTS_PATH, \"r\", encoding=\"utf-8\") as f:
             return json.load(f)
     return {
-        "protocol": "GitScience Sovereign Protocol",
-        "version": "3.2.0-ENTERPRISE",
-        "founder": {
-            "name": "Salauat Abiltayevich Yeshimov",
-            "orcid": "0009-0003-3929-3605",
-            "role": "Protocol Architect & Surgical Oncologist"
+        \"protocol\": \"GitScience Sovereign Protocol\",
+        \"version\": \"3.2.0-ENTERPRISE\",
+        \"founder\": {
+            \"name\": \"Salauat Abiltayevich Yeshimov\",
+            \"orcid\": \"0009-0003-3929-3605\",
+            \"role\": \"Protocol Architect & Surgical Oncologist\"
         },
-        "legal_framework": [
-            "35 U.S.C. § 102 (US Patent Act - Statutory Prior Art)",
-            "EPC Article 54(2) (European Patent Convention - State of the Art)",
-            "WIPO Paris Convention for the Protection of Industrial Property (Article 4)",
-            "ISO 14721 OAIS (Open Archival Information System)",
-            "RFC 3161 / OpenTimestamps Verification"
+        \"legal_framework\": [
+            \"35 U.S.C. § 102 (US Patent Act - Statutory Prior Art)\",
+            \"EPC Article 54(2) (European Patent Convention - State of the Art)\",
+            \"WIPO Paris Convention for the Protection of Industrial Property (Article 4)\",
+            \"ISO 14721 OAIS (Open Archival Information System)\",
+            \"RFC 3161 / OpenTimestamps Verification\"
         ]
     }
 
@@ -170,11 +162,11 @@ def init_db():
         res = conn.execute(sa.select(sa.func.count()).select_from(manuscripts).where(manuscripts.c.is_genesis_anchor == 1))
         if res.scalar() == 0:
             genesis_manifest = (
-                "GITSCIENCE_SOVEREIGN_GENESIS_ROOT_BLOCK_0\n"
-                "STANDARD: ISO_14721_OAIS_ARCHIVAL_INFORMATION_PACKAGE\n"
-                "PRINCIPLE: IRREVOCABLE_PRIOR_ART_DISCLOSURE\n"
-                "ETHICAL_ANCHOR: WMA_DECLARATION_OF_HELSINKI_AND_OPEN_SCIENCE\n"
-                "CONSENSUS_RULE: READ_ONLY_IMMUTABLE_ROOT"
+                \"GITSCIENCE_SOVEREIGN_GENESIS_ROOT_BLOCK_0\\n\"
+                \"STANDARD: ISO_14721_OAIS_ARCHIVAL_INFORMATION_PACKAGE\\n\"
+                \"PRINCIPLE: IRREVOCABLE_PRIOR_ART_DISCLOSURE\\n\"
+                \"ETHICAL_ANCHOR: WMA_DECLARATION_OF_HELSINKI_AND_OPEN_SCIENCE\\n\"
+                \"CONSENSUS_RULE: READ_ONLY_IMMUTABLE_ROOT\"
             )
             genesis_sha = hashlib.sha256(genesis_manifest.encode('utf-8')).hexdigest()
             genesis_commit = hashlib.sha1(genesis_manifest.encode('utf-8')).hexdigest()
@@ -211,7 +203,7 @@ def init_db():
                     abstract='Mathematical formalization of neuro-immuno-oncological axes via deterministic Tk equation. Safe AST reproducibility under RUO Class I CDSS.',
                     formula_math='(Artery + Vein) / (Lymph + 1.0)',
                     ast_merkle_digest='9f83a4c2e1b789d6e5a4f3b2c1d0e9f8a7b6c5d4e3f2a1b0c9d8e7f6a5b4c3d2',
-                    credit_roles_json='[{"name": "Salauat Abiltayevich Yeshimov", "orcid": "0009-0003-3929-3605", "roles": ["Conceptualization", "Methodology", "Formal Analysis", "Writing - Original Draft"], "weight": 70}, {"name": "Co-Researcher", "orcid": "0009-0001-2234-5678", "roles": ["Software", "Validation"], "weight": 30}]',
+                    credit_roles_json='[{\"name\": \"Salauat Abiltayevich Yeshimov\", \"orcid\": \"0009-0003-3929-3605\", \"roles\": [\"Conceptualization\", \"Methodology\", \"Formal Analysis\", \"Writing - Original Draft\"], \"weight\": 70}, {\"name\": \"Co-Researcher\", \"orcid\": \"0009-0001-2234-5678\", \"roles\": [\"Software\", \"Validation\"], \"weight\": 30}]',
                     license_type='CC-BY-4.0',
                     sha256_hash=f_sha,
                     ots_proof_file='GS-2026-00001.ots',
@@ -236,9 +228,9 @@ def save_uploaded_pdf(
     formula_math: Optional[str] = None,
     ast_merkle_digest: Optional[str] = None,
     credit_roles: Optional[List[Dict[str, Any]]] = None,
-    ipc_class: str = "A61B",
-    license_type: str = "CC-BY-4.0",
-    source_archive: str = "Sovereign Upload",
+    ipc_class: str = \"A61B\",
+    license_type: str = \"CC-BY-4.0\",
+    source_archive: str = \"Sovereign Upload\",
     custom_reg_code: Optional[str] = None
 ) -> dict:
     
@@ -249,28 +241,28 @@ def save_uploaded_pdf(
     with engine.begin() as conn:
         res = conn.execute(sa.select(sa.func.count()).select_from(manuscripts).where(manuscripts.c.is_genesis_anchor == 0))
         serial_count = res.scalar() + 1
-        reg_code = custom_reg_code or f"GS-2026-{serial_count:05d}"
+        reg_code = custom_reg_code or f\"GS-2026-{serial_count:05d}\"
         
         # Облачное хранилище (S3) или локальное (CAS)
         s3_url = None
         if s3_client:
-            s3_key = f"vault/{real_sha256[:2]}/{real_sha256[2:4]}/{real_sha256}.pdf"
+            s3_key = f\"vault/{real_sha256[:2]}/{real_sha256[2:4]}/{real_sha256}.pdf\"
             s3_client.put_object(
                 Bucket=S3_BUCKET,
                 Key=s3_key,
                 Body=file_bytes,
-                ContentType="application/pdf"
+                ContentType=\"application/pdf\"
             )
-            s3_url = f"s3://{S3_BUCKET}/{s3_key}"
+            s3_url = f\"s3://{S3_BUCKET}/{s3_key}\"
             file_path = s3_url
         else:
             cas_shard_dir = VAULT_DIR / real_sha256[:2] / real_sha256[2:4]
             cas_shard_dir.mkdir(parents=True, exist_ok=True)
-            file_path = str(cas_shard_dir / f"{real_sha256}.pdf")
-            with open(file_path, "wb") as f:
+            file_path = str(cas_shard_dir / f\"{real_sha256}.pdf\")
+            with open(file_path, \"wb\") as f:
                 f.write(file_bytes)
             
-        ots_file = f"{reg_code}.ots"
+        ots_file = f\"{reg_code}.ots\"
         credit_json = json.dumps(credit_roles or [], ensure_ascii=False)
         
         conn.execute(
@@ -287,10 +279,10 @@ def save_uploaded_pdf(
 
         if credit_roles:
             for c in credit_roles:
-                c_name = c.get("name", author)
-                c_orcid = c.get("orcid", orcid)
-                c_roles = json.dumps(c.get("roles", ["Conceptualization"]), ensure_ascii=False)
-                c_weight = float(c.get("weight", 100.0))
+                c_name = c.get(\"name\", author)
+                c_orcid = c.get(\"orcid\", orcid)
+                c_roles = json.dumps(c.get(\"roles\", [\"Conceptualization\"]), ensure_ascii=False)
+                c_weight = float(c.get(\"weight\", 100.0))
                 conn.execute(
                     credit_contributions.insert().values(
                         registration_code=reg_code, contributor_name=c_name,
@@ -299,15 +291,15 @@ def save_uploaded_pdf(
                 )
 
     return {
-        "serial_number": serial_count,
-        "registration_code": reg_code,
-        "sha256_hash": real_sha256,
-        "git_commit_hash": real_git_commit,
-        "ipfs_cid": ipfs_cid,
-        "source_archive": source_archive,
-        "ots_proof_file": ots_file,
-        "file_path": file_path,
-        "license_type": license_type
+        \"serial_number\": serial_count,
+        \"registration_code\": reg_code,
+        \"sha256_hash\": real_sha256,
+        \"git_commit_hash\": real_git_commit,
+        \"ipfs_cid\": ipfs_cid,
+        \"source_archive\": source_archive,
+        \"ots_proof_file\": ots_file,
+        \"file_path\": file_path,
+        \"license_type\": license_type
     }
 
 def get_credit_contributions(registration_code: str) -> List[Dict[str, Any]]:
@@ -321,18 +313,18 @@ def get_credit_contributions(registration_code: str) -> List[Dict[str, Any]]:
         for r in res:
             d = dict(r._mapping)
             try:
-                d["roles"] = json.loads(d["roles_json"])
+                d[\"roles\"] = json.loads(d[\"roles_json\"])
             except:
-                d["roles"] = []
+                d[\"roles\"] = []
             rows.append(d)
         return rows
 
 def search_manuscripts_fts(query_str: str) -> List[Dict]:
-    clean_q = query_str.strip().replace("'", "").replace('"', '')
+    clean_q = query_str.strip().replace(\"'\", \"\").replace('\"', '')
     if not clean_q:
         return get_all_manuscripts()
         
-    pattern = f"%{clean_q}%"
+    pattern = f\"%{clean_q}%\"
     with engine.connect() as conn:
         res = conn.execute(
             sa.select(manuscripts).where(
@@ -420,71 +412,71 @@ def generate_datacite_metadata(registration_code: str) -> Optional[Dict[str, Any
         return None
 
     creators = [{
-        "name": m["author_name"],
-        "nameType": "Personal",
-        "nameIdentifiers": [{
-            "nameIdentifier": f"https://orcid.org/{m['orcid']}",
-            "nameIdentifierScheme": "ORCID",
-            "schemeURI": "https://orcid.org"
+        \"name\": m[\"author_name\"],
+        \"nameType\": \"Personal\",
+        \"nameIdentifiers\": [{
+            \"nameIdentifier\": f\"https://orcid.org/{m['orcid']}\",
+            \"nameIdentifierScheme\": \"ORCID\",
+            \"schemeURI\": \"https://orcid.org\"
         }]
     }]
 
-    if m.get("credit_roles_json"):
+    if m.get(\"credit_roles_json\"):
         try:
-            extra_authors = json.loads(m["credit_roles_json"])
+            extra_authors = json.loads(m[\"credit_roles_json\"])
             for ea in extra_authors:
-                if ea.get("name") and ea.get("name") != m["author_name"]:
+                if ea.get(\"name\") and ea.get(\"name\") != m[\"author_name\"]:
                     creators.append({
-                        "name": ea["name"],
-                        "nameType": "Personal",
-                        "nameIdentifiers": [{
-                            "nameIdentifier": f"https://orcid.org/{ea.get('orcid', '')}",
-                            "nameIdentifierScheme": "ORCID",
-                            "schemeURI": "https://orcid.org"
-                        }] if ea.get("orcid") else []
+                        \"name\": ea[\"name\"],
+                        \"nameType\": \"Personal\",
+                        \"nameIdentifiers\": [{
+                            \"nameIdentifier\": f\"https://orcid.org/{ea.get('orcid', '')}\",
+                            \"nameIdentifierScheme\": \"ORCID\",
+                            \"schemeURI\": \"https://orcid.org\"
+                        }] if ea.get(\"orcid\") else []
                     })
         except Exception:
             pass
 
-    license_name = m.get("license_type", "CC-BY-4.0")
-    license_uri = "https://creativecommons.org/licenses/by/4.0/" if "BY-4.0" in license_name else "https://creativecommons.org/licenses/"
+    license_name = m.get(\"license_type\", \"CC-BY-4.0\")
+    license_uri = \"https://creativecommons.org/licenses/by/4.0/\" if \"BY-4.0\" in license_name else \"https://creativecommons.org/licenses/\"
 
     return {
-        "data": {
-            "type": "draft-manuscript-metadata",
-            "attributes": {
-                "registration_authority": "GitScience Sovereign Protocol (Pre-Registration Draft)",
-                "doi_registration_status": "DRAFT_READY_FOR_CROSSREF_OR_DATACITE_REGISTRATION",
-                "identifiers": [
-                    {"identifier": m["registration_code"], "identifierType": "GitScience-Sovereign-Code"},
-                    {"identifier": m["sha256_hash"], "identifierType": "SHA-256-Payload-Digest"},
-                    {"identifier": m["git_commit_hash"], "identifierType": "Git-Commit-OID"}
+        \"data\": {
+            \"type\": \"draft-manuscript-metadata\",
+            \"attributes\": {
+                \"registration_authority\": \"GitScience Sovereign Protocol (Pre-Registration Draft)\",
+                \"doi_registration_status\": \"DRAFT_READY_FOR_CROSSREF_OR_DATACITE_REGISTRATION\",
+                \"identifiers\": [
+                    {\"identifier\": m[\"registration_code\"], \"identifierType\": \"GitScience-Sovereign-Code\"},
+                    {\"identifier\": m[\"sha256_hash\"], \"identifierType\": \"SHA-256-Payload-Digest\"},
+                    {\"identifier\": m[\"git_commit_hash\"], \"identifierType\": \"Git-Commit-OID\"}
                 ],
-                "creators": creators,
-                "titles": [{"title": m["title"]}],
-                "publisher": "GitScience Sovereign Protocol Open Archive",
-                "container": {"type": "Repository", "title": "GitScience Sovereign Open Library"},
-                "publicationYear": int(str(m["created_at"])[:4]) if m.get("created_at") else 2026,
-                "subjects": [
-                    {"subject": m["category"]},
-                    {"subject": f"WIPO IPC: {m.get('ipc_class', 'A61B')}"}
+                \"creators\": creators,
+                \"titles\": [{\"title\": m[\"title\"]}],
+                \"publisher\": \"GitScience Sovereign Protocol Open Archive\",
+                \"container\": {\"type\": \"Repository\", \"title\": \"GitScience Sovereign Open Library\"},
+                \"publicationYear\": int(str(m[\"created_at\"])[:4]) if m.get(\"created_at\") else 2026,
+                \"subjects\": [
+                    {\"subject\": m[\"category\"]},
+                    {\"subject\": f\"WIPO IPC: {m.get('ipc_class', 'A61B')}\"}
                 ],
-                "dates": [{"date": m["created_at"], "dateType": "Submitted"}],
-                "language": "en",
-                "types": {
-                    "resourceTypeGeneral": "Preprint",
-                    "resourceType": "Sovereign Prior Art Disclosure"
+                \"dates\": [{\"date\": m[\"created_at\"], \"dateType\": \"Submitted\"}],
+                \"language\": \"en\",
+                \"types\": {
+                    \"resourceTypeGeneral\": \"Preprint\",
+                    \"resourceType\": \"Sovereign Prior Art Disclosure\"
                 },
-                "descriptions": [
-                    {"description": m.get("abstract", "Sovereign Prior Art Discovery Record"), "descriptionType": "Abstract"}
+                \"descriptions\": [
+                    {\"description\": m.get(\"abstract\", \"Sovereign Prior Art Discovery Record\"), \"descriptionType\": \"Abstract\"}
                 ],
-                "rightsList": [
+                \"rightsList\": [
                     {
-                        "rights": license_name,
-                        "rightsUri": license_uri
+                        \"rights\": license_name,
+                        \"rightsUri\": license_uri
                     }
                 ],
-                "schemaVersion": "http://datacite.org/schema/kernel-4"
+                \"schemaVersion\": \"http://datacite.org/schema/kernel-4\"
             }
         }
     }
@@ -495,26 +487,26 @@ def generate_schema_org_jsonld(registration_code: str) -> Optional[Dict[str, Any
         return None
 
     return {
-        "@context": "https://schema.org",
-        "@type": "ScholarlyArticle",
-        "headline": m["title"],
-        "name": m["title"],
-        "identifier": m["registration_code"],
-        "datePublished": m["created_at"],
-        "author": {
-            "@type": "Person",
-            "name": m["author_name"],
-            "identifier": f"https://orcid.org/{m['orcid']}"
+        \"@context\": \"https://schema.org\",
+        \"@type\": \"ScholarlyArticle\",
+        \"headline\": m[\"title\"],
+        \"name\": m[\"title\"],
+        \"identifier\": m[\"registration_code\"],
+        \"datePublished\": m[\"created_at\"],
+        \"author\": {
+            \"@type\": \"Person\",
+            \"name\": m[\"author_name\"],
+            \"identifier\": f\"https://orcid.org/{m['orcid']}\"
         },
-        "description": m.get("abstract", ""),
-        "publisher": {
-            "@type": "Organization",
-            "name": "GitScience Sovereign Protocol",
-            "url": "https://gitscience.org"
+        \"description\": m.get(\"abstract\", \"\"),
+        \"publisher\": {
+            \"@type\": \"Organization\",
+            \"name\": \"GitScience Sovereign Protocol\",
+            \"url\": \"https://gitscience.org\"
         },
-        "license": m.get("license_type", "https://creativecommons.org/licenses/by/4.0/"),
-        "encodingFormat": "application/pdf",
-        "url": f"https://gitscience.org/library/view/{m['registration_code']}"
+        \"license\": m.get(\"license_type\", \"https://creativecommons.org/licenses/by/4.0/\"),
+        \"encodingFormat\": \"application/pdf\",
+        \"url\": f\"https://gitscience.org/library/view/{m['registration_code']}\"
     }
 
 def get_platform_stats_summary() -> Dict[str, Any]:
@@ -530,16 +522,16 @@ def get_platform_stats_summary() -> Dict[str, Any]:
     total_reviews = 12
 
     return {
-        "status": "LIVE_SYNCHRONIZED",
-        "total_notarized_manuscripts": total_manuscripts,
-        "total_maas_executions": calculated_maas_executions,
-        "total_secured_scientific_value_usdt": calculated_secured_value_usdt,
-        "total_verified_scholars": total_verified_scholars,
-        "total_peer_reviews_conducted": total_reviews,
-        "total_court_arbitrations": total_disputes,
-        "active_consensus_nodes": 42,
-        "blockchain_attestation_status": "BITCOIN_OTS_ANCHORED_OK",
-        "timestamp_utc": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+        \"status\": \"LIVE_SYNCHRONIZED\",
+        \"total_notarized_manuscripts\": total_manuscripts,
+        \"total_maas_executions\": calculated_maas_executions,
+        \"total_secured_scientific_value_usdt\": calculated_secured_value_usdt,
+        \"total_verified_scholars\": total_verified_scholars,
+        \"total_peer_reviews_conducted\": total_reviews,
+        \"total_court_arbitrations\": total_disputes,
+        \"active_consensus_nodes\": 42,
+        \"blockchain_attestation_status\": \"BITCOIN_OTS_ANCHORED_OK\",
+        \"timestamp_utc\": datetime.now(timezone.utc).strftime(\"%Y-%m-%d %H:%M:%S UTC\")
     }
 
 def generate_license_agreement_text(registration_code: str) -> Optional[Dict[str, Any]]:
@@ -547,7 +539,7 @@ def generate_license_agreement_text(registration_code: str) -> Optional[Dict[str
     if not m:
         return None
 
-    license_text = f"""================================================================================
+    license_text = f\"\"\"================================================================================
 GITSCIENCE™ SOVEREIGN PROTOCOL — OFFICIAL PRIOR ART & MAAS LICENSE AGREEMENT
 ================================================================================
 REGISTRATION CODE: {m['registration_code']}
@@ -580,17 +572,22 @@ reproducibility with zero side-effects.
 4. JURISDICTION & ARBITRATION
 Disputes regarding priority or inventorship are subject to decentralized arbitration via the
 GitScience Science Court governed by cryptographic proof bundles and immutable timestamp tokens.
-================================================================================"""
+================================================================================\"\"\"
 
     return {
-        "registration_code": m["registration_code"],
-        "license_type": m.get("license_type", "CC-BY-4.0"),
-        "license_full_text": license_text,
-        "sha256_hash": m["sha256_hash"],
-        "ots_proof_file": m.get("ots_proof_file", f"{registration_code}.ots")
+        \"registration_code\": m[\"registration_code\"],
+        \"license_type\": m.get(\"license_type\", \"CC-BY-4.0\"),
+        \"license_full_text\": license_text,
+        \"sha256_hash\": m[\"sha256_hash\"],
+        \"ots_proof_file\": m.get(\"ots_proof_file\", f\"{registration_code}.ots\")
     }
 
 try:
     init_db()
 except Exception:
     pass
+"""
+
+with open("c:\\Users\\salau\\Desktop\\GitScience\\backend\\gitscience_storage.py", "w", encoding="utf-8") as f:
+    f.write(new_storage)
+print("Migration script executed.")

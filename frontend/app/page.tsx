@@ -20,7 +20,7 @@ import VampireTab from "../components/tabs/VampireTab";
 
 // Modals
 import OrcidModal from "../components/modals/OrcidModal";
-import WalletModal from "../components/modals/WalletModal";
+// WalletModal removed
 import GuideModal from "../components/modals/GuideModal";
 import LicenseModal from "../components/modals/LicenseModal";
 
@@ -28,10 +28,14 @@ import LicenseModal from "../components/modals/LicenseModal";
 import { getApiBase, DEFAULT_FOUNDER_PROFILE } from "../lib/constants";
 import { TRANSLATIONS } from "../lib/translations";
 
+import { useAccount, useBalance } from "wagmi";
+import { useModal } from "connectkit";
+import { formatUnits } from "viem";
+
 export default function GitScienceApp() {
   const [lang, setLang] = useState<"KZ" | "RU" | "EN">("KZ");
   const [activeTab, setActiveTab] = useState<TabKey>("notary");
-  const [apiBase, setApiBase] = useState<string>("http://127.0.0.1:8000");
+  const [apiBase, setApiBase] = useState<string>(process.env.NEXT_PUBLIC_API_URL || "");
 
   // Authentication & Guest State
   const [activeScholar, setActiveScholar] = useState<any>(null);
@@ -39,14 +43,21 @@ export default function GitScienceApp() {
   const [showGuideModal, setShowGuideModal] = useState<boolean>(false);
   const [passkeyNotice, setPasskeyNotice] = useState<string | null>(null);
 
-  // Web3 Wallet State
-  const [showWalletModal, setShowWalletModal] = useState<boolean>(false);
-  const [walletConnected, setWalletConnected] = useState<boolean>(false);
-  const [walletAddress, setWalletAddress] = useState<string | null>(null);
-  const [walletBalance, setWalletBalance] = useState<number>(0);
+  // Web3 Wallet State (Wagmi + ConnectKit)
+  const { address, isConnected } = useAccount();
+  const { data: balanceData } = useBalance({ address });
+  const { setOpen: setConnectKitOpen } = useModal();
+  
+  const walletConnected = isConnected;
+  const walletAddress = address || null;
+  const walletBalance = balanceData ? parseFloat(formatUnits(balanceData.value, balanceData.decimals)) : 0;
+  
   const [walletRoyalties, setWalletRoyalties] = useState<number>(0);
   const [walletNetwork, setWalletNetwork] = useState<string>("Polygon PoS / Base Mainnet");
   const [walletConnecting, setWalletConnecting] = useState<boolean>(false);
+  
+  // Programmatic opening of wallet modal
+  const setShowWalletModal = (v: boolean) => setConnectKitOpen(v);
 
   // Platform Live Stats
   const [platformStats, setPlatformStats] = useState({
@@ -224,40 +235,26 @@ export default function GitScienceApp() {
     setShowOrcidModal(false);
   };
 
-  const handleConnectWallet = async (type: "metamask" | "founder" | "custom") => {
-    setWalletConnecting(true);
-    let addr = "0x71C2B09934D3E08A52e52d7da7DAbFAc484EFE37";
-    if (type === "custom") {
-      addr = "0x89205A3A3b2A69De6Dbf7f01ED13B2108B2c43e7";
+  useEffect(() => {
+    if (address && isConnected) {
+      setWalletConnecting(true);
+      fetch(`${apiBase}/api/v1/wallet/balance/${address}`)
+        .then((res) => res.json())
+        .then((data) => {
+          setWalletRoyalties(data.accumulated_royalties_usdt || 3750);
+          setWalletNetwork(data.network || "Polygon PoS");
+        })
+        .catch(() => {
+          setWalletRoyalties(3750);
+          setWalletNetwork("Polygon PoS / Base Mainnet");
+        })
+        .finally(() => {
+          setWalletConnecting(false);
+        });
+    } else {
+      setWalletRoyalties(0);
     }
-
-    if (type === "metamask" && typeof window !== "undefined" && (window as any).ethereum) {
-      try {
-        const accs = await (window as any).ethereum.request({ method: "eth_requestAccounts" });
-        if (accs && accs[0]) addr = accs[0];
-      } catch {}
-    }
-
-    setWalletAddress(addr);
-    setWalletConnected(true);
-
-    try {
-      const res = await fetch(`${apiBase}/api/v1/wallet/balance/${addr}`);
-      const data = await res.json();
-      setWalletBalance(data.usdt_balance || 12500);
-      setWalletRoyalties(data.accumulated_royalties_usdt || 3750);
-      setWalletNetwork(data.network || "Polygon PoS");
-    } catch {
-      setWalletBalance(12500);
-      setWalletRoyalties(3750);
-    }
-    setWalletConnecting(false);
-  };
-
-  const handleDisconnectWallet = () => {
-    setWalletConnected(false);
-    setWalletAddress(null);
-  };
+  }, [address, isConnected, apiBase]);
 
   const handleBiometricAuth = () => {
     setPasskeyNotice("📱 Touch ID / FIDO2 аутентификациясы сәтті орындалды!");
@@ -662,7 +659,7 @@ export default function GitScienceApp() {
   });
 
   return (
-    <div className="min-h-screen bg-[#070d18] text-slate-100 font-sans flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-950">
+    <div className="min-h-screen bg-black text-[#f5f5f7] font-sans flex flex-col justify-between selection:bg-[#2997ff] selection:text-white">
       <div className="w-full">
         {/* 1. Header */}
         <Header
@@ -909,19 +906,7 @@ export default function GitScienceApp() {
         onLogout={handleScholarLogout}
       />
 
-      <WalletModal
-        show={showWalletModal}
-        onClose={() => setShowWalletModal(false)}
-        t={t}
-        walletConnected={walletConnected}
-        walletAddress={walletAddress}
-        walletBalance={walletBalance}
-        walletRoyalties={walletRoyalties}
-        walletNetwork={walletNetwork}
-        walletConnecting={walletConnecting}
-        onConnect={handleConnectWallet}
-        onDisconnect={handleDisconnectWallet}
-      />
+      {/* WalletModal removed - ConnectKit handles the UI */}
 
       <GuideModal
         show={showGuideModal}

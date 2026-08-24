@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+.next/
+out/
+
+# Git & VCS
+.git/
+.gitignore
+
+# Environments
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Misc
+npm-debug.log*
+README.md
