@@ -7,13 +7,13 @@
     "role": "Protocol Architect & Surgical Oncologist"
   },
   "fair_share_bps": {
-    "total_bps": 10000,
-    "author_share_bps": 7000,
-    "infra_fund_bps": 2000,
-    "founder_share_bps": 1000,
-    "author_percent": 70.0,
-    "infra_percent": 20.0,
-    "founder_percent": 10.0
+    "total_bps": 30000,
+    "author_share_bps": 5500,
+    "infra_fund_bps": 1500,
+    "founder_share_bps": 3000,
+    "author_percent": 55.0,
+    "infra_percent": 15.0,
+    "founder_percent": 30.0
   },
   "legal_framework": [
     "35 U.S.C. § 102 (US Patent Act)",

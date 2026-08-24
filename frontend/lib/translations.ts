@@ -20,7 +20,7 @@ export const TRANSLATIONS = {
     tabVampire: "🧛 Vampire Парсер",
 
     welcomeBannerTitle: "Қош келдіңіз! Ғалымдар аманатын суверенді қорғау протоколы",
-    welcomeBannerSub: "Манускрипттеріңізді WIPO Prior Art Shield арқылы бекітіп, 70/20/10 роялти алу үшін ORCID және Web3 әмияныңызды қосыңыз.",
+    welcomeBannerSub: "Манускрипттеріңізді WIPO Prior Art Shield арқылы бекітіп, 55/15/30 роялти алу үшін ORCID және Web3 әмияныңызды қосыңыз.",
     welcomeRegisterBtn: "🧬 ORCID арқылы тіркелу / кіру",
     welcomeWalletBtn: "🦊 Web3 Әмиянды қосу",
 
@@ -28,7 +28,7 @@ export const TRANSLATIONS = {
     connectWalletSub: "Аманат роялтилері мен IP-NFT авторлық құқықтарыңызды Web3 арқылы басқарыңыз",
     walletAddressLabel: "Әмиян мекенжайы",
     walletBalanceLabel: "USDT Балансы",
-    walletRoyaltiesLabel: "Аманат Роялтилері (70% / 20%)",
+    walletRoyaltiesLabel: "Аманат Роялтилері (55% / 30%)",
     walletNetworkLabel: "Блокчейн Желісі",
     disconnectWalletBtn: "Әмиянды ажырату ✕",
 
@@ -120,14 +120,14 @@ export const TRANSLATIONS = {
     maasResultsLabel: "Гомеостаз нүктелерінің нәтижесі (WASM Stream):",
     maasVisualCurveTitle: "Интерактивті 2D Гомеостаз графигі Tk(Artery, Vein, Lymph)",
 
-    amanatHeader: "Аманат роялти маршрутизаторы (70 / 20 / 10 + 20% Gross-Up)",
+    amanatHeader: "Аманат роялти маршрутизаторы (55 / 15 / 30 + 20% Gross-Up)",
     amanatSubheader: "70% Авторлық қор • 20% Рецензенттер қоры • 10% Протокол Создатель (+20% B2B Gross-Up)",
     amanatBaseFee: "Базалық лицензия сомасы",
     amanatInvoiceTotal: "Клиника төлейтін толық шот (+20% Gross-Up):",
-    amanatAuthorPool: "Авторлық қор (70% Net Payout):",
-    amanatInfraPool: "Инфрақұрылым & Рецензенттер қоры (20%):",
-    amanatFounderPool: "Протокол негізін қалаушы қоры (10% Founder):",
-    amanatFounderGrossUp: "Создательдің жалпы таза кірісі (10% + Салық):",
+    amanatAuthorPool: "Авторлық қор (55% Net Payout):",
+    amanatInfraPool: "Инфрақұрылым & Рецензенттер қоры (15%):",
+    amanatFounderPool: "Протокол негізін қалаушы қоры (30% Founder):",
+    amanatFounderGrossUp: "Создательдің жалпы таза кірісі (30% + Салық):",
     amanatRecordBtn: "Транзакцияны Ledger-ге бекіту 💳",
     genFiatInvoiceBtn: "📄 Ресми B2B Инвойс шығару (Клиникалар үшін)",
 
@@ -182,7 +182,7 @@ export const TRANSLATIONS = {
     tabVampire: "🧛 Vampire Парсер",
 
     welcomeBannerTitle: "Добро пожаловать в суверенный протокол защиты научных открытий GitScience™",
-    welcomeBannerSub: "Защитите приоритет манускрипта через WIPO Prior Art Shield и получайте гарантированные роялти 70/20/10.",
+    welcomeBannerSub: "Защитите приоритет манускрипта через WIPO Prior Art Shield и получайте гарантированные роялти 55/15/30.",
     welcomeRegisterBtn: "🧬 Войти / Зарегистрироваться через ORCID",
     welcomeWalletBtn: "🦊 Подключить Web3 Кошелек",
 
@@ -190,7 +190,7 @@ export const TRANSLATIONS = {
     connectWalletSub: "Управляйте роялти по протоколу Аманата и патентами IP-NFT (ERC-721 / EIP-2981)",
     walletAddressLabel: "Адрес кошелька",
     walletBalanceLabel: "Баланс USDT",
-    walletRoyaltiesLabel: "Накопленные роялти Аманата (70% / 20%)",
+    walletRoyaltiesLabel: "Накопленные роялти Аманата (55% / 30%)",
     walletNetworkLabel: "Сеть блокчейна",
     disconnectWalletBtn: "Отключить кошелек ✕",
 
@@ -282,14 +282,14 @@ export const TRANSLATIONS = {
     maasResultsLabel: "Точки гомеостаза (WASM Stream):",
     maasVisualCurveTitle: "Интерактивный 2D график гомеостаза Tk(Artery, Vein, Lymph)",
 
-    amanatHeader: "Маршрутизатор роялти Аманата (70 / 20 / 10 + 20% Gross-Up)",
-    amanatSubheader: "70% Авторский пул • 20% Рецензенты • 10% Создатель протокола (+20% B2B Gross-Up)",
+    amanatHeader: "Маршрутизатор роялти Аманата (55 / 15 / 30 + 20% Gross-Up)",
+    amanatSubheader: "55% Авторский пул • 15% Рецензенты • 30% Создатель протокола (+20% B2B Gross-Up)",
     amanatBaseFee: "Базовый сбор лицензии",
     amanatInvoiceTotal: "Счет клинике к оплате (+20% Gross-Up):",
-    amanatAuthorPool: "Авторский пул (70% Net Payout):",
-    amanatInfraPool: "Фонд независимых рецензентов (20%):",
-    amanatFounderPool: "Фонд Создателя протокола (10% Founder):",
-    amanatFounderGrossUp: "Общий чистый доход Создателя (10% + Налог):",
+    amanatAuthorPool: "Авторский пул (55% Net Payout):",
+    amanatInfraPool: "Фонд независимых рецензентов (15%):",
+    amanatFounderPool: "Фонд Создателя протокола (30% Founder):",
+    amanatFounderGrossUp: "Общий чистый доход Создателя (30% + Налог):",
     amanatRecordBtn: "Зафиксировать платеж в Ledger 💳",
     genFiatInvoiceBtn: "📄 Сформировать B2B Инвойс (Для клиник / IBAN)",
 
@@ -344,15 +344,15 @@ export const TRANSLATIONS = {
     tabVampire: "🧛 Vampire Harvester",
 
     welcomeBannerTitle: "Welcome to GitScience™ Sovereign Protocol for Scientific Truth",
-    welcomeBannerSub: "Protect your manuscript prior art via WIPO Prior Art Shield and earn guaranteed 70/20/10 royalties.",
+    welcomeBannerSub: "Protect your manuscript prior art via WIPO Prior Art Shield and earn guaranteed 55/15/30 royalties.",
     welcomeRegisterBtn: "🧬 Register / Sign In with ORCID",
     welcomeWalletBtn: "🦊 Connect Web3 Wallet",
 
     connectWalletTitle: "Connect Decentralized Web3 Wallet",
-    connectWalletSub: "Manage Amanat royalties (70% / 20%) and IP-NFT patent ownership (ERC-721 / EIP-2981)",
+    connectWalletSub: "Manage Amanat royalties (55% / 30%) and IP-NFT patent ownership (ERC-721 / EIP-2981)",
     walletAddressLabel: "Wallet Address",
     walletBalanceLabel: "USDT Balance",
-    walletRoyaltiesLabel: "Accumulated Royalties (70% / 20%)",
+    walletRoyaltiesLabel: "Accumulated Royalties (55% / 30%)",
     walletNetworkLabel: "Blockchain Network",
     disconnectWalletBtn: "Disconnect Wallet ✕",
 
@@ -426,7 +426,7 @@ export const TRANSLATIONS = {
     passCourtPts: "Court Vindicated Prior Arts",
 
     revHeader: "Blind Peer-Review & Consensus Protocol",
-    revSubheader: "Conflict-free blind peer review with guaranteed 20% infra pool compensation",
+    revSubheader: "Conflict-free blind peer review with guaranteed 15% infra pool compensation",
     revTargetLabel: "Target Manuscript Code",
     revReviewerLabel: "Reviewer ORCID iD",
     revMathScore: "Math AST (1-10)",
@@ -444,14 +444,14 @@ export const TRANSLATIONS = {
     maasResultsLabel: "Homeostasis Stream Points (WASM Output):",
     maasVisualCurveTitle: "Interactive 2D Homeostasis Response Curve Tk(Artery, Vein, Lymph)",
 
-    amanatHeader: "Amanat Royalty Router (70 / 20 / 10 + 20% Gross-Up)",
-    amanatSubheader: "70% Author Pool • 20% Reviewers & Nodes • 10% Protocol Founder (+20% B2B Gross-Up)",
+    amanatHeader: "Amanat Royalty Router (55 / 15 / 30 + 20% Gross-Up)",
+    amanatSubheader: "55% Author Pool • 15% Reviewers & Nodes • 30% Protocol Founder (+20% B2B Gross-Up)",
     amanatBaseFee: "Base License Fee",
     amanatInvoiceTotal: "Clinical Buyer Invoice (+20% Gross-Up):",
-    amanatAuthorPool: "Author Royalty Pool (70% Net):",
-    amanatInfraPool: "Infrastructure & Peer Review Pool (20%):",
-    amanatFounderPool: "Protocol Founder Allocation (10% Founder):",
-    amanatFounderGrossUp: "Total Net Founder Earnings (10% + Tax):",
+    amanatAuthorPool: "Author Royalty Pool (55% Net):",
+    amanatInfraPool: "Infrastructure & Peer Review Pool (15%):",
+    amanatFounderPool: "Protocol Founder Allocation (30% Founder):",
+    amanatFounderGrossUp: "Total Net Founder Earnings (30% + Tax):",
     amanatRecordBtn: "Record Settlement in Ledger 💳",
     genFiatInvoiceBtn: "📄 Generate B2B Institutional Invoice (IBAN/Swift)",
 
