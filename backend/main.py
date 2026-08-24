@@ -560,7 +560,7 @@ def view_pdf_file(registration_code: str):
     storage_root = os.path.abspath(storage.STORAGE_DIR)
     
     # Path Traversal Guard: запрещаем выход за пределы директории хранилища
-    if not file_path.startswith(storage_root) and not os.path.exists(file_path):
+    if not file_path.startswith(storage_root):
         raise HTTPException(status_code=403, detail="Доступ запрещен: путь за пределами хранилища")
     
     if not os.path.exists(file_path):

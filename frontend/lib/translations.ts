@@ -102,7 +102,7 @@ export const TRANSLATIONS = {
     passCourtPts: "Сотта дәлелденген басымдықтар",
 
     revHeader: "Blind Peer-Review & Consensus Protocol",
-    revSubheader: "Мүдделер қақтығысынсыз тәуелсіз рецензиялау және 20% қордан төлем алу",
+    revSubheader: "Мүдделер қақтығысынсыз тәуелсіз рецензиялау және 15% қордан төлем алу",
     revTargetLabel: "Манускрипт коды",
     revReviewerLabel: "Рецензенттің ORCID нөмірі",
     revMathScore: "Math AST (1-10)",
@@ -121,7 +121,7 @@ export const TRANSLATIONS = {
     maasVisualCurveTitle: "Интерактивті 2D Гомеостаз графигі Tk(Artery, Vein, Lymph)",
 
     amanatHeader: "Аманат роялти маршрутизаторы (55 / 15 / 30 + 20% Gross-Up)",
-    amanatSubheader: "70% Авторлық қор • 20% Рецензенттер қоры • 10% Протокол Создатель (+20% B2B Gross-Up)",
+    amanatSubheader: "55% Авторлық қор • 15% Рецензенттер қоры • 30% Протокол Создатель (+20% B2B Gross-Up)",
     amanatBaseFee: "Базалық лицензия сомасы",
     amanatInvoiceTotal: "Клиника төлейтін толық шот (+20% Gross-Up):",
     amanatAuthorPool: "Авторлық қор (55% Net Payout):",
@@ -264,7 +264,7 @@ export const TRANSLATIONS = {
     passCourtPts: "Подтвержденные победы в суде",
 
     revHeader: "Blind Peer-Review & Consensus Protocol",
-    revSubheader: "Объективное слепое рецензирование с выплатой из 20% фонда нод",
+    revSubheader: "Объективное слепое рецензирование с выплатой из 15% фонда нод",
     revTargetLabel: "Код манускрипта",
     revReviewerLabel: "ORCID рецензента",
     revMathScore: "Math AST (1-10)",

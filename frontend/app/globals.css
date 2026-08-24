@@ -25,6 +25,16 @@ body {
   min-height: 100dvh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  scroll-behavior: smooth;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/* Crypto hash & address truncation */
+.break-hash {
+  word-break: break-all;
+  overflow-wrap: anywhere;
 }
 
 /* Scrollbar Utilities */
