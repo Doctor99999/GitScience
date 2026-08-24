@@ -39,20 +39,23 @@ export default function NavigationTabs({
   ];
 
   return (
-    <nav className="flex items-center gap-2 overflow-x-auto no-scrollbar py-2 text-sm font-medium border-b border-white/10 px-4">
+    <nav className="flex items-center gap-6 overflow-x-auto no-scrollbar py-3 text-xs font-bold uppercase tracking-widest border-b border-[#222222] px-6 bg-[#0a0a0a]">
       {tabs.map((tab) => {
         const isActive = activeTab === tab.key;
         return (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`px-4 py-2 rounded-full shrink-0 transition-colors ${
+            className={`py-3 shrink-0 transition-colors relative ${
               isActive
-                ? "bg-white text-black font-semibold"
-                : "text-[#86868b] hover:text-white hover:bg-[#1d1d1f]"
+                ? "text-[var(--ferrari-red)]"
+                : "text-[#888888] hover:text-white"
             }`}
           >
             <span>{tab.label}</span>
+            {isActive && (
+              <span className="absolute bottom-0 left-0 w-full h-[2px] bg-[var(--ferrari-red)]"></span>
+            )}
           </button>
         );
       })}

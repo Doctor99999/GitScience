@@ -33,28 +33,28 @@ export default function Header({
   passkeyNotice,
 }: HeaderProps) {
   return (
-    <header className="border-b border-white/10 bg-black/80 backdrop-blur-xl sticky top-0 z-40 w-full">
-      <div className="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+    <header className="border-b border-[#222222] bg-[#111111] sticky top-0 z-40 w-full">
+      <div className="max-w-7xl mx-auto px-6 py-4 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-4 min-w-0">
-          <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center font-bold text-black text-lg tracking-tighter shrink-0">
-            GS
+          <div className="w-10 h-10 bg-[var(--ferrari-red)] flex items-center justify-center font-bold text-white text-lg tracking-widest shrink-0 skew-x-[-10deg]">
+            <span className="skew-x-[10deg]">GS</span>
           </div>
           <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <h1 className="font-semibold text-lg sm:text-xl text-white tracking-tight truncate">{t.brand}</h1>
-              <span className="text-[10px] uppercase px-2 py-0.5 rounded-full bg-white/10 text-white border border-white/20 font-medium shrink-0">
-                PRO
+            <div className="flex items-center gap-3">
+              <h1 className="font-bold text-lg text-white uppercase tracking-[0.15em] truncate">{t.brand}</h1>
+              <span className="text-[10px] uppercase px-2 py-0.5 border border-[var(--ferrari-red)] text-[var(--ferrari-red)] font-bold tracking-widest shrink-0">
+                SCUDERIA
               </span>
             </div>
-            <p className="text-[12px] text-[#86868b] hidden md:block truncate tracking-tight">{t.tagline}</p>
+            <p className="text-[10px] uppercase text-[#aaaaaa] hidden md:block truncate tracking-widest">{t.tagline}</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center gap-4 shrink-0">
           {/* AI Guide Button */}
           <button
             onClick={() => setShowGuideModal(true)}
-            className="apple-btn-secondary px-3 py-1.5 text-xs font-medium transition"
+            className="ferrari-btn-secondary px-4 py-2 text-[10px]"
           >
             {t.guideBtn}
           </button>
@@ -62,21 +62,21 @@ export default function Header({
           {/* Biometric Touch ID */}
           <button
             onClick={handleBiometricAuth}
-            className="hidden lg:inline-flex apple-btn-secondary px-3 py-1.5 text-xs font-medium transition items-center gap-1.5"
+            className="hidden lg:inline-flex ferrari-btn-secondary px-4 py-2 text-[10px] items-center gap-2"
           >
             <span>Touch ID</span>
           </button>
 
           {/* Language Selector: KZ FIRST */}
-          <div className="flex bg-[#1d1d1f] rounded-full p-1 text-xs font-medium border border-white/10">
+          <div className="flex bg-[#000000] p-1 border border-[#333333]">
             {(["KZ", "RU", "EN"] as const).map((l) => (
               <button
                 key={l}
                 onClick={() => setLang(l)}
-                className={`px-3 py-1 rounded-full transition ${
+                className={`px-3 py-1 text-[10px] font-bold tracking-widest uppercase transition-colors ${
                   lang === l
-                    ? "bg-white text-black font-semibold shadow-sm"
-                    : "text-[#86868b] hover:text-white"
+                    ? "bg-[var(--ferrari-red)] text-white"
+                    : "text-[#aaaaaa] hover:text-white hover:bg-[#222222]"
                 }`}
               >
                 {l}

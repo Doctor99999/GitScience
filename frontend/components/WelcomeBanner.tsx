@@ -14,28 +14,31 @@ export default function WelcomeBanner({
   setShowWalletModal,
 }: WelcomeBannerProps) {
   return (
-    <section className="w-full bg-black py-24 sm:py-32 flex flex-col items-center justify-center text-center px-4">
-      <h2 className="text-5xl md:text-7xl font-bold tracking-tight text-[#f5f5f7] mb-4">
-        GitScience Pro.
+    <section className="w-full bg-[#050505] py-28 sm:py-36 border-b border-[#222222] flex flex-col items-center justify-center text-center px-4 relative overflow-hidden">
+      {/* Decorative slant */}
+      <div className="absolute top-0 left-0 w-full h-1 bg-[var(--ferrari-red)]"></div>
+      
+      <h2 className="text-5xl md:text-8xl font-black uppercase tracking-widest text-[#ffffff] mb-6 drop-shadow-xl">
+        GitScience
       </h2>
-      <p className="text-xl md:text-2xl font-semibold text-[#f5f5f7] mb-4">
-        {t.welcomeBannerTitle || "Наука без посредников."}
+      <p className="text-sm md:text-lg font-bold tracking-[0.2em] text-[#da291c] mb-6 uppercase">
+        {t.welcomeBannerTitle || "Performance Driven Science."}
       </p>
-      <p className="text-lg md:text-xl text-[#86868b] max-w-2xl mx-auto mb-8 font-medium">
-        {t.welcomeBannerSub || "Децентрализованный нотариат и исполняемые рукописи. Абсолютная прозрачность. Мгновенные выплаты роялти."}
+      <p className="text-sm md:text-base text-[#aaaaaa] max-w-2xl mx-auto mb-10 font-normal tracking-wide">
+        {t.welcomeBannerSub || "UNCOMPROMISING DECENTRALIZED NOTARY. ABSOLUTE TRANSPARENCY. INSTANT ROYALTY DISTRIBUTION."}
       </p>
-      <div className="flex flex-col sm:flex-row items-center gap-4">
+      <div className="flex flex-col sm:flex-row items-center gap-6">
         <button
           onClick={() => setShowOrcidModal(true)}
-          className="apple-btn-primary px-6 py-3 text-sm md:text-base w-full sm:w-auto"
+          className="ferrari-btn-primary px-10 py-4 text-xs md:text-sm w-full sm:w-auto shadow-2xl"
         >
-          {t.welcomeRegisterBtn || "Регистрация ORCID"}
+          {t.welcomeRegisterBtn || "Register ORCID"}
         </button>
         <button
           onClick={() => setShowWalletModal(true)}
-          className="apple-btn-secondary px-6 py-3 text-sm md:text-base w-full sm:w-auto"
+          className="ferrari-btn-secondary px-10 py-4 text-xs md:text-sm w-full sm:w-auto"
         >
-          {t.welcomeWalletBtn || "Подключить кошелек"}
+          {t.welcomeWalletBtn || "Connect Wallet"}
         </button>
       </div>
     </section>

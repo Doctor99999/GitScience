@@ -659,7 +659,7 @@ export default function GitScienceApp() {
   });
 
   return (
-    <div className="min-h-screen bg-black text-[#f5f5f7] font-sans flex flex-col justify-between selection:bg-[#2997ff] selection:text-white">
+    <div className="min-h-screen bg-[#050505] text-[#ffffff] font-sans flex flex-col justify-between selection:bg-[#da291c] selection:text-white">
       <div className="w-full">
         {/* 1. Header */}
         <Header
