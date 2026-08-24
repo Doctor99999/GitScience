@@ -43,13 +43,13 @@ contract AmanatSplitter {
         uint256 total = msg.value;
         
         // Basis Points (bps): 10000 = 100%
-        // 55% Authors (5500 bps)
-        uint256 authorShare = (total * 5500) / 10000;
+        // 70% Authors (7000 bps)
+        uint256 authorShare = (total * 7000) / 10000;
         
-        // 15% Infra/Reviewers (1500 bps)
-        uint256 infraShare = (total * 1500) / 10000;
+        // 20% Infra/Reviewers (2000 bps)
+        uint256 infraShare = (total * 2000) / 10000;
         
-        // 30% Founder Treasury (3000 bps)
+        // 10% Founder Treasury (1000 bps)
         uint256 founderShare = total - authorShare - infraShare;
         
         // Disburse
