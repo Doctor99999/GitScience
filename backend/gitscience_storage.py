@@ -564,12 +564,12 @@ This scientific work has been definitively and irrevocably disclosed under:
 - European Patent Convention EPC Article 54(2) (State of the Art Clearance)
 - WIPO Paris Convention for the Protection of Industrial Property Article 4
 
-2. FAIR-SHARE REVENUE MODEL (55 / 15 / 30 CONSENSUS)
+2. FAIR-SHARE REVENUE MODEL (70 / 20 / 10 CONSENSUS)
 Any commercial entity, hospital, oncology clinic, or pharmaceutical enterprise utilizing
 the mathematical model or methodology defined in this registration agrees to the following:
-- 55% Net Disbursed directly to Verified Authors (Allocated per CRediT CASRAI Matrix)
-- 15% Allocated to Independent Peer-Reviewers and Consensus Validation Nodes
-- 30% Allocated to the Protocol Founder Treasury
+- 70% Net Disbursed directly to Verified Authors (Allocated per CRediT CASRAI Matrix)
+- 20% Allocated to Independent Peer-Reviewers and Consensus Validation Nodes
+- 10% Allocated to the Protocol Founder Treasury
 - +20% B2B Tax Gross-Up paid by the Commercial Licensee to maintain net whole payouts
 
 3. RESEARCH USE ONLY (RUO) REGULATORY NOTICE
