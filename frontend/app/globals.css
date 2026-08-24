@@ -1,16 +1,20 @@
 @import "tailwindcss";
 
 :root {
-  --background: #050505;
-  --foreground: #ffffff;
-  --ferrari-red: #da291c;
+  --background: #0b0e14; /* surface-container-lowest */
+  --foreground: #e1e2eb; /* on-surface */
+  --sci-red: #f14e32;
+  --carbon-gray: #181818;
+  --surface: #10131a;
+  --surface-border: rgba(255, 255, 255, 0.1);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --font-sans: "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --font-display: "Anybody", "Inter", sans-serif;
 }
 
 body {
@@ -33,50 +37,55 @@ body {
   scrollbar-width: none;
 }
 
-/* Ferrari-style Panels */
-.ferrari-panel {
-  background: #111111;
-  border: 1px solid #222222;
-  border-radius: 0px; /* Sharp corners */
+/* Stitch-style Panels */
+.ferrari-panel, .sci-panel {
+  background: var(--carbon-gray);
+  border: 1px solid var(--surface-border);
+  border-radius: 0px; 
+  position: relative;
+  overflow: hidden;
 }
 
 /* Button & Link Hover Styles */
-.ferrari-btn-primary {
-  background-color: var(--ferrari-red);
+.ferrari-btn-primary, .sci-btn-primary {
+  background-color: var(--sci-red);
   color: #ffffff;
-  border-radius: 2px;
+  border-radius: 0px;
+  font-family: var(--font-mono);
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  transition: background-color 0.3s ease, transform 0.2s ease;
+  letter-spacing: 0.1em;
+  box-shadow: 0 0 15px rgba(241,78,50,0.4);
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
 }
-.ferrari-btn-primary:hover {
-  background-color: #b51f15;
+.ferrari-btn-primary:hover, .sci-btn-primary:hover {
+  background-color: #d13a20;
+  box-shadow: 0 0 25px rgba(241,78,50,0.6);
 }
 
-.ferrari-btn-secondary {
+.ferrari-btn-secondary, .sci-btn-secondary {
   background-color: transparent;
-  color: #ffffff;
-  border: 1px solid #ffffff;
-  border-radius: 2px;
+  color: var(--foreground);
+  border: 1px solid var(--surface-border);
+  border-radius: 0px;
+  font-family: var(--font-mono);
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.1em;
   transition: all 0.3s ease;
 }
-.ferrari-btn-secondary:hover {
-  background-color: #ffffff;
-  color: #000000;
+.ferrari-btn-secondary:hover, .sci-btn-secondary:hover {
+  background-color: rgba(255, 255, 255, 0.05);
 }
 
-.ferrari-link {
-  color: var(--ferrari-red);
+.ferrari-link, .sci-link {
+  color: var(--sci-red);
   text-decoration: none;
   text-transform: uppercase;
   font-size: 0.75rem;
   letter-spacing: 0.05em;
   font-weight: bold;
 }
-.ferrari-link:hover {
+.ferrari-link:hover, .sci-link:hover {
   text-decoration: underline;
 }

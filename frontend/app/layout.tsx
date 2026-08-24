@@ -1,22 +1,12 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+import { Web3Provider } from "./Web3Provider";
 
 export const metadata: Metadata = {
-  title: "GitScience™ — Суверенная платформа децентрализованной науки",
-  description: "Интерактивные научные манускрипты, исполняемые AST-формулы и децентрализованный нотариат.",
+  title: "GitScience™ — Sovereign Platform of Decentralized Science",
+  description: "Interactive scientific manuscripts, executable AST formulas, and decentralized notary.",
   other: {
-    // Академические метатеги Highwire Press для Google Scholar
+    // Academic Highwire Press metadata for Google Scholar
     "citation_title": "Клиническая оценка риска коронарных осложнений и валидация моделей",
     "citation_author": "Yeshimov, Salauat Abiltaevich",
     "citation_publication_date": "2026/06/01",
@@ -26,15 +16,14 @@ export const metadata: Metadata = {
   },
 };
 
-import { Web3Provider } from "./Web3Provider";
-
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col">
+    <html lang="en" className="h-full antialiased dark">
+      <head>
+        <link href="https://fonts.googleapis.com/css2?family=Anybody:wght@700;800;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+      </head>
+      <body className="min-h-full flex flex-col bg-[var(--background)]">
         <Web3Provider>
           {children}
         </Web3Provider>
