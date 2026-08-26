@@ -32,6 +32,9 @@ services:
       - AWS_BUCKET_NAME=${AWS_BUCKET_NAME:-gitscience-vault}
       - AWS_ENDPOINT_URL=${AWS_ENDPOINT_URL:-}
       - AWS_REGION=${AWS_REGION:-auto}
+      # Живой Bitcoin-якорь OpenTimestamps (реальные календари). 1 = включено
+      - GITSCIENCE_OTS_LIVE=${GITSCIENCE_OTS_LIVE:-0}
+      - FIAT_WEBHOOK_SECRET=${FIAT_WEBHOOK_SECRET:?FIAT_WEBHOOK_SECRET must be set}
     depends_on:
       db:
         condition: service_healthy
@@ -53,6 +56,11 @@ services:
     restart: always
     ports:
       - "80:80"
+      - "443:443"
+    # Прод-сертификаты: раскомментируйте и смонтируйте реальные файлы
+    # volumes:
+    #   - ./certs/fullchain.pem:/etc/nginx/certs/fullchain.pem:ro
+    #   - ./certs/privkey.pem:/etc/nginx/certs/privkey.pem:ro
     depends_on:
       - frontend
       - backend

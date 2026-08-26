@@ -370,6 +370,17 @@ async def upload_and_notarize_manuscript(
 
     proof_bundle = DualTimestampingNotary.generate_proof_bundle(saved["sha256_hash"], saved["registration_code"])
 
+    # Живой OpenTimestamps якорь (GITSCIENCE_OTS_LIVE=1): реальная отправка в календари Bitcoin
+    live_ots = DualTimestampingNotary.submit_to_bitcoin_calendars(
+        payload_sha256_hex=saved["sha256_hash"],
+        registration_code=saved["registration_code"],
+        ots_dir=storage.STORAGE_DIR / "ots_proofs",
+    )
+    ots_status = (
+        live_ots.get("status", "PENDING_BITCOIN_CALENDAR_SUBMISSION")
+        if live_ots else "PENDING_BITCOIN_CALENDAR_SUBMISSION"
+    )
+
     return {
         "status": "SUCCESSFULLY_NOTARIZED",
         "identity_source": identity_source,
@@ -381,6 +392,8 @@ async def upload_and_notarize_manuscript(
         "ipfs_cid": saved.get("ipfs_cid"),
         "rfc3161_token": saved.get("rfc3161_token", "RFC3161_TSA_ANCHORED"),
         "ots_proof_file": saved.get("ots_proof_file"),
+        "ots_status": ots_status,
+        "ots_live_anchor": live_ots,
         "ast_merkle_digest": ast_merkle,
         "proof_bundle": proof_bundle,
         "message": "Манускрипт зафиксирован в суверенном реестре с выдачей WIPO Prior Art Shield."

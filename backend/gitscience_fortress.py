@@ -107,6 +107,12 @@ class CRediTContributorManager:
 class DualTimestampingNotary:
     """Генерация и валидация системных временных меток RFC 3161 и OpenTimestamps"""
 
+    OTS_CALENDARS = (
+        "https://a.pool.opentimestamps.org",
+        "https://b.pool.opentimestamps.org",
+        "https://finney.calendar.eternitywall.com",
+    )
+
     @staticmethod
     def generate_proof_bundle(payload_sha256: str, registration_code: str) -> Dict[str, Any]:
         simulated_tsa_token = hashlib.sha256(f"GITSCIENCE_SYSTEM_TSA:{payload_sha256}:{time.time()}".encode()).hexdigest()
@@ -134,6 +140,70 @@ class DualTimestampingNotary:
                 "proof_file": f"{registration_code}.ots"
             }
         }
+
+    @staticmethod
+    def submit_to_bitcoin_calendars(
+        payload_sha256_hex: str,
+        registration_code: str,
+        ots_dir,
+    ) -> Optional[Dict[str, Any]]:
+        """
+        ЖИВОЙ OpenTimestamps якорь: отправляет дайджест в публичные календари Bitcoin
+        и сохраняет настоящий .ots файл (верифицируемый `ots verify`).
+
+        Активируется переменной окружения GITSCIENCE_OTS_LIVE=1.
+        Без неё возвращает None (используется симулированный proof bundle).
+        """
+        import os as _os
+        if _os.environ.get("GITSCIENCE_OTS_LIVE") != "1":
+            return None
+
+        try:
+            import hashlib as _hashlib
+            from pathlib import Path as _Path
+            from opentimestamps.core.timestamp import DetachedTimestampFile, Timestamp
+            from opentimestamps.core.op import OpSHA256
+            from opentimestamps.timestamp import nonce_timestamp
+            from opentimestamps.calendar import RemoteCalendar
+
+            digest = bytes.fromhex(payload_sha256_hex)
+            detached = DetachedTimestampFile(OpSHA256(), Timestamp(digest))
+
+            from opentimestamps.core.notary import PendingAttestation
+            # Nonce-цепочка для приватности + декларация календарей (canonical ots stamp flow)
+            leaf = nonce_timestamp(detached.timestamp)
+
+            calendars_ok = []
+            for cal_url in DualTimestampingNotary.OTS_CALENDARS:
+                try:
+                    leaf.attestations.add(PendingAttestation(cal_url))
+                    remote_attestation = RemoteCalendar(
+                        cal_url, user_agent="GitScience-Sovereign-Protocol"
+                    ).submit(leaf.msg, timeout=8)
+                    leaf.merge(remote_attestation)
+                    calendars_ok.append(cal_url)
+                except Exception:
+                    continue
+
+            out_dir = _Path(ots_dir)
+            out_dir.mkdir(parents=True, exist_ok=True)
+            ots_path = out_dir / f"{registration_code}.ots"
+
+            from opentimestamps.core.serialize import StreamSerializationContext
+            with open(ots_path, "wb") as fs:
+                detached.serialize(StreamSerializationContext(fs))
+
+            return {
+                "mode": "LIVE_BITCOIN_CALENDARS",
+                "status": "BITCOIN_ANCHOR_SUBMITTED" if calendars_ok else "ALL_CALENDARS_UNREACHABLE",
+                "calendars_ok": calendars_ok,
+                "proof_file": str(ots_path),
+                "verifiable_with": "ots verify / opentimestamps.org/verify",
+            }
+        except ImportError:
+            return {"mode": "LIVE_UNAVAILABLE", "status": "LIBRARY_MISSING", "calendars_ok": []}
+        except Exception as e:
+            return {"mode": "LIVE_ERROR", "status": f"SUBMISSION_FAILED: {e}", "calendars_ok": []}
 
 
 # =====================================================================
