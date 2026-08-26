@@ -24,9 +24,15 @@ class GitScienceLedger:
         data.setdefault("infra_balance", 0.0)
         data.setdefault("founder_balance", 0.0)
 
-        author_share = round(amount * 0.55, 2)
-        infra_share = round(amount * 0.15, 2)
-        founder_share = round(amount - author_share - infra_share, 2)
+        # Целочисленная bps-математика в центах (5500/1500/3000) — исключает float precision loss
+        amount_cents = int(round(amount * 100))
+        author_cents = (amount_cents * 5500) // 10000
+        infra_cents = (amount_cents * 1500) // 10000
+        founder_cents = amount_cents - author_cents - infra_cents
+        c = lambda x: x / 100.0
+        author_share = c(author_cents)
+        infra_share = c(infra_cents)
+        founder_share = c(founder_cents)
 
         data["author_balance"] += author_share
         data["infra_balance"] += infra_share

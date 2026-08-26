@@ -470,7 +470,8 @@ export function useAmanatTab() {
 // =====================================================================
 // Tab 9: Court State
 // =====================================================================
-export function useCourtTab() {
+export function useCourtTab(opts: { t?: AnyDict } = {}) {
+  const t = opts.t;
   const [courtCases, setCourtCases] = useState<any[]>([
     {
       case_id: "CASE-2026-001",
@@ -493,7 +494,7 @@ export function useCourtTab() {
 
   const handleFileDispute = async () => {
     if (!courtClaimantName || !courtClaimantOrcid || !courtReason) {
-      alert("Барлық міндетті өрістерді толтырыңыз!");
+      alert(t?.alertFillRequired || "Барлық міндетті өрістерді толтырыңыз!");
       return;
     }
     const newCase = {
@@ -541,7 +542,8 @@ export function useCourtTab() {
 // =====================================================================
 // Tab 10: Vampire Multi-Source State
 // =====================================================================
-export function useVampireTab(opts: { onLibraryRefresh?: () => void } = {}) {
+export function useVampireTab(opts: { onLibraryRefresh?: () => void; t?: AnyDict } = {}) {
+  const t = opts.t;
   const [vampireQuery, setVampireQuery] = useState<string>("oncology neuro-immune axis");
   const [vampireSource, setVampireSource] = useState<"all" | "openalex" | "arxiv" | "pubmed">("all");
   const [vampireSearching, setVampireSearching] = useState<boolean>(false);
@@ -590,7 +592,7 @@ export function useVampireTab(opts: { onLibraryRefresh?: () => void } = {}) {
         body: JSON.stringify({ work_data: work }),
       });
       opts.onLibraryRefresh?.();
-      alert(`«${work.title}» сәтті импортталды!`);
+      alert((t?.alertImported || "«{title}» сәтті импортталды!").replace("{title}", work.title));
     } catch {}
     setVampireImporting(false);
   };
@@ -604,7 +606,10 @@ export function useVampireTab(opts: { onLibraryRefresh?: () => void } = {}) {
         body: JSON.stringify({ query: vampireQuery, source: vampireSource, limit: 3 }),
       });
       const data = await res.json();
-      alert(`Пакеттік жинау аяқталды: ${data.harvested_count || 0} манускрипт қосылды.`);
+      alert(
+        (t?.alertBatchDone || "Пакеттік жинау аяқталды: {count} манускрипт қосылды.")
+          .replace("{count}", String(data.harvested_count || 0))
+      );
       opts.onLibraryRefresh?.();
     } catch {}
     setBatchHarvesting(false);

@@ -44,6 +44,7 @@ from gitscience_ipnft import IPNFTEngine
 from gitscience_auth import ScholarAuthService
 from gitscience_web3 import SovereignWeb3Gateway
 from gitscience_invoice_pdf import InstitutionalInvoicePDFGenerator
+from gitscience_watermark import stamp_pdf_bytes
 
 # Простой потокобезопасный Rate Limiter (защита от DoS/Sybil атак)
 class SimpleRateLimiter:
@@ -428,6 +429,18 @@ def download_official_priority_certificate_pdf(registration_code: str):
         ipfs_cid=article.get("ipfs_cid"),
         credit_contributors=credit_contributors
     )
+
+    # 4. Векторный штемпель Prior Art (криптографический водяной знак на каждой странице)
+    try:
+        pdf_bytes = stamp_pdf_bytes(
+            input_pdf_bytes=pdf_bytes,
+            reg_code=article["registration_code"],
+            sha256_hash=article["sha256_hash"],
+            author=article["author_name"],
+            timestamp_str=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
+        )
+    except Exception:
+        pass  # Сертификат остается валидным без штампа при сбое рендера
 
     return Response(
         content=pdf_bytes,

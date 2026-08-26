@@ -40,7 +40,7 @@ class InstitutionalFiatGateway:
         split = DependencyRoyaltyRouter.calculate_split(base_license_fee, contributors)
 
         fiat_base = round(base_license_fee * fiat_rate, 2)
-        fiat_tax = round(base_license_fee * 0.20 * fiat_rate, 2)
+        fiat_tax = round(split["taxes_paid_by_clinic"] * fiat_rate, 2)
         fiat_total = round(split["b2b_invoice_total"] * fiat_rate, 2)
 
         return {

@@ -170,21 +170,24 @@ class DependencyRoyaltyRouter:
     
     @staticmethod
     def calculate_split(total_amount: float, has_parent_dependency: bool) -> Dict[str, float]:
-        founder_fund = round(total_amount * 0.30, 2)
-        infra_fund = round(total_amount * 0.15, 2)
-        authors_pool = round(total_amount - founder_fund - infra_fund, 2)
-        
-        if has_parent_dependency:
-            current_author_payout = round(total_amount * 0.40, 2)
-            upstream_author_payout = round(authors_pool - current_author_payout, 2)
-        else:
-            current_author_payout = authors_pool
-            upstream_author_payout = 0.0
+        # Целочисленная bps-математика в центах: фонд 30%, инфра 15%, авторы 55% (без потерь float)
+        total_cents = int(round(total_amount * 100))
+        founder_fund_c = (total_cents * 3000) // 10000
+        infra_fund_c = (total_cents * 1500) // 10000
+        authors_pool_c = total_cents - founder_fund_c - infra_fund_c
 
+        if has_parent_dependency:
+            current_author_c = (total_cents * 4000) // 10000
+            upstream_author_c = authors_pool_c - current_author_c
+        else:
+            current_author_c = authors_pool_c
+            upstream_author_c = 0
+
+        c = lambda x: x / 100.0
         return {
             "total": total_amount,
-            "founder_fund": founder_fund,
-            "infra_fund": infra_fund,
-            "current_author_payout": current_author_payout,
-            "upstream_author_payout": upstream_author_payout
+            "founder_fund": c(founder_fund_c),
+            "infra_fund": c(infra_fund_c),
+            "current_author_payout": c(current_author_c),
+            "upstream_author_payout": c(upstream_author_c)
         }

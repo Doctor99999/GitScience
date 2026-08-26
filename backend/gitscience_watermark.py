@@ -81,19 +81,18 @@ def generate_watermark_overlay(
     packet.seek(0)
     return packet
 
-def stamp_pdf_document(
+def stamp_pdf_bytes(
     input_pdf_bytes: bytes,
-    output_path: str,
     reg_code: str,
     sha256_hash: str,
     author: str,
     timestamp_str: str,
     verify_domain: str = "https://gitscience.org"
-) -> str:
-    """Накладывает водяной знак на все страницы входящего PDF и сохраняет результат"""
+) -> bytes:
+    """Накладывает Prior Art Shield на все страницы и возвращает PDF как bytes (in-memory)."""
     reader = PdfReader(io.BytesIO(input_pdf_bytes))
     writer = PdfWriter()
-    
+
     verify_url = f"{verify_domain}/verify/{reg_code}"
 
     for page in reader.pages:
@@ -109,13 +108,27 @@ def stamp_pdf_document(
             timestamp_str=timestamp_str,
             verify_url=verify_url
         )
-        
+
         watermark_pdf = PdfReader(watermark_stream)
         page.merge_page(watermark_pdf.pages[0])
         writer.add_page(page)
 
+    out_buffer = io.BytesIO()
+    writer.write(out_buffer)
+    return out_buffer.getvalue()
+
+def stamp_pdf_document(
+    input_pdf_bytes: bytes,
+    output_path: str,
+    reg_code: str,
+    sha256_hash: str,
+    author: str,
+    timestamp_str: str,
+    verify_domain: str = "https://gitscience.org"
+) -> str:
+    """Накладывает водяной знак на все страницы входящего PDF и сохраняет результат"""
+    stamped = stamp_pdf_bytes(input_pdf_bytes, reg_code, sha256_hash, author, timestamp_str, verify_domain)
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     with open(output_path, "wb") as f_out:
-        writer.write(f_out)
-
+        f_out.write(stamped)
     return output_path

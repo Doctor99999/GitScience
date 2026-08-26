@@ -51,11 +51,15 @@ class InstitutionalInvoicePDFGenerator:
         if not canvas:
             return b"%PDF-1.4 empty invoice"
 
-        gross_up = base_license_fee * 0.20
-        total_gross = base_license_fee + gross_up
-        author_share = base_license_fee * 0.55
-        infra_share = base_license_fee * 0.15
-        founder_share = base_license_fee * 0.30
+        # Целочисленная bps-математика (5500/1500/3000) — без float-погрешностей на печати
+        base_cents = int(round(base_license_fee * 100))
+        gross_up_cents = (base_cents * 2000) // 10000
+        infra_cents = (base_cents * 1500) // 10000
+        founder_cents = (base_cents * 3000) // 10000
+        author_cents = base_cents - infra_cents - founder_cents
+        c = lambda x: x / 100.0
+        gross_up, total_gross = c(gross_up_cents), c(base_cents + gross_up_cents)
+        author_share, infra_share, founder_share = c(author_cents), c(infra_cents), c(founder_cents)
 
         buffer = io.BytesIO()
         can = canvas.Canvas(buffer, pagesize=letter)

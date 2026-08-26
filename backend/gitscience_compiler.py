@@ -55,6 +55,7 @@ ALLOWED_NAMES: Dict[str, Any] = {
 }
 
 MAX_AST_DEPTH = 32
+MAX_FORMULA_LENGTH = 2000
 
 class SafeASTEvaluator(ast.NodeVisitor):
     """
@@ -118,6 +119,9 @@ class SafeASTEvaluator(ast.NodeVisitor):
         elif isinstance(node.op, ast.Pow):
             if abs(left) > 1e6 or abs(right) > 50.0:
                 raise OverflowError(f"Превышен безопасный диапазон степени: {left} ** {right}")
+            # Запрет комплексных результатов: (-8.0) ** 0.5 -> complex в CPython (недетерминизм RUO)
+            if left < 0 and float(right).is_integer() is False:
+                raise ValueError("Отрицательное основание с дробной степенью запрещено (комплексный результат)")
             return left ** right
         raise TypeError(f"Неподдерживаемая бинарная операция: '{node.op.__class__.__name__}'")
 
@@ -129,6 +133,8 @@ class SafeASTEvaluator(ast.NodeVisitor):
         raise TypeError(f"Неподдерживаемая унарная операция: '{node.op.__class__.__name__}'")
 
     def visit_Call(self, node: ast.Call) -> Any:
+        if node.keywords or any(isinstance(a, ast.Starred) for a in node.args):
+            raise TypeError("Ключевые аргументы и распаковка (*args/**kwargs) запрещены в Safe AST")
         func = self.visit(node.func)
         if not callable(func):
             raise TypeError(f"Объект не является вызываемой функцией: {func}")
@@ -204,6 +210,8 @@ def validate_formula(formula_str: str) -> Tuple[bool, Optional[str], Optional[st
     """Полная валидация формулы: синтаксис, переменные и вычисление Merkle-дайджеста."""
     if not formula_str or not formula_str.strip():
         return False, "Формула не может быть пустой строкой", None, []
+    if len(formula_str) > MAX_FORMULA_LENGTH:
+        return False, f"Формула превышает лимит длины ({MAX_FORMULA_LENGTH} символов) — защита от DoS", None, []
 
     try:
         parsed = ast.parse(formula_str.strip(), mode='eval')
@@ -213,6 +221,8 @@ def validate_formula(formula_str: str) -> Tuple[bool, Optional[str], Optional[st
             if isinstance(node, ast.Call):
                 if not isinstance(node.func, ast.Name) or node.func.id not in ALLOWED_NAMES:
                     return False, "Вызов неразрешенной функции в формуле", None, []
+                if node.keywords or any(isinstance(a, ast.Starred) for a in node.args):
+                    return False, "Ключевые аргументы и *args запрещены", None, []
 
         inspector = ASTMerkleInspector()
         inspector.visit(parsed)
@@ -225,7 +235,12 @@ def validate_formula(formula_str: str) -> Tuple[bool, Optional[str], Optional[st
 
 def execute_formula(formula_str: str, variables: Dict[str, float]) -> float:
     """Исполняет формулу в безопасном изолированном окружении с защитой от DoS."""
+    if len(formula_str) > MAX_FORMULA_LENGTH:
+        raise ValueError(f"Формула превышает лимит длины ({MAX_FORMULA_LENGTH} символов)")
     parsed = ast.parse(formula_str.strip(), mode='eval')
     evaluator = SafeASTEvaluator(variables)
     result = evaluator.visit(parsed)
-    return float(result)
+    result_f = float(result)
+    if result_f != result_f or result_f in (float("inf"), float("-inf")):
+        raise ValueError("Результат вычисления не является конечным числом (NaN/Inf запрещены в RUO-режиме)")
+    return result_f

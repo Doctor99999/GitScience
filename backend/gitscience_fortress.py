@@ -115,6 +115,7 @@ class DualTimestampingNotary:
         return {
             "registration_code": registration_code,
             "sha256_digest": payload_sha256,
+            "ots_status": "PENDING_BITCOIN_CALENDAR_SUBMISSION",
             "rfc3161_tsa": {
                 "status": "SYSTEM_TIME_STAMP_TOKEN",
                 "standard": "RFC 3161 Data Structure Compatible",
@@ -123,7 +124,7 @@ class DualTimestampingNotary:
                 "timestamp_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
             },
             "opentimestamps": {
-                "status": "PENDING_BITCOIN_CALENDAR_ATTESTATION",
+                "status": "PENDING_BITCOIN_CALENDAR_SUBMISSION",
                 "merkle_root": simulated_ots_merkle,
                 "calendars": [
                     "https://a.pool.opentimestamps.org",
@@ -277,17 +278,24 @@ class DependencyRoyaltyRouter:
     и распределение авторского пула (55%) по ролям CRediT.
     """
 
+    # Единый золотой стандарт консенсуса Fair-Share в базисных пунктах
+    AUTHOR_POOL_BPS = 5500   # 55%
+    INFRA_POOL_BPS = 1500    # 15%
+    FOUNDER_BPS = 3000       # 30%
+    B2B_TAX_GROSSUP_BPS = 2000  # +20% на покупателя
+
     @staticmethod
     def calculate_split(
         base_b2b_fee: float,
         contributors: Optional[List[Dict[str, Any]]] = None
     ) -> Dict[str, Any]:
-        corporate_tax_rate = 0.20  # +20% B2B Tax Gross-Up
-        total_invoice = base_b2b_fee * (1.0 + corporate_tax_rate)
-
-        infra_fund = base_b2b_fee * 0.15      # 15% Рецензенты и валидаторы
-        founder_fund = base_b2b_fee * 0.30    # 30% Создатель платформы
-        total_author_pool = base_b2b_fee * 0.55 # 55% Авторский пул
+        # Целочисленная математика в центах/bps — исключает float precision loss
+        base_cents = int(round(base_b2b_fee * 100))
+        grossup_cents = int(round(base_cents * DependencyRoyaltyRouter.B2B_TAX_GROSSUP_BPS / 10000))
+        total_invoice_cents = base_cents + grossup_cents
+        infra_cents = (base_cents * DependencyRoyaltyRouter.INFRA_POOL_BPS) // 10000
+        founder_cents = (base_cents * DependencyRoyaltyRouter.FOUNDER_BPS) // 10000
+        author_pool_cents = base_cents - infra_cents - founder_cents  # остаток => ровно 100%
 
         if not contributors:
             contributors = [{"name": "Lead Author", "orcid": "", "roles": ["Conceptualization", "Methodology"], "weight": 100}]
@@ -295,32 +303,38 @@ class DependencyRoyaltyRouter:
         author_breakdown = []
         total_weight = sum(c.get("weight", 1.0) for c in contributors) or 1.0
 
-        for c in contributors:
+        allocated = 0
+        for idx, c in enumerate(contributors):
             weight = c.get("weight", 1.0)
             share_ratio = weight / total_weight
-            payout = total_author_pool * share_ratio
-            reputation_pts = 55.0 * share_ratio
+            if idx == len(contributors) - 1:
+                payout_cents = author_pool_cents - allocated  # последний получает цент-остаток
+            else:
+                payout_cents = (author_pool_cents * weight) // total_weight
+                payout_cents = max(payout_cents, 0)
+            allocated += payout_cents
+            reputation_pts = 55.0 * share_ratio  # SRS строго пропорционален финансовому сплиту пула (55%)
 
             author_breakdown.append({
                 "name": c.get("name", "Unknown"),
                 "orcid": c.get("orcid", ""),
                 "roles": CRediTContributorManager.validate_roles(c.get("roles", [])),
-                "payout_usdt": round(payout, 2),
+                "payout_usdt": round(payout_cents / 100.0, 2),
                 "share_pct": round(share_ratio * 100.0, 1),
                 "reputation_points": round(reputation_pts, 1)
             })
 
         return {
-            "b2b_invoice_total": round(total_invoice, 2),
-            "taxes_paid_by_clinic": round(base_b2b_fee * corporate_tax_rate, 2),
-            "base_fee": round(base_b2b_fee, 2),
-            "author_pool_total": round(total_author_pool, 2),
+            "b2b_invoice_total": round(total_invoice_cents / 100.0, 2),
+            "taxes_paid_by_clinic": round(grossup_cents / 100.0, 2),
+            "base_fee": round(base_cents / 100.0, 2),
+            "author_pool_total": round(author_pool_cents / 100.0, 2),
             "authors_breakdown": author_breakdown,
             "platform_allocations": {
-                "infrastructure_15pct": round(infra_fund, 2),
-                "founder_30pct": round(founder_fund, 2)
+                "infrastructure_15pct": round(infra_cents / 100.0, 2),
+                "founder_30pct": round(founder_cents / 100.0, 2)
             },
-            "founder_total_earnings_with_grossup": round(founder_fund + (base_b2b_fee * corporate_tax_rate), 2),
+            "founder_total_earnings_with_grossup": round((founder_cents + grossup_cents) / 100.0, 2),
             "legal_status": "TAX_BURDEN_SHIFTED_TO_B2B_BUYER",
             "standard": "CRediT (CASRAI) 55/15/30 Weighted Consensus"
         }

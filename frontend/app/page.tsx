@@ -96,8 +96,8 @@ export default function GitScienceApp() {
   const review = useReviewTab();
   const maas = useMaasTab();
   const amanat = useAmanatTab();
-  const court = useCourtTab();
-  const vampire = useVampireTab({ onLibraryRefresh: library.refresh });
+  const court = useCourtTab({ t });
+  const vampire = useVampireTab({ onLibraryRefresh: library.refresh, t });
 
   // Initial Load & Session Fetch
   useEffect(() => {

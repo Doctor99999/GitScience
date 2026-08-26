@@ -19,6 +19,10 @@ export const TRANSLATIONS = {
     tabCourt: "⚖️ Ғылыми Сот",
     tabVampire: "🧛 Vampire Парсер",
 
+    alertFillRequired: "Барлық міндетті өрістерді толтырыңыз!",
+    alertImported: "«{title}» сәтті импортталды!",
+    alertBatchDone: "Пакеттік жинау аяқталды: {count} манускрипт қосылды.",
+
     welcomeBannerTitle: "Қош келдіңіз! Ғалымдар аманатын суверенді қорғау протоколы",
     welcomeBannerSub: "Манускрипттеріңізді WIPO Prior Art Shield арқылы бекітіп, 55/15/30 роялти алу үшін ORCID және Web3 әмияныңызды қосыңыз.",
     welcomeRegisterBtn: "🧬 ORCID арқылы тіркелу / кіру",
@@ -181,6 +185,10 @@ export const TRANSLATIONS = {
     tabCourt: "⚖️ Научный Суд",
     tabVampire: "🧛 Vampire Парсер",
 
+    alertFillRequired: "Заполните все обязательные поля!",
+    alertImported: "«{title}» успешно импортирован!",
+    alertBatchDone: "Пакетный сбор завершен: добавлено {count} манускриптов.",
+
     welcomeBannerTitle: "Добро пожаловать в суверенный протокол защиты научных открытий GitScience™",
     welcomeBannerSub: "Защитите приоритет манускрипта через WIPO Prior Art Shield и получайте гарантированные роялти 55/15/30.",
     welcomeRegisterBtn: "🧬 Войти / Зарегистрироваться через ORCID",
@@ -342,6 +350,10 @@ export const TRANSLATIONS = {
     tabAmanat: "💳 Amanat Royalty",
     tabCourt: "⚖️ Science Court",
     tabVampire: "🧛 Vampire Harvester",
+
+    alertFillRequired: "Please fill in all required fields!",
+    alertImported: "«{title}» imported successfully!",
+    alertBatchDone: "Batch harvest complete: {count} manuscripts added.",
 
     welcomeBannerTitle: "Welcome to GitScience™ Sovereign Protocol for Scientific Truth",
     welcomeBannerSub: "Protect your manuscript prior art via WIPO Prior Art Shield and earn guaranteed 55/15/30 royalties.",

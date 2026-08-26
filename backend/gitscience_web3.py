@@ -106,22 +106,25 @@ class SovereignWeb3Gateway:
     def calculate_amanat_settlement(cls, base_fee_usd: float) -> Dict[str, Any]:
         """
         Вычисляет распределение роялти по формуле 55/15/30 + 20% B2B Gross-Up.
+        Целочисленная bps-математика в центах — исключает float precision loss.
         """
-        gross_up_tax = base_fee_usd * 0.20
-        total_invoice = base_fee_usd + gross_up_tax
-        author_pool = base_fee_usd * 0.55
-        infra_pool = base_fee_usd * 0.15
-        founder_pool = base_fee_usd * 0.30
+        base_cents = int(round(base_fee_usd * 100))
+        gross_up_cents = int(round(base_cents * 2000 / 10000))  # +20%, округление до цента
+        infra_cents = (base_cents * 1500) // 10000      # 15%
+        founder_cents = (base_cents * 3000) // 10000    # 30%
+        author_cents = base_cents - infra_cents - founder_cents  # ровно 55%, остаток без потерь
+        total_invoice_cents = base_cents + gross_up_cents
 
+        r = lambda c: round(c / 100.0, 2)
         return {
-            "base_fee_usd": base_fee_usd,
-            "gross_up_tax_20_pct": gross_up_tax,
-            "total_b2b_invoice_usd": total_invoice,
+            "base_fee_usd": r(base_cents),
+            "gross_up_tax_20_pct": r(gross_up_cents),
+            "total_b2b_invoice_usd": r(total_invoice_cents),
             "distribution": {
-                "author_pool_55_pct": author_pool,
-                "infra_review_pool_15_pct": infra_pool,
-                "founder_treasury_30_pct": founder_pool
+                "author_pool_55_pct": r(author_cents),
+                "infra_review_pool_15_pct": r(infra_cents),
+                "founder_treasury_30_pct": r(founder_cents)
             },
-            "founder_net_received": founder_pool + gross_up_tax,
+            "founder_net_received": r(founder_cents + gross_up_cents),
             "consensus_rule": "55% Authors / 15% Reviewers / 30% Founder (+20% B2B Surcharge)"
         }

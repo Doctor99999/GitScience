@@ -62,7 +62,18 @@ if DATABASE_URL.startswith("sqlite"):
         cursor = dbapi_connection.cursor()
         cursor.execute("PRAGMA journal_mode=WAL")
         cursor.execute("PRAGMA synchronous=NORMAL")
+        cursor.execute("PRAGMA busy_timeout=5000")
         cursor.close()
+
+    # Атомарные write-транзакции: BEGIN IMMEDIATE захватывает write-lock ДО первого чтения
+    # (официальный рецепт SQLAlchemy для Serializable/SQLite) — исключает гонку serial_count.
+    @sa.event.listens_for(engine, "connect")
+    def set_sqlite_isolation_none(dbapi_connection, connection_record):
+        dbapi_connection.isolation_level = None
+
+    @sa.event.listens_for(engine, "begin")
+    def begin_immediate(dbapi_connection):
+        dbapi_connection.exec_driver_sql("BEGIN IMMEDIATE")
 
 metadata = sa.MetaData()
 
@@ -258,6 +269,29 @@ def init_db():
 def _row_to_dict(row):
     return dict(row._mapping) if row else None
 
+def _git_commit_payload(file_bytes: bytes) -> str:
+    """
+    Реальный Git OID через GitPython: blob коммитится в ledger-репозиторий хранилища.
+    Fallback на SHA-1 только если Git недоступен (совместимость sandbox).
+    """
+    try:
+        import git as gitpython
+        repo_dir = STORAGE_DIR / "ledger_repo"
+        if not (repo_dir / ".git").exists():
+            gitpython.Repo.init(repo_dir)
+        repo = gitpython.Repo(repo_dir)
+        store_dir = repo_dir / "objects_store"
+        store_dir.mkdir(parents=True, exist_ok=True)
+        digest = hashlib.sha256(file_bytes).hexdigest()
+        blob_path = store_dir / f"{digest}.bin"
+        with open(blob_path, "wb") as f:
+            f.write(file_bytes)
+        repo.index.add([str(blob_path.relative_to(repo_dir))])
+        commit = repo.index.commit(f"NOTARIZE:{digest}")
+        return commit.hexsha
+    except Exception:
+        return hashlib.sha1(file_bytes).hexdigest()
+
 def save_uploaded_pdf(
     file_bytes: bytes,
     filename: str,
@@ -276,60 +310,73 @@ def save_uploaded_pdf(
 ) -> dict:
     
     real_sha256 = hashlib.sha256(file_bytes).hexdigest()
-    real_git_commit = hashlib.sha1(file_bytes).hexdigest()
+    real_git_commit = _git_commit_payload(file_bytes)
     ipfs_cid = compute_ipfs_cid(file_bytes)
-    
-    with engine.begin() as conn:
-        res = conn.execute(sa.select(sa.func.count()).select_from(manuscripts).where(manuscripts.c.is_genesis_anchor == 0))
-        serial_count = res.scalar() + 1
-        reg_code = custom_reg_code or f"GS-2026-{serial_count:05d}"
-        
-        # Облачное хранилище (S3) или локальное (CAS)
-        s3_url = None
-        if s3_client:
-            s3_key = f"vault/{real_sha256[:2]}/{real_sha256[2:4]}/{real_sha256}.pdf"
-            s3_client.put_object(
-                Bucket=S3_BUCKET,
-                Key=s3_key,
-                Body=file_bytes,
-                ContentType="application/pdf"
-            )
-            s3_url = f"s3://{S3_BUCKET}/{s3_key}"
-            file_path = s3_url
-        else:
-            cas_shard_dir = VAULT_DIR / real_sha256[:2] / real_sha256[2:4]
-            cas_shard_dir.mkdir(parents=True, exist_ok=True)
-            file_path = str(cas_shard_dir / f"{real_sha256}.pdf")
-            with open(file_path, "wb") as f:
-                f.write(file_bytes)
-            
-        ots_file = f"{reg_code}.ots"
-        credit_json = json.dumps(credit_roles or [], ensure_ascii=False)
-        
-        conn.execute(
-            manuscripts.insert().values(
-                registration_code=reg_code, title=title, author_name=author, orcid=orcid,
-                category=category, ipc_class=ipc_class, abstract=abstract,
-                formula_math=formula_math, ast_merkle_digest=ast_merkle_digest,
-                credit_roles_json=credit_json, license_type=license_type,
-                file_path=file_path, original_filename=filename, sha256_hash=real_sha256,
-                ots_proof_file=ots_file, git_commit_hash=real_git_commit,
-                ipfs_cid=ipfs_cid, source_archive=source_archive, is_genesis_anchor=0
-            )
-        )
 
-        if credit_roles:
-            for c in credit_roles:
-                c_name = c.get("name", author)
-                c_orcid = c.get("orcid", orcid)
-                c_roles = json.dumps(c.get("roles", ["Conceptualization"]), ensure_ascii=False)
-                c_weight = float(c.get("weight", 100.0))
+    # Content-Addressed Storage (S3 или локальный CAS) — вне БД-транзакции, идемпотентно по sha256
+    s3_url = None
+    if s3_client:
+        s3_key = f"vault/{real_sha256[:2]}/{real_sha256[2:4]}/{real_sha256}.pdf"
+        s3_client.put_object(
+            Bucket=S3_BUCKET,
+            Key=s3_key,
+            Body=file_bytes,
+            ContentType="application/pdf"
+        )
+        s3_url = f"s3://{S3_BUCKET}/{s3_key}"
+        file_path = s3_url
+    else:
+        cas_shard_dir = VAULT_DIR / real_sha256[:2] / real_sha256[2:4]
+        cas_shard_dir.mkdir(parents=True, exist_ok=True)
+        file_path = str(cas_shard_dir / f"{real_sha256}.pdf")
+        with open(file_path, "wb") as f:
+            f.write(file_bytes)
+
+    credit_json = json.dumps(credit_roles or [], ensure_ascii=False)
+
+    # Атомарная выдача серийного номера: ретраи против гонки параллельных аплоадов
+    last_error: Optional[Exception] = None
+    for _attempt in range(3):
+        try:
+            with engine.begin() as conn:
+                # SQLite: глобальный listener "begin" уже открывает BEGIN IMMEDIATE (см. init движка)
+                res = conn.execute(sa.select(sa.func.count()).select_from(manuscripts).where(manuscripts.c.is_genesis_anchor == 0))
+                serial_count = res.scalar() + 1
+                reg_code = custom_reg_code or f"GS-2026-{serial_count:05d}"
+                ots_file = f"{reg_code}.ots"
+
                 conn.execute(
-                    credit_contributions.insert().values(
-                        registration_code=reg_code, contributor_name=c_name,
-                        contributor_orcid=c_orcid, roles_json=c_roles, weight_pct=c_weight
+                    manuscripts.insert().values(
+                        registration_code=reg_code, title=title, author_name=author, orcid=orcid,
+                        category=category, ipc_class=ipc_class, abstract=abstract,
+                        formula_math=formula_math, ast_merkle_digest=ast_merkle_digest,
+                        credit_roles_json=credit_json, license_type=license_type,
+                        file_path=file_path, original_filename=filename, sha256_hash=real_sha256,
+                        ots_proof_file=ots_file, git_commit_hash=real_git_commit,
+                        ipfs_cid=ipfs_cid, source_archive=source_archive, is_genesis_anchor=0
                     )
                 )
+
+                if credit_roles:
+                    for c in credit_roles:
+                        c_name = c.get("name", author)
+                        c_orcid = c.get("orcid", orcid)
+                        c_roles = json.dumps(c.get("roles", ["Conceptualization"]), ensure_ascii=False)
+                        c_weight = float(c.get("weight", 100.0))
+                        conn.execute(
+                            credit_contributions.insert().values(
+                                registration_code=reg_code, contributor_name=c_name,
+                                contributor_orcid=c_orcid, roles_json=c_roles, weight_pct=c_weight
+                            )
+                        )
+            break
+        except Exception as e:
+            last_error = e
+            is_integrity = type(e).__name__ in ("IntegrityError",) or "UNIQUE" in str(e).upper()
+            if not is_integrity:
+                raise
+    else:
+        raise last_error  # type: ignore[misc]
 
     return {
         "serial_number": serial_count,
