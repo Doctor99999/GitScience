@@ -65,7 +65,7 @@ class SandboxedEvaluator:
 # 2. 👥 МАТРИЦА ВКЛАДА CREDIT CASRAI (14 Roles Taxonomy)
 # =====================================================================
 class CRediTContributorManager:
-    """Управление 14 ролями CRediT и распределение авторского пула (70%)"""
+    """Управление 14 ролями CRediT и распределение авторского пула (55%)"""
 
     @staticmethod
     def validate_roles(roles_list: List[str]) -> List[str]:
@@ -96,7 +96,7 @@ class CRediTContributorManager:
                 "roles": CRediTContributorManager.validate_roles(c.get("roles", [])),
                 "weight": c.get("weight", 1.0),
                 "author_pool_pct": share_pct,
-                "effective_total_pct": round(share_pct * 0.70, 2)  # Доля от всего дохода с учетом 70% пула
+                "effective_total_pct": round(share_pct * 0.55, 2)  # Доля от всего дохода с учетом 55% пула авторов
             })
         return calculated
 

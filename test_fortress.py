@@ -53,10 +53,13 @@ def run_fortress_tests():
     print(" ✅ [Пилон 5/7] IoT Hardware Signature: Подпись секвенатора ДНК подтверждена!")
     passed += 1
 
-    # 6. Graph Dependency Royalty Router
+    # 6. Graph Dependency Royalty Router (консенсус Аманата 55/15/30)
     payout = DependencyRoyaltyRouter.calculate_split(100.0, has_parent_dependency=True)
-    assert payout["current_author_payout"] == 50.0 and payout["upstream_author_payout"] == 20.0
-    print(" ✅ [Пилон 6/7] Recursive Royalty Tree: $100 разделены ($50 Автору / $20 Базовой формуле / $30 Платформе)!")
+    assert payout["current_author_payout"] == 40.0 and payout["upstream_author_payout"] == 15.0
+    assert payout["founder_fund"] == 30.0 and payout["infra_fund"] == 15.0
+    no_dep = DependencyRoyaltyRouter.calculate_split(100.0, has_parent_dependency=False)
+    assert no_dep["current_author_payout"] == 55.0
+    print(" ✅ [Пилон 6/7] Recursive Royalty Tree: $100 разделены ($40 Автору / $15 Базовой формуле / $15 Инфраструктуре / $30 Фонду протокола)!")
     passed += 1
 
     # 7. One-Click Node Config

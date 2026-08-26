@@ -2,10 +2,10 @@
  * ============================================================================
  * GitScience™ Genesis Protocol Consensus Specification
  * Module: genesis_protocol.c
- * * FUNDAMENTAL PROTOCOL INVARIANTS (FAIR-SHARE CONSENSUS):
- * - Author Research Share (Врачу / Ученому) : 70.00% (7000 bps)
- * - Infrastructure & DeSci Fund (Ноды, P2P) : 20.00% (2000 bps)
- * - Genesis Founder Wallet (Создателю сети)  : 10.00% (1000 bps)
+ * * FUNDAMENTAL PROTOCOL INVARIANTS (FAIR-SHARE CONSENSUS / AMANAT RULE):
+ * - Author Research Share (Врачу / Ученому) : 55.00% (5500 bps)
+ * - Infrastructure & DeSci Fund (Ноды, P2P) : 15.00% (1500 bps)
+ * - Genesis Founder Wallet (Создателю сети)  : 30.00% (3000 bps)
  * ============================================================================
  */
 
@@ -16,9 +16,9 @@
 
 /* Базисные пункты: 10000 = 100.00% (защита от ошибок округления чисел с плавающей точкой) */
 static const uint32_t BASIS_POINTS_TOTAL   = 10000;
-static const uint32_t BASIS_POINTS_AUTHOR  = 7000;  /* 70.00% */
-static const uint32_t BASIS_POINTS_INFRA   = 2000;  /* 20.00% */
-static const uint32_t BASIS_POINTS_FOUNDER = 1000;  /* 10.00% */
+static const uint32_t BASIS_POINTS_AUTHOR  = 5500;  /* 55.00% */
+static const uint32_t BASIS_POINTS_INFRA   = 1500;  /* 15.00% */
+static const uint32_t BASIS_POINTS_FOUNDER = 3000;  /* 30.00% */
 
 typedef struct {
     double total_amount;
@@ -40,6 +40,6 @@ SplitResult calculate_fair_share(double amount) {
 int main(void) {
     printf("=== GitScience Protocol Consensus Initialized ===\n");
     printf("Version: %s\n", GITSCIENCE_PROTOCOL_VERSION);
-    printf("Author: 70%% | Infra: 20%% | Founder: 10%%\n");
+    printf("Author: 55%% | Infra: 15%% | Founder: 30%%\n");
     return 0;
 }

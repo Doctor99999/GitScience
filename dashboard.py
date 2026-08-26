@@ -30,7 +30,7 @@ def main():
     
     print("[1] Создать манускрипт и скомпилировать формулу")
     print("[2] Запустить проверку целостности (Prior Art Shield)")
-    print("[3] Симулировать коммерческий вызов API (Биллинг 70/30)")
+    print("[3] Симулировать коммерческий вызов API (Биллинг 55/15/30)")
     print("[4] Проверить репутационный балл SRS")
     print("[0] Выход")
     
@@ -46,7 +46,7 @@ def main():
     elif choice == "3":
         pay_res = ledger.process_payment(100.0)
         rating.add_api_call()
-        print(f"\n💳 Оплата обработана: Автору зачислено ${pay_res['author_received_70pct']} (70%), Платформе: ${pay_res['platform_fee_30pct']} (30%)")
+        print(f"\n💳 Оплата обработана: Автору ${pay_res['author_received_55pct']} (55%), Инфраструктуре: ${pay_res['infra_fee_15pct']} (15%), Фонду протокола: ${pay_res['founder_share_30pct']} (30%)")
     else:
         print("\nСистема готова к работе.")
 

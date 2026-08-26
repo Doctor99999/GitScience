@@ -567,9 +567,9 @@ This scientific work has been definitively and irrevocably disclosed under:
 2. FAIR-SHARE REVENUE MODEL (55 / 15 / 30 CONSENSUS)
 Any commercial entity, hospital, oncology clinic, or pharmaceutical enterprise utilizing
 the mathematical model or methodology defined in this registration agrees to the following:
-- 70% Net Disbursed directly to Verified Authors (Allocated per CRediT CASRAI Matrix)
-- 20% Allocated to Independent Peer-Reviewers and Consensus Validation Nodes
-- 10% Allocated to the Protocol Founder Treasury
+- 55% Net Disbursed directly to Verified Authors (Allocated per CRediT CASRAI Matrix)
+- 15% Allocated to Independent Peer-Reviewers and Consensus Validation Nodes (Infrastructure Fund)
+- 30% Allocated to the Protocol Founder Treasury
 - +20% B2B Tax Gross-Up paid by the Commercial Licensee to maintain net whole payouts
 
 3. RESEARCH USE ONLY (RUO) REGULATORY NOTICE

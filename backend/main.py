@@ -73,10 +73,13 @@ storage.init_db()
 CONSTANTS = storage.load_protocol_constants()
 court_engine = ScienceCourt(storage.STORAGE_DIR)
 
-# Безопасный CORS для веб-приложений и расширений
+# Безопасный CORS: без явного ALLOWED_ORIGINS разрешаем только локальную разработку
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=os.environ.get("ALLOWED_ORIGINS", "*").split(","),
+    allow_origins=os.environ.get(
+        "ALLOWED_ORIGINS",
+        "http://localhost:3000,http://127.0.0.1:3000"
+    ).split(","),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

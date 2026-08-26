@@ -23,7 +23,7 @@ services:
     restart: always
     environment:
       - DATABASE_URL=postgresql://gitscience:${POSTGRES_PASSWORD:-gitscience_password}@db:5432/gitscience_db
-      - JWT_SECRET=${JWT_SECRET:-gitscience-sovereign-amanat-protocol-secret-key-2026}
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET must be set in .env (see .env.example)}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-https://gitscience.org,https://www.gitscience.org,http://localhost}
       - POLYGON_RPC_URL=${POLYGON_RPC_URL:-https://polygon-rpc.com}
       - BASE_RPC_URL=${BASE_RPC_URL:-https://mainnet.base.org}

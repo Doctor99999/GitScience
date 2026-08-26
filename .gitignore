@@ -25,6 +25,17 @@ storage/
 backend/*.db
 backend/storage/
 
+# Test & runtime artifacts
+test_sandbox/
+.pytest_cache/
+court_test.json
+
+# Secrets (CRITICAL: никогда не коммитить!)
+Metamask.txt
+metamask*.txt
+*.seed
+*.key
+
 # Environment variables (CRITICAL: никогда не коммитить секреты)
 .env
 .env.local

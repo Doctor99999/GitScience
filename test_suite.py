@@ -3,7 +3,7 @@
 
 """
 test_suite.py — Автоматическая тестовая лаборатория GitScience™
-Проверяет анонимизацию, AST-безопасность, биллинг 70/30 и Git-коммиты.
+Проверяет анонимизацию, AST-безопасность, биллинг 55/15/30 и Git-коммиты.
 """
 
 import sys
@@ -54,8 +54,8 @@ def run_all_tests():
         print("  ❌ ОШИБКА: Компилятор не смог распарсить формулу!")
         failed += 1
 
-    # --- ТЕСТ 3: Биллинг Fair-Share 70/30 ---
-    print("\n[Тест 3/4] Проверка финансового модуля Fair-Share (70/30)...")
+    # --- ТЕСТ 3: Биллинг Fair-Share 55/15/30 ---
+    print("\n[Тест 3/4] Проверка финансового модуля Fair-Share (55/15/30)...")
     ledger_file = TEST_DIR / "test_ledger.json"
     if ledger_file.exists():
         ledger_file.unlink()
@@ -63,8 +63,10 @@ def run_all_tests():
     ledger = GitScienceLedger(ledger_file)
     pay_res = ledger.process_payment(100.0)
     
-    if pay_res["author_received_70pct"] == 70.0 and pay_res["platform_fee_30pct"] == 30.0:
-        print("  ✅ УСПЕШНО: Сплит $100 прошел точно: $70 Автору / $30 Платформе!")
+    if (pay_res["author_received_55pct"] == 55.0
+            and pay_res["infra_fee_15pct"] == 15.0
+            and pay_res["founder_share_30pct"] == 30.0):
+        print("  ✅ УСПЕШНО: Сплит $100 прошел точно: $55 Автору / $15 Инфраструктуре / $30 Фонду протокола!")
         passed += 1
     else:
         print(f"  ❌ ОШИБКА: Неверный пересчет долей: {pay_res}")

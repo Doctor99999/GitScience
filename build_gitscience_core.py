@@ -4,7 +4,7 @@
 """
 build_gitscience_core.py
 Главный скрипт-сборщик экосистемы GitScience™.
-Биллинг Fair-Share: 70% Автору / 30% Платформе.
+Биллинг Fair-Share (консенсус Аманата): 55% Авторам / 15% Инфраструктуре / 30% Фонду протокола.
 """
 
 import os
@@ -138,7 +138,7 @@ class GitScienceVerifier:
 
 GITSCIENCE_LEDGER_PY = r'''#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-""" gitscience_ledger.py — Биллинг Fair-Share 70/30 """
+""" gitscience_ledger.py — Биллинг Fair-Share 55/15/30 """
 import json
 from pathlib import Path
 from typing import Dict, Any
@@ -147,7 +147,7 @@ class GitScienceLedger:
     def __init__(self, ledger_path: Path):
         self.ledger_path = Path(ledger_path)
         if not self.ledger_path.exists():
-            self._save({"author_balance": 0.0, "platform_balance": 0.0})
+            self._save({"author_balance": 0.0, "infra_balance": 0.0, "founder_balance": 0.0})
 
     def _load(self) -> Dict[str, float]:
         return json.loads(self.ledger_path.read_text(encoding="utf-8"))
@@ -157,17 +157,25 @@ class GitScienceLedger:
 
     def process_payment(self, amount: float) -> Dict[str, float]:
         data = self._load()
-        author_share = amount * 0.70
-        platform_share = amount * 0.30
-        
+        # Миграция старых реестров (70/30) на консенсус Аманата 55/15/30
+        data.setdefault("author_balance", 0.0)
+        data.setdefault("infra_balance", 0.0)
+        data.setdefault("founder_balance", 0.0)
+
+        author_share = round(amount * 0.55, 2)
+        infra_share = round(amount * 0.15, 2)
+        founder_share = round(amount - author_share - infra_share, 2)
+
         data["author_balance"] += author_share
-        data["platform_balance"] += platform_share
+        data["infra_balance"] += infra_share
+        data["founder_balance"] += founder_share
         self._save(data)
-        
+
         return {
             "paid": amount,
-            "author_received_70pct": author_share,
-            "platform_fee_30pct": platform_share,
+            "author_received_55pct": author_share,
+            "infra_fee_15pct": infra_share,
+            "founder_share_30pct": founder_share,
             "total_author_balance": data["author_balance"]
         }
 '''
@@ -251,7 +259,7 @@ def main():
     
     print("[1] Создать манускрипт и скомпилировать формулу")
     print("[2] Запустить проверку целостности (Prior Art Shield)")
-    print("[3] Симулировать коммерческий вызов API (Биллинг 70/30)")
+    print("[3] Симулировать коммерческий вызов API (Биллинг 55/15/30)")
     print("[4] Проверить репутационный балл SRS")
     print("[0] Выход")
     
@@ -267,7 +275,7 @@ def main():
     elif choice == "3":
         pay_res = ledger.process_payment(100.0)
         rating.add_api_call()
-        print(f"\n💳 Оплата обработана: Автору зачислено ${pay_res['author_received_70pct']} (70%), Платформе: ${pay_res['platform_fee_30pct']} (30%)")
+        print(f"\n💳 Оплата обработана: Автору ${pay_res['author_received_55pct']} (55%), Инфраструктуре: ${pay_res['infra_fee_15pct']} (15%), Фонду протокола: ${pay_res['founder_share_30pct']} (30%)")
     else:
         print("\nСистема готова к работе.")
 
@@ -287,15 +295,20 @@ MODULES = {
 
 def build():
     print("=" * 60)
-    print(" 🛠️  Сборка ядра GitScience™ Core Engine (Fair-Share 70/30)...")
+    print(" 🛠️  Сборка ядра GitScience™ Core Engine (Fair-Share 55/15/30)...")
     print("=" * 60)
     
     created_files = []
     
     for filename, content in MODULES.items():
         file_path = Path(filename)
-        file_path.write_text(content.strip(), encoding='utf-8')
-        print(f"  [+] Создан модуль: {filename}")
+        if file_path.exists():
+            # Живой модуль в репозитории — источник истины (защита от затирания эволюционировавшего кода)
+            print(f"  [=] Упакован существующий модуль: {filename}")
+        else:
+            # Bootstrap: модуля нет — создаём из встроенной копии
+            file_path.write_text(content.strip(), encoding='utf-8')
+            print(f"  [+] Создан модуль: {filename}")
         
         try:
             py_compile.compile(filename, doraise=True)

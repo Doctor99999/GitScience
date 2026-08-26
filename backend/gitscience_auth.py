@@ -10,11 +10,18 @@ import json
 import time
 import re
 import os
+import secrets as _secrets
 import urllib.request
 import urllib.error
 from typing import Dict, Any, Optional, Tuple
 
-JWT_SECRET = os.environ.get("JWT_SECRET", "gitscience-sovereign-amanat-protocol-secret-key-2026")
+_jwt_secret_env = os.environ.get("JWT_SECRET")
+if not _jwt_secret_env:
+    # Безопасный fallback: эфемерный случайный ключ вместо публично известного секрета.
+    # Сессии сбросятся при перезапуске — для продакшена обязательно задайте JWT_SECRET в .env!
+    _jwt_secret_env = _secrets.token_hex(32)
+    print("⚠️  [AUTH] JWT_SECRET не задан — сгенерирован эфемерный ключ. Задайте JWT_SECRET в .env для продакшена!", flush=True)
+JWT_SECRET = _jwt_secret_env
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRATION_SECONDS = 86400 * 7  # 7 days
 

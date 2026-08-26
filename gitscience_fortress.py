@@ -164,23 +164,27 @@ class IoTHardwareGateway:
 # 6. 🌿 МИКРО-РОЯЛТИ ПО ДЕРЕВУ ЦИТИРОВАНИЙ (Graph Dependency Payout)
 # =====================================================================
 class DependencyRoyaltyRouter:
-    """Каскадное распределение 70% авторской доли: 50% автору, 20% автору базовой формулы"""
+    """Каскадное распределение по дереву цитирований при консенсусе Аманата 55/15/30.
+    Фонд протокола: 30%, Инфраструктура: 15%. Авторы делят пул 55%:
+    без родительской зависимости — 55% текущему автору; с зависимостью — 40%/15%."""
     
     @staticmethod
     def calculate_split(total_amount: float, has_parent_dependency: bool) -> Dict[str, float]:
-        platform_fee_30pct = round(total_amount * 0.30, 2)
-        authors_share_70pct = total_amount - platform_fee_30pct
+        founder_fund = round(total_amount * 0.30, 2)
+        infra_fund = round(total_amount * 0.15, 2)
+        authors_pool = round(total_amount - founder_fund - infra_fund, 2)
         
         if has_parent_dependency:
-            current_author_payout = round(total_amount * 0.50, 2)
-            upstream_author_payout = round(total_amount * 0.20, 2)
+            current_author_payout = round(total_amount * 0.40, 2)
+            upstream_author_payout = round(authors_pool - current_author_payout, 2)
         else:
-            current_author_payout = authors_share_70pct
+            current_author_payout = authors_pool
             upstream_author_payout = 0.0
 
         return {
             "total": total_amount,
-            "platform_fee_30pct": platform_fee_30pct,
+            "founder_fund": founder_fund,
+            "infra_fund": infra_fund,
             "current_author_payout": current_author_payout,
             "upstream_author_payout": upstream_author_payout
         }
