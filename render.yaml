@@ -4,12 +4,14 @@ services:
     name: gitscience-api
     runtime: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn -w 2 -k uvicorn.workers.UvicornWorker --timeout 120 --keep-alive 5 server:app --bind 0.0.0.0:$PORT
+    startCommand: gunicorn -w 2 -k uvicorn.workers.UvicornWorker --timeout 120 --keep-alive 5 --proxy-headers --forwarded-allow-ips='*' server:app --bind 0.0.0.0:$PORT
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.9
       - key: PYTHONUNBUFFERED
         value: "1"
+      - key: FIAT_WEBHOOK_SECRET
+        sync: false
 
   # 2. Next.js Frontend Service
   - type: web

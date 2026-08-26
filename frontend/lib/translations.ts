@@ -22,6 +22,7 @@ export const TRANSLATIONS = {
     alertFillRequired: "Барлық міндетті өрістерді толтырыңыз!",
     alertImported: "«{title}» сәтті импортталды!",
     alertBatchDone: "Пакеттік жинау аяқталды: {count} манускрипт қосылды.",
+    alertAuthRequired: "Сот пен рецензия үшін ORCID арқылы кіру қажет (JWT токен).",
 
     welcomeBannerTitle: "Қош келдіңіз! Ғалымдар аманатын суверенді қорғау протоколы",
     welcomeBannerSub: "Манускрипттеріңізді WIPO Prior Art Shield арқылы бекітіп, 55/15/30 роялти алу үшін ORCID және Web3 әмияныңызды қосыңыз.",
@@ -188,6 +189,7 @@ export const TRANSLATIONS = {
     alertFillRequired: "Заполните все обязательные поля!",
     alertImported: "«{title}» успешно импортирован!",
     alertBatchDone: "Пакетный сбор завершен: добавлено {count} манускриптов.",
+    alertAuthRequired: "Для суда и рецензирования требуется вход через ORCID (JWT токен).",
 
     welcomeBannerTitle: "Добро пожаловать в суверенный протокол защиты научных открытий GitScience™",
     welcomeBannerSub: "Защитите приоритет манускрипта через WIPO Prior Art Shield и получайте гарантированные роялти 55/15/30.",
@@ -354,6 +356,7 @@ export const TRANSLATIONS = {
     alertFillRequired: "Please fill in all required fields!",
     alertImported: "«{title}» imported successfully!",
     alertBatchDone: "Batch harvest complete: {count} manuscripts added.",
+    alertAuthRequired: "Sign-in via ORCID (JWT token) is required for Court and Peer Review.",
 
     welcomeBannerTitle: "Welcome to GitScience™ Sovereign Protocol for Scientific Truth",
     welcomeBannerSub: "Protect your manuscript prior art via WIPO Prior Art Shield and earn guaranteed 55/15/30 royalties.",

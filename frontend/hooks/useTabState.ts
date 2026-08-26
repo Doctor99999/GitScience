@@ -334,7 +334,10 @@ export function usePassportTab() {
 // =====================================================================
 // Tab 6: Peer Review State
 // =====================================================================
-export function useReviewTab() {
+export function useReviewTab(opts: { token?: string | null } = {}) {
+  const authHeaders: Record<string, string> = opts.token
+    ? { "Content-Type": "application/json", Authorization: `Bearer ${opts.token}` }
+    : { "Content-Type": "application/json" };
   const [revCode, setRevCode] = useState<string>("GS-2026-00001");
   const [revOrcid, setRevOrcid] = useState<string>("0009-0001-2234-5678");
   const [revMath, setRevMath] = useState<number>(9);
@@ -348,7 +351,7 @@ export function useReviewTab() {
     try {
       const res = await fetch(`${getApiBase()}/api/v1/review/submit`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders,
         body: JSON.stringify({
           target_code: revCode,
           reviewer_orcid: revOrcid,
@@ -470,8 +473,12 @@ export function useAmanatTab() {
 // =====================================================================
 // Tab 9: Court State
 // =====================================================================
-export function useCourtTab(opts: { t?: AnyDict } = {}) {
+export function useCourtTab(opts: { t?: AnyDict; scholarToken?: string | null } = {}) {
   const t = opts.t;
+  const authHeaders: Record<string, string> = opts.scholarToken
+    ? { "Content-Type": "application/json", Authorization: `Bearer ${opts.scholarToken}` }
+    : { "Content-Type": "application/json" };
+  const authRequired = () => alert(t?.alertAuthRequired || "Кіру қажет (ORCID JWT) / Требуется вход / Sign-in required");
   const [courtCases, setCourtCases] = useState<any[]>([
     {
       case_id: "CASE-2026-001",
@@ -497,6 +504,32 @@ export function useCourtTab(opts: { t?: AnyDict } = {}) {
       alert(t?.alertFillRequired || "Барлық міндетті өрістерді толтырыңыз!");
       return;
     }
+    if (!opts.scholarToken) {
+      authRequired();
+      return;
+    }
+    try {
+      const res = await fetch(`${getApiBase()}/api/v1/court/dispute`, {
+        method: "POST",
+        headers: authHeaders,
+        body: JSON.stringify({
+          claimant_name: courtClaimantName,
+          claimant_orcid: courtClaimantOrcid,
+          target_code: courtTargetCode,
+          reason: courtReason,
+          evidence_hash: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setCourtCases([data.case, ...courtCases]);
+        setCourtDisputeResult(data.case);
+        return;
+      }
+      if (res.status === 401) { authRequired(); return; }
+      if (res.status === 403) { alert(t?.alertFillRequired); return; }
+    } catch {}
+    // Offline fallback: локальный кейс
     const newCase = {
       case_id: `CASE-2026-00${courtCases.length + 1}`,
       claimant_name: courtClaimantName,
@@ -514,6 +547,18 @@ export function useCourtTab(opts: { t?: AnyDict } = {}) {
   };
 
   const handleVoteCase = (caseId: string, vote: "valid" | "invalid" | "abstain") => {
+    // Оптимистичное локальное обновление + серверная фиксация голоса (JWT-привязка присяжного)
+    if (opts.scholarToken && courtTargetCode) {
+      const activeScholarOrcid =
+        (typeof window !== "undefined"
+          ? JSON.parse(localStorage.getItem("gitscience_active_scholar") || "{}")?.orcid
+          : "") || "";
+      fetch(`${getApiBase()}/api/v1/court/vote`, {
+        method: "POST",
+        headers: authHeaders,
+        body: JSON.stringify({ case_id: caseId, juror_orcid: activeScholarOrcid, vote }),
+      }).catch(() => {});
+    }
     setCourtCases(
       courtCases.map((c) => {
         if (c.case_id === caseId) {

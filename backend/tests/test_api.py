@@ -151,3 +151,103 @@ def test_jwt_logout_revocation_and_refresh_rotation(client):
     final_verify = client.post("/api/v1/auth/verify", json={"token": new_token})
     assert final_verify.status_code == 401
 
+# =====================================================================
+# SECURITY REGRESSION (Production Hardening Round)
+# =====================================================================
+
+import hashlib as _hashlib
+import hmac as _hmac
+import time as _time
+
+def _auth_header_for(cl, orcid: str, name: str = "Test Scholar"):
+    login = cl.post("/api/v1/auth/login", json={"orcid": orcid, "name": name})
+    assert login.status_code == 200
+    return {"Authorization": f"Bearer {login.json()['access_token']}"}
+
+def test_court_vote_requires_jwt(client):
+    res = client.post("/api/v1/court/vote", json={
+        "case_id": "CASE-2026-001", "juror_orcid": "0009-0002-1111-2222", "vote": "valid"
+    })
+    assert res.status_code == 401
+
+def test_court_vote_rejects_orcid_mismatch_sybil(client):
+    attacker_headers = _auth_header_for(client, "0009-0003-3929-3605")
+    res = client.post("/api/v1/court/vote", headers=attacker_headers, json={
+        "case_id": "CASE-2026-001",
+        "juror_orcid": "0009-0002-1111-2222",  # подмена личности в теле
+        "vote": "valid"
+    })
+    assert res.status_code == 403
+    assert "Sybil" in res.json()["detail"]
+
+def test_peer_review_requires_jwt_and_binds_identity(client):
+    res_anon = client.post("/api/v1/review/submit", json={
+        "target_code": "GS-2026-00001",
+        "reviewer_orcid": "0009-0001-2234-5678",
+        "math_rigor_score": 9, "methodology_score": 9,
+        "ethics_score": 9, "novelty_score": 9,
+        "review_comments": "Solid reproducibility."
+    })
+    assert res_anon.status_code == 401
+    reviewer = "0009-0001-2234-5678"
+    ok_res = client.post("/api/v1/review/submit", headers=_auth_header_for(client, reviewer), json={
+        "target_code": "GS-2026-00001",
+        "reviewer_orcid": reviewer,
+        "math_rigor_score": 9, "methodology_score": 9,
+        "ethics_score": 9, "novelty_score": 9,
+        "review_comments": "Solid reproducibility via Safe AST."
+    })
+    assert ok_res.status_code == 200
+
+def test_fiat_webhook_signature_enforced(client):
+    body = {"invoice_number": "INV-GS-2026-SECTEST", "paid_amount": 12000.0}
+
+    # Без секрета сервис заблокирован
+    os.environ.pop("FIAT_WEBHOOK_SECRET", None)
+    res_no_secret = client.post("/api/v1/billing/fiat/webhook", json=body)
+    assert res_no_secret.status_code == 503
+
+    # С секретом: unsigned / replayed / valid
+    os.environ["FIAT_WEBHOOK_SECRET"] = "unittest-webhook-secret"
+    try:
+        res_unsigned = client.post(
+            "/api/v1/billing/fiat/webhook", json=body,
+            headers={"X-GS-Timestamp": str(int(_time.time()))}
+        )
+        assert res_unsigned.status_code == 401
+
+        stale_ts = str(int(_time.time()) - 4000)
+        sig_stale = _hmac.new(b"unittest-webhook-secret", f"{stale_ts}.".encode() + b"{}", _hashlib.sha256).hexdigest()
+        res_stale = client.post(
+            "/api/v1/billing/fiat/webhook", json=body,
+            headers={"X-GS-Timestamp": stale_ts, "X-GS-Signature": sig_stale}
+        )
+        assert res_stale.status_code == 401
+
+        import json as _json
+        raw = _json.dumps(body).encode()
+        ts_now = str(int(_time.time()))
+        sig_ok = _hmac.new(b"unittest-webhook-secret", f"{ts_now}.".encode() + raw, _hashlib.sha256).hexdigest()
+        res_ok = client.post(
+            "/api/v1/billing/fiat/webhook", content=raw,
+            headers={"Content-Type": "application/json", "X-GS-Timestamp": ts_now, "X-GS-Signature": sig_ok}
+        )
+        assert res_ok.status_code == 200
+        assert res_ok.json()["status"] == "SETTLED_ON_CHAIN"
+    finally:
+        os.environ.pop("FIAT_WEBHOOK_SECRET", None)
+
+def test_upload_pdf_magic_bytes_enforced(client):
+    res = client.post("/notary/upload-pdf",
+        files={"file": ("fake.pdf", b"NOT-A-PDF", "application/pdf")},
+        data={
+            "title": "Security Regression Manuscript",
+            "author_name": "Test Scholar",
+            "orcid": "0009-0003-3929-3605",
+            "abstract": "magic bytes check",
+            "formula_math": "",
+            "has_human_subjects": "false",
+        },
+    )
+    assert res.status_code == 415
+

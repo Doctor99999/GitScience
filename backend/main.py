@@ -6,7 +6,9 @@ from fastapi import FastAPI, HTTPException, UploadFile, File, Form, status, Quer
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field
+from xml.sax.saxutils import escape as xml_sax_escape
 import hashlib
+import hmac
 import uuid
 import os
 import re
@@ -63,6 +65,47 @@ class SimpleRateLimiter:
 
 rate_limiter = SimpleRateLimiter(max_requests=120, window_sec=60)
 
+# =====================================================================
+# ИДЕНТИФИКАЦИЯ УЧЕНЫХ (Bearer JWT helpers)
+# =====================================================================
+
+def _extract_bearer_payload(request: Request) -> Optional[Dict[str, Any]]:
+    """
+    Возвращает payload JWT из заголовка Authorization: Bearer.
+    Отсутствие заголовка -> None (анонимный режим). Невалидный токен -> 401.
+    """
+    auth = request.headers.get("authorization", "")
+    if not auth.lower().startswith("bearer "):
+        return None
+    token = auth[7:].strip()
+    is_valid, payload, err = ScholarAuthService.verify_jwt_token(token)
+    if not is_valid:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=f"Invalid scholar token: {err}")
+    return payload
+
+def require_verified_orcid(request: Request, claimed_orcid: str) -> str:
+    """
+    Жесткая привязка личности: Bearer JWT обязателен, ORCID берется ТОЛЬКО из подписанного токена.
+    Защита Science Court и Peer Review от Sybil-атак (подмены ORCID в теле запроса).
+    """
+    payload = _extract_bearer_payload(request)
+    if payload is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required: передайте Authorization: Bearer <JWT> (получите на /api/v1/auth/login)"
+        )
+    token_orcid = payload.get("orcid", "")
+    if claimed_orcid and claimed_orcid.strip() != token_orcid:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="ORCID в теле запроса не совпадает с аутентифицированным ученым (Sybil protection)"
+        )
+    return token_orcid
+
+def sanitize_header_value(value: str) -> str:
+    """Санитизация значений для HTTP-заголовков (Content-Disposition) — защита от CRLF-инъекции."""
+    return re.sub(r"[^A-Za-z0-9._\-]", "_", value)[:120]
+
 app = FastAPI(
     title="GitScience™ Sovereign Protocol API",
     description="Суверенный децентрализованный нотариат открытий, реестр манускриптов, исполняемая математика и B2B маршрутизатор Аманата",
@@ -91,7 +134,11 @@ async def rate_limiting_middleware(request: Request, call_next):
     """Глобальный Rate Limiting middleware для защиты API от DoS и парсинг-ботов"""
     path = request.url.path
     if not (path.startswith("/api/docs") or path.startswith("/api/redoc") or path == "/api/v1/health" or path == "/openapi.json"):
-        client_ip = request.client.host if request.client else "127.0.0.1"
+        # За nginx/Render реальный клиент приходит в X-Real-IP; иначе client.host
+        client_ip = (
+            request.headers.get("x-real-ip")
+            or (request.client.host if request.client else "127.0.0.1")
+        )
         if not rate_limiter.is_allowed(client_ip):
             return JSONResponse(
                 status_code=429,
@@ -257,6 +304,7 @@ def get_scholar_metrics(orcid: str):
 
 @app.post("/notary/upload-pdf", status_code=status.HTTP_201_CREATED)
 async def upload_and_notarize_manuscript(
+    request: Request,
     file: UploadFile = File(...),
     title: str = Form(...),
     author_name: str = Form(...),
@@ -273,6 +321,12 @@ async def upload_and_notarize_manuscript(
     if not re.match(r"^\d{4}-\d{4}-\d{4}-[\dXx]{4}$", clean_orcid):
         raise HTTPException(status_code=400, detail="Неверный формат ORCID")
 
+    # Опциональная JWT-привязка автора (анонимный нотариат разрешен, но лимитирован)
+    bearer = _extract_bearer_payload(request)
+    if bearer and bearer.get("orcid") != clean_orcid:
+        raise HTTPException(status_code=403, detail="ORCID манускрипта не совпадает с аутентифицированным ученым")
+    identity_source = "JWT_VERIFIED" if bearer else "ANONYMOUS_RATE_LIMITED"
+
     # Проверка биоэтики (IRB)
     is_irb_ok, irb_msg = IRBClinicalVerifier.verify_ethical_approval({
         "has_human_subjects": has_human_subjects,
@@ -286,6 +340,8 @@ async def upload_and_notarize_manuscript(
         raise HTTPException(status_code=400, detail="Файл статьи пуст")
     if len(file_bytes) > 50 * 1024 * 1024:
         raise HTTPException(status_code=413, detail="Превышен максимальный лимит размера файла (50 МБ)")
+    if not file_bytes.startswith(b"%PDF-"):
+        raise HTTPException(status_code=415, detail="Только валидные PDF-документы принимаются нотариатом (magic bytes %PDF-)")
 
     # Парсинг ролей CRediT
     try:
@@ -316,6 +372,7 @@ async def upload_and_notarize_manuscript(
 
     return {
         "status": "SUCCESSFULLY_NOTARIZED",
+        "identity_source": identity_source,
         "certificate_title": f"CERTIFICATE OF SCIENTIFIC PRIORITY № {saved['serial_number']:05d}",
         "serial_number": saved["serial_number"],
         "registration_code": saved["registration_code"],
@@ -446,7 +503,7 @@ def download_official_priority_certificate_pdf(registration_code: str):
         content=pdf_bytes,
         media_type="application/pdf",
         headers={
-            "Content-Disposition": f'inline; filename="Certificate_{registration_code}.pdf"'
+            "Content-Disposition": f'inline; filename="Certificate_{sanitize_header_value(registration_code)}.pdf"'
         }
     )
 
@@ -475,38 +532,42 @@ def export_datacite_schema_xml(registration_code: str):
     article = storage.get_manuscript_by_code(registration_code)
     if not article:
         raise HTTPException(status_code=404, detail="Манускрипт не найден для генерации DataCite XML")
-    
+
+    # XML-escape пользовательских полей — защита от XML-инъекций в DOI-метаданных
+    esc = lambda v: xml_sax_escape(str(v if v is not None else ""))
+    reg_lower = re.sub(r"[^a-z0-9\-]", "", str(article['registration_code']).lower())
+
     xml_content = f"""<?xml version="1.0" encoding="UTF-8"?>
 <resource xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
           xmlns="http://datacite.org/schema/kernel-4"
           xsi:schemaLocation="http://datacite.org/schema/kernel-4 http://schema.datacite.org/meta/kernel-4.4/metadata.xsd">
-  <identifier identifierType="DOI">10.5281/gitscience.{article['registration_code'].lower()}</identifier>
+  <identifier identifierType="DOI">10.5281/gitscience.{reg_lower}</identifier>
   <creators>
     <creator>
-      <creatorName nameType="Personal">{article['author_name']}</creatorName>
-      <nameIdentifier schemeURI="https://orcid.org/" nameIdentifierScheme="ORCID">{article['orcid']}</nameIdentifier>
+      <creatorName nameType="Personal">{esc(article.get('author_name'))}</creatorName>
+      <nameIdentifier schemeURI="https://orcid.org/" nameIdentifierScheme="ORCID">{esc(article.get('orcid'))}</nameIdentifier>
     </creator>
   </creators>
   <titles>
-    <title>{article['title']}</title>
+    <title>{esc(article.get('title'))}</title>
   </titles>
   <publisher>GitScience Sovereign Protocol</publisher>
   <publicationYear>{str(article.get('created_at', '2026'))[:4]}</publicationYear>
   <resourceType resourceTypeGeneral="Preprint">Scientific Prior Art Record</resourceType>
   <subjects>
-    <subject>{article.get('category', 'Biomedical Science')}</subject>
-    <subject>WIPO IPC: {article.get('ipc_class', 'A61B')}</subject>
+    <subject>{esc(article.get('category', 'Biomedical Science'))}</subject>
+    <subject>WIPO IPC: {esc(article.get('ipc_class', 'A61B'))}</subject>
   </subjects>
   <rightsList>
     <rights rightsURI="https://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International</rights>
   </rightsList>
   <descriptions>
-    <description descriptionType="Abstract">{article.get('abstract', '')}</description>
+    <description descriptionType="Abstract">{esc(article.get('abstract', ''))}</description>
   </descriptions>
   <alternateIdentifiers>
-    <alternateIdentifier alternateIdentifierType="SHA256">{article['sha256_hash']}</alternateIdentifier>
-    <alternateIdentifier alternateIdentifierType="GitCommitOID">{article['git_commit_hash']}</alternateIdentifier>
-    <alternateIdentifier alternateIdentifierType="IPFS_CID">{article.get('ipfs_cid', '')}</alternateIdentifier>
+    <alternateIdentifier alternateIdentifierType="SHA256">{esc(article['sha256_hash'])}</alternateIdentifier>
+    <alternateIdentifier alternateIdentifierType="GitCommitOID">{esc(article['git_commit_hash'])}</alternateIdentifier>
+    <alternateIdentifier alternateIdentifierType="IPFS_CID">{esc(article.get('ipfs_cid', ''))}</alternateIdentifier>
   </alternateIdentifiers>
 </resource>"""
     return Response(content=xml_content, media_type="application/xml")
@@ -611,9 +672,9 @@ def process_fair_share_payment(req: BillingCalculateRequest):
         amount=payout_data["b2b_invoice_total"],
         currency="USDT",
         author_share=payout_data["author_pool_total"],
-        infra_share=payout_data["platform_allocations"]["infrastructure_20pct"],
-        founder_share=payout_data["platform_allocations"]["founder_10pct"],
-        author_wallet="0x71C...3929",
+        infra_share=payout_data["platform_allocations"]["infrastructure_15pct"],
+        founder_share=payout_data["platform_allocations"]["founder_30pct"],
+        author_wallet=storage.get_founder_identity()["wallet"],
         tx_hash=tx_hash
     )
     
@@ -634,10 +695,12 @@ def get_court_cases():
     return {"cases": court_engine.get_all_cases()}
 
 @app.post("/api/v1/court/dispute")
-def file_academic_dispute(req: CourtDisputeRequest):
+def file_academic_dispute(request: Request, req: CourtDisputeRequest):
+    verified_orcid = require_verified_orcid(request, req.claimant_orcid)
+    claimant_name = req.claimant_name
     case = court_engine.file_dispute(
-        claimant_name=req.claimant_name,
-        claimant_orcid=req.claimant_orcid,
+        claimant_name=claimant_name,
+        claimant_orcid=verified_orcid,
         target_code=req.target_code,
         reason=req.reason,
         evidence_hash=req.evidence_hash
@@ -645,10 +708,11 @@ def file_academic_dispute(req: CourtDisputeRequest):
     return {"status": "DISPUTE_FILED", "case": case}
 
 @app.post("/api/v1/court/vote")
-def cast_juror_vote(req: CourtVoteRequest):
+def cast_juror_vote(request: Request, req: CourtVoteRequest):
+    verified_orcid = require_verified_orcid(request, req.juror_orcid)
     result = court_engine.cast_vote(
         case_id=req.case_id,
-        juror_orcid=req.juror_orcid,
+        juror_orcid=verified_orcid,
         vote=req.vote
     )
     return result
@@ -752,10 +816,11 @@ class PeerReviewSubmitRequest(BaseModel):
 review_engine = BlindPeerReviewEngine(storage.STORAGE_DIR)
 
 @app.post("/api/v1/review/submit")
-def submit_peer_review(req: PeerReviewSubmitRequest):
+def submit_peer_review(request: Request, req: PeerReviewSubmitRequest):
+    verified_orcid = require_verified_orcid(request, req.reviewer_orcid)
     return review_engine.submit_blind_review(
         target_code=req.target_code,
-        reviewer_orcid=req.reviewer_orcid,
+        reviewer_orcid=verified_orcid,
         math_rigor_score=req.math_rigor_score,
         methodology_score=req.methodology_score,
         ethics_score=req.ethics_score,
@@ -868,7 +933,38 @@ class FiatWebhookRequest(BaseModel):
     payment_method: str = Field(default="BANK_WIRE_SWIFT")
 
 @app.post("/api/v1/billing/fiat/webhook")
-def process_fiat_bank_webhook(req: FiatWebhookRequest):
+async def process_fiat_bank_webhook(request: Request):
+    """
+    Банковский вебхук с ОБЯЗАТЕЛЬНОЙ HMAC-SHA256 подписью:
+      X-GS-Timestamp: unix-секунды (окно 300 сек, anti-replay)
+      X-GS-Signature: hex(HMAC_SHA256(FIAT_WEBHOOK_SECRET, "{timestamp}." + raw_body))
+    """
+    raw = await request.body()
+    secret = os.environ.get("FIAT_WEBHOOK_SECRET", "")
+    if not secret:
+        raise HTTPException(status_code=503, detail="FIAT_WEBHOOK_SECRET не настроен — прием вебхуков заблокирован")
+
+    sig = request.headers.get("x-gs-signature", "")
+    ts_header = request.headers.get("x-gs-timestamp", "")
+    if not sig or not ts_header:
+        raise HTTPException(status_code=401, detail="Missing X-GS-Signature / X-GS-Timestamp headers")
+    try:
+        ts_value = int(ts_header)
+    except ValueError:
+        raise HTTPException(status_code=401, detail="Malformed X-GS-Timestamp")
+    if abs(time.time() - ts_value) > 300:
+        raise HTTPException(status_code=401, detail="Replay rejected: timestamp вне окна 300 сек")
+
+    expected_sig = hmac.new(secret.encode(), f"{ts_header}.".encode() + raw, hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(expected_sig, sig):
+        raise HTTPException(status_code=401, detail="Invalid webhook signature")
+
+    try:
+        data = json.loads(raw)
+        req = FiatWebhookRequest(**data)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid webhook JSON payload")
+
     return InstitutionalFiatGateway.process_fiat_webhook(
         invoice_number=req.invoice_number,
         paid_amount=req.paid_amount,
@@ -896,7 +992,7 @@ def download_institutional_invoice_pdf(
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",
-        headers={"Content-Disposition": f'inline; filename="Invoice_{invoice_id}.pdf"'}
+        headers={"Content-Disposition": f'inline; filename="Invoice_{sanitize_header_value(invoice_id)}.pdf"'}
     )
 
 

@@ -93,10 +93,10 @@ export default function GitScienceApp() {
   const inspector = useInspectorTab({ walletAddress, onLicense: setLicenseModalContent });
   const zk = useZkDiscoveryTab({ orcid: notary.orcid, authorName: notary.authorName });
   const passport = usePassportTab();
-  const review = useReviewTab();
+  const review = useReviewTab({ token: activeScholar?.access_token });
   const maas = useMaasTab();
   const amanat = useAmanatTab();
-  const court = useCourtTab({ t });
+  const court = useCourtTab({ t, scholarToken: activeScholar?.access_token });
   const vampire = useVampireTab({ onLibraryRefresh: library.refresh, t });
 
   // Initial Load & Session Fetch

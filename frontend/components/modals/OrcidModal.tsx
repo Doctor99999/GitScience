@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { DEFAULT_FOUNDER_PROFILE } from "../../lib/constants";
+import { DEFAULT_FOUNDER_PROFILE, getApiBase } from "../../lib/constants";
 
 interface OrcidModalProps {
   show: boolean;
@@ -97,19 +97,39 @@ export default function OrcidModal({
 
           <div className="pt-2 space-y-2">
             <button
-              onClick={() => {
+              onClick={async () => {
                 if (!inputOrcid || !inputScholarName) {
                   alert("ORCID және ФИО өрістерін толтырыңыз!");
                   return;
                 }
-                onLogin({
+                const localProfile = {
                   orcid: inputOrcid.trim(),
                   name: inputScholarName.trim(),
                   institution: inputInstitution.trim() || "Independent Scientific Institute",
                   discipline: inputDiscipline,
                   git_impact_score: 120.0,
                   platform_tier: "Verified Sovereign Scholar",
-                });
+                };
+                try {
+                  // Реальная JWT-аутентификация: токен нужен для Court/Review (Sybil protection)
+                  const res = await fetch(`${getApiBase()}/api/v1/auth/login`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      orcid: localProfile.orcid,
+                      name: localProfile.name,
+                      institution: localProfile.institution,
+                      discipline: localProfile.discipline,
+                    }),
+                  });
+                  if (res.ok) {
+                    const data = await res.json();
+                    onLogin({ ...data.profile, access_token: data.access_token });
+                    return;
+                  }
+                } catch {}
+                // Offline fallback: локальный профиль без токена
+                onLogin(localProfile);
               }}
               className="w-full bg-gradient-to-r from-emerald-500 to-cyan-500 text-slate-950 font-bold py-3 rounded-xl text-xs sm:text-sm shadow transition hover:opacity-90 font-mono"
             >
