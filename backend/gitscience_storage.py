@@ -411,18 +411,20 @@ def search_manuscripts_fts(query_str: str) -> List[Dict]:
     clean_q = query_str.strip().replace("'", "").replace('"', '')
     if not clean_q:
         return get_all_manuscripts()
-        
-    pattern = f"%{clean_q}%"
+
+    # Экранирование LIKE-wildcards (% _) — пользовательский ввод не управляет маской поиска
+    escaped_q = clean_q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    pattern = f"%{escaped_q}%"
     with engine.connect() as conn:
         res = conn.execute(
             sa.select(manuscripts).where(
                 sa.and_(
                     sa.or_(
-                        manuscripts.c.title.ilike(pattern),
-                        manuscripts.c.author_name.ilike(pattern),
-                        manuscripts.c.orcid.ilike(pattern),
-                        manuscripts.c.registration_code.ilike(pattern),
-                        manuscripts.c.abstract.ilike(pattern)
+                        manuscripts.c.title.ilike(pattern, escape="\\"),
+                        manuscripts.c.author_name.ilike(pattern, escape="\\"),
+                        manuscripts.c.orcid.ilike(pattern, escape="\\"),
+                        manuscripts.c.registration_code.ilike(pattern, escape="\\"),
+                        manuscripts.c.abstract.ilike(pattern, escape="\\")
                     ),
                     manuscripts.c.is_genesis_anchor == 0
                 )

@@ -5,10 +5,14 @@
 gitscience_importer.py — Автоматический импорт научных статей из мировых баз (arXiv API)
 """
 
+import re
 import urllib.request
 import xml.etree.ElementTree as ET
 import hashlib
 from typing import Dict, Any
+
+# Валидный идентификатор arXiv: 2104.08821, 2303.08774v2, math.GT/0309136
+_ARXIV_ID_RE = re.compile(r"^([a-z\-]+(\.[A-Z]{2})?/\d{7}|\d{4}\.\d{4,5}(v\d+)?)$")
 
 class GitScienceImporter:
     @staticmethod
@@ -16,8 +20,10 @@ class GitScienceImporter:
         """
         Выкачивает метаданные и аннотацию статьи из arXiv по её ID (например: '2104.08821')
         """
-        # Очищаем ID от лишних пробелов или префиксов
-        clean_id = arxiv_id.strip().replace("arXiv:", "")
+        # Очищаем ID от лишних пробелов или префиксов и строго валидируем (анти-инъекция в query API)
+        clean_id = arxiv_id.strip().replace("arXiv:", "").replace("arxiv:", "")
+        if not _ARXIV_ID_RE.match(clean_id):
+            raise ValueError(f"Невалидный формат arXiv ID: '{clean_id}'")
         url = f"http://export.arxiv.org/api/query?id_list={clean_id}"
         
         # Делаем официальный запрос к серверу Корнеллского университета

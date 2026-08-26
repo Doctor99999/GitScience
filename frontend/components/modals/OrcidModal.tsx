@@ -36,7 +36,7 @@ export default function OrcidModal({
               <span>🧬</span> {t.loginOrcid}
             </h3>
             <p className="text-xs text-slate-400 mt-0.5">
-              Тіркелген ORCID нөміріңіз арқылы суверенді ғалым паспортын ашыңыз
+              {t.orcidModalSub}
             </p>
           </div>
           <button
@@ -49,7 +49,7 @@ export default function OrcidModal({
 
         <div className="space-y-3 text-xs">
           <div>
-            <label className="block text-slate-400 font-semibold mb-1">ORCID iD (16 таңбалы нөмір) *</label>
+            <label className="block text-slate-400 font-semibold mb-1">{t.orcidIdLabel}</label>
             <input
               type="text"
               value={inputOrcid}
@@ -60,7 +60,7 @@ export default function OrcidModal({
           </div>
 
           <div>
-            <label className="block text-slate-400 font-semibold mb-1">ФИО / Ғалымның толық аты *</label>
+            <label className="block text-slate-400 font-semibold mb-1">{t.fullNameLabel}</label>
             <input
               type="text"
               value={inputScholarName}
@@ -71,7 +71,7 @@ export default function OrcidModal({
           </div>
 
           <div>
-            <label className="block text-slate-400 font-semibold mb-1">Ғылыми институт / Ұйым</label>
+            <label className="block text-slate-400 font-semibold mb-1">{t.institutionLabel}</label>
             <input
               type="text"
               value={inputInstitution}
@@ -82,7 +82,7 @@ export default function OrcidModal({
           </div>
 
           <div>
-            <label className="block text-slate-400 font-semibold mb-1">Негізгі ғылыми бағыты</label>
+            <label className="block text-slate-400 font-semibold mb-1">{t.disciplineLabel}</label>
             <select
               value={inputDiscipline}
               onChange={(e) => setInputDiscipline(e.target.value)}
@@ -99,7 +99,7 @@ export default function OrcidModal({
             <button
               onClick={async () => {
                 if (!inputOrcid || !inputScholarName) {
-                  alert("ORCID және ФИО өрістерін толтырыңыз!");
+                  alert(t.orcidFormAlert);
                   return;
                 }
                 const localProfile = {
@@ -133,14 +133,14 @@ export default function OrcidModal({
               }}
               className="w-full bg-gradient-to-r from-emerald-500 to-cyan-500 text-slate-950 font-bold py-3 rounded-xl text-xs sm:text-sm shadow transition hover:opacity-90 font-mono"
             >
-              Кіру & Паспортты тіркеу 🚀
+              {t.loginSubmitBtn}
             </button>
 
             <button
               onClick={() => onLogin(DEFAULT_FOUNDER_PROFILE)}
               className="w-full bg-slate-900 hover:bg-slate-800 border border-cyan-500/40 text-cyan-300 font-mono text-xs py-2 rounded-xl transition"
             >
-              ⚡ Протокол негізін қалаушы (Salauat Yeshimov) ретінде кіру
+              {t.loginAsFounderBtn}
             </button>
 
             {activeScholar && (
@@ -148,7 +148,7 @@ export default function OrcidModal({
                 onClick={onLogout}
                 className="w-full bg-red-950/40 hover:bg-red-900/40 border border-red-500/40 text-red-300 font-mono text-xs py-2 rounded-xl transition"
               >
-                Ағымдағы профильден шығу ✕
+                {t.logoutProfileBtn}
               </button>
             )}
           </div>
