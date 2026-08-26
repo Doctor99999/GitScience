@@ -54,3 +54,6 @@ postgres_data/
 # OS
 .DS_Store
 Thumbs.db
+
+# Personal AI-assistant configs
+CLAUDE.md
