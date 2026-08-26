@@ -57,3 +57,10 @@ Thumbs.db
 
 # Personal AI-assistant configs
 CLAUDE.md
+
+# Hardhat / Solidity
+contracts/node_modules/
+contracts/artifacts/
+contracts/cache/
+contracts/typechain*
+contracts/.env
