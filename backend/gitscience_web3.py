@@ -6,10 +6,26 @@ gitscience_web3.py — Sovereign Web3 RPC Gateway & Smart Contract Interface
 import urllib.request
 import urllib.error
 import json
+from pathlib import Path
 from typing import Dict, Any, Optional
 
-FOUNDER_WALLET_ADDRESS = "0x71C2B09934D3E08A52e52d7da7DAbFAc484EFE37"
-FOUNDER_ORCID = "0009-0003-3929-3605"
+_FOUNDER_FALLBACK = {"wallet": "0x71C2B09934D3E08A52e52d7da7DAbFAc484EFE37", "orcid": "0009-0003-3929-3605"}
+
+def _load_founder_identity() -> Dict[str, str]:
+    """Единый источник идентичности основателя — PROTOCOL_CONSTANTS.json"""
+    try:
+        cfg = json.loads((Path(__file__).parent / "PROTOCOL_CONSTANTS.json").read_text(encoding="utf-8"))
+        founder = cfg.get("founder", {})
+        return {
+            "wallet": founder.get("wallet") or _FOUNDER_FALLBACK["wallet"],
+            "orcid": founder.get("orcid") or _FOUNDER_FALLBACK["orcid"]
+        }
+    except Exception:
+        return dict(_FOUNDER_FALLBACK)
+
+_FOUNDER_IDENTITY = _load_founder_identity()
+FOUNDER_WALLET_ADDRESS = _FOUNDER_IDENTITY["wallet"]
+FOUNDER_ORCID = _FOUNDER_IDENTITY["orcid"]
 
 PUBLIC_RPC_ENDPOINTS = {
     137: "https://polygon-rpc.com",

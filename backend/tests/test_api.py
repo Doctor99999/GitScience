@@ -123,3 +123,31 @@ def test_orcid_auth_and_jwt_flow(client):
     assert verify_res.json()["status"] == "TOKEN_VALID"
     assert verify_res.json()["payload"]["orcid"] == "0009-0003-3929-3605"
 
+def test_jwt_logout_revocation_and_refresh_rotation(client):
+    login_res = client.post("/api/v1/auth/login", json={"orcid": "0009-0001-2234-5678"})
+    assert login_res.status_code == 200
+    token = login_res.json()["access_token"]
+
+    # Refresh: новый токен выпускается, старый ротируется (отзывается)
+    refresh_res = client.post("/api/v1/auth/refresh", json={"token": token})
+    assert refresh_res.status_code == 200
+    refreshed = refresh_res.json()
+    assert refreshed["status"] == "REFRESHED"
+    new_token = refreshed["access_token"]
+    assert new_token != token
+
+    # Старый токен отозван — verify должен отклонить с "Token revoked"
+    old_verify = client.post("/api/v1/auth/verify", json={"token": token})
+    assert old_verify.status_code == 401
+    assert "revoked" in old_verify.json()["detail"].lower()
+
+    # Новый токен валиден
+    new_verify = client.post("/api/v1/auth/verify", json={"token": new_token})
+    assert new_verify.status_code == 200
+
+    # Явный logout отзывает и новый токен
+    logout_res = client.post("/api/v1/auth/logout", json={"token": new_token})
+    assert logout_res.status_code == 200
+    final_verify = client.post("/api/v1/auth/verify", json={"token": new_token})
+    assert final_verify.status_code == 401
+

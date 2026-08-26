@@ -6,8 +6,20 @@ gitscience_fiat.py — Institutional B2B Fiat & Invoicing Gateway
 """
 import uuid
 import time
+import json
+from pathlib import Path
 from typing import Dict, Any, List, Optional
 from gitscience_fortress import DependencyRoyaltyRouter
+
+def _load_founder_wallet() -> str:
+    """Единый источник идентичности основателя — PROTOCOL_CONSTANTS.json"""
+    try:
+        cfg = json.loads((Path(__file__).parent / "PROTOCOL_CONSTANTS.json").read_text(encoding="utf-8"))
+        return cfg.get("founder", {}).get("wallet") or "0x71C2B09934D3E08A52e52d7da7DAbFAc484EFE37"
+    except Exception:
+        return "0x71C2B09934D3E08A52e52d7da7DAbFAc484EFE37"
+
+FOUNDER_WALLET_ADDRESS = _load_founder_wallet()
 
 class InstitutionalFiatGateway:
     """Институциональный платежный шлюз для безналичных расчетов клиник"""
@@ -64,7 +76,7 @@ class InstitutionalFiatGateway:
                 },
                 "stripe_card_checkout_url": f"https://checkout.gitscience.org/pay/{invoice_number}",
                 "smart_contract_call": {
-                    "contract_address": "0x71C2B09934D3E08A52e52d7da7DAbFAc484EFE37",
+                    "contract_address": FOUNDER_WALLET_ADDRESS,
                     "method": "settleAmanatRoyalty",
                     "network": "Base / Polygon"
                 }

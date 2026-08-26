@@ -6,6 +6,7 @@ GitScience Sovereign Storage Engine v4.0-ENTERPRISE
 """
 import os
 import json
+import time
 import hashlib
 from datetime import datetime, timezone
 from pathlib import Path
@@ -130,6 +131,14 @@ credit_contributions = sa.Table(
     sa.Column('created_at', sa.DateTime, server_default=sa.func.now())
 )
 
+revoked_tokens = sa.Table(
+    'revoked_tokens', metadata,
+    sa.Column('jti', sa.String, primary_key=True),
+    sa.Column('orcid', sa.String),
+    sa.Column('exp', sa.Integer, nullable=False),
+    sa.Column('revoked_at', sa.DateTime, server_default=sa.func.now())
+)
+
 def compute_ipfs_cid(data: bytes) -> str:
     import base64
     sha256_hash = hashlib.sha256(data).digest()
@@ -140,6 +149,30 @@ def compute_ipfs_cid(data: bytes) -> str:
 
 def get_db_connection():
     return engine.connect()
+
+def get_founder_identity() -> Dict[str, str]:
+    """ЕДИНЫЙ ИСТОЧНИК идентичности основателя (имя/ORCID/wallet) из PROTOCOL_CONSTANTS.json"""
+    founder = load_protocol_constants().get("founder", {})
+    return {
+        "name": founder.get("name", ""),
+        "orcid": founder.get("orcid", ""),
+        "wallet": founder.get("wallet", "")
+    }
+
+def revoke_jti(jti: str, orcid: str = "", exp: int = 0):
+    """Добавляет jti токена в blacklist отзыва (переживает рестарт и работает между gunicorn-воркерами)."""
+    if not jti:
+        return
+    with engine.begin() as conn:
+        conn.execute(revoked_tokens.insert().values(jti=jti, orcid=orcid, exp=int(exp)))
+        conn.execute(revoked_tokens.delete().where(revoked_tokens.c.exp < int(time.time())))
+
+def is_jti_revoked(jti: str) -> bool:
+    if not jti:
+        return False
+    with engine.connect() as conn:
+        res = conn.execute(sa.select(revoked_tokens.c.jti).where(revoked_tokens.c.jti == jti))
+        return res.first() is not None
 
 def load_protocol_constants() -> dict:
     if CONSTANTS_PATH.exists():

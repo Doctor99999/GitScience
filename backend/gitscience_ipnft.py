@@ -17,15 +17,17 @@ class IPNFTEngine:
     def generate_token_metadata(
         cls,
         registration_code: str,
-        wallet_address: str = "0x71C2B09934D3E08A52e52d7da7DAbFAc484EFE37"
+        wallet_address: str = ""
     ) -> Dict[str, Any]:
+        if not wallet_address:
+            wallet_address = storage.get_founder_identity()["wallet"]
         article = storage.get_manuscript_by_code(registration_code)
         if not article:
             article = {
                 "registration_code": registration_code,
                 "title": "Coupling of Neuro-Immuno-Oncological Axes & Tk Equation",
                 "author_name": "Salauat Abiltayevich Yeshimov",
-                "orcid": "0009-0003-3929-3605",
+                "orcid": storage.get_founder_identity()["orcid"],
                 "category": "Clinical Oncology & Surgery",
                 "ipc_class": "A61B",
                 "sha256_hash": "a4f89d3c11e74b21908d132a0d1e57c6b548b29f0e132049e6f1a8c903429381",
@@ -57,7 +59,7 @@ class IPNFTEngine:
             ],
             "properties": {
                 "legal_statute": "35 U.S.C. § 102 & EPC Article 54(2)",
-                "contract_splitter": "0x71C2B09934D3E08A52e52d7da7DAbFAc484EFE37",
+                "contract_splitter": wallet_address,
                 "git_commit_oid": article["git_commit_hash"],
                 "minted_by": wallet_address,
                 "timestamp_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())

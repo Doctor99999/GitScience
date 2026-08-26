@@ -5,7 +5,19 @@ gitscience_invoice_pdf.py — Official B2B Institutional PDF Invoice Generator
 """
 import io
 import time
+import json
+from pathlib import Path
 from typing import Dict, Any, Optional
+
+def _load_founder_wallet() -> str:
+    """Единый источник идентичности основателя — PROTOCOL_CONSTANTS.json"""
+    try:
+        cfg = json.loads((Path(__file__).parent / "PROTOCOL_CONSTANTS.json").read_text(encoding="utf-8"))
+        return cfg.get("founder", {}).get("wallet") or "0x71C2B09934D3E08A52e52d7da7DAbFAc484EFE37"
+    except Exception:
+        return "0x71C2B09934D3E08A52e52d7da7DAbFAc484EFE37"
+
+FOUNDER_WALLET_ADDRESS = _load_founder_wallet()
 
 try:
     import qrcode
@@ -163,7 +175,7 @@ class InstitutionalInvoicePDFGenerator:
         can.setFillColor(HexColor("#334155"))
         can.drawString(40, bank_y - 14, "Bank Name:      Sovereign Decentralized Science Settlement Vault")
         can.drawString(40, bank_y - 26, "IBAN / Account: KZ889260190440023412GSUSD")
-        can.drawString(40, bank_y - 38, "USDT / Web3:    0x71C2B09934D3E08A52e52d7da7DAbFAc484EFE37 (Polygon / Base)")
+        can.drawString(40, bank_y - 38, f"USDT / Web3:    {FOUNDER_WALLET_ADDRESS} (Polygon / Base)")
         can.drawString(40, bank_y - 50, f"Payment Memo:   INVOICE-{invoice_id}-{registration_code}")
 
         # QR Code for Payment / Verification

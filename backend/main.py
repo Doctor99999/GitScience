@@ -400,8 +400,8 @@ def download_official_priority_certificate_pdf(registration_code: str):
         article = {
             "registration_code": registration_code,
             "title": "Coupling of Neuro-Immuno-Oncological Axes & Tk Equation",
-            "author_name": "Salauat Abiltayevich Yeshimov",
-            "orcid": "0009-0003-3929-3605",
+            "author_name": CONSTANTS["founder"]["name"],
+            "orcid": CONSTANTS["founder"]["orcid"],
             "category": "Clinical Oncology & Surgery",
             "ipc_class": "A61B",
             "sha256_hash": "a4f89d3c11e74b21908d132a0d1e57c6b548b29f0e132049e6f1a8c903429381",
@@ -893,8 +893,8 @@ def download_institutional_invoice_pdf(
 
 class AIAuditRequest(BaseModel):
     title: str = Field(...)
-    author: str = Field(default="Salauat Abiltayevich Yeshimov")
-    orcid: str = Field(default="0009-0003-3929-3605")
+    author: str = Field(default=CONSTANTS["founder"]["name"])
+    orcid: str = Field(default=CONSTANTS["founder"]["orcid"])
     abstract: str = Field(default="")
     formula_math: str = Field(default="")
     has_human_subjects: bool = Field(default=False)
@@ -919,7 +919,7 @@ def run_autonomous_ai_audit(req: AIAuditRequest):
 
 class IPNFTMintRequest(BaseModel):
     registration_code: str = Field(...)
-    wallet_address: str = Field(default="0x71C2B09934D3E08A52e52d7da7DAbFAc484EFE37")
+    wallet_address: str = Field(default=CONSTANTS["founder"].get("wallet", ""))
 
 @app.post("/api/v1/ipnft/mint")
 def mint_sovereign_ip_nft(req: IPNFTMintRequest):
@@ -1084,8 +1084,37 @@ class VerifyTokenRequest(BaseModel):
 
 @app.post("/api/v1/auth/verify")
 def verify_scholar_jwt_token(req: VerifyTokenRequest):
-    """Проверяет криптографическую подпись и срок действия JWT токена"""
+    """Проверяет подпись, срок действия и статус отзыва JWT токена"""
     is_valid, payload, error = ScholarAuthService.verify_jwt_token(req.token)
     if not is_valid:
         raise HTTPException(status_code=401, detail=error or "Unauthorized")
     return {"status": "TOKEN_VALID", "payload": payload}
+
+@app.post("/api/v1/auth/logout", status_code=status.HTTP_200_OK)
+def logout_scholar(req: VerifyTokenRequest):
+    """Отзывает JWT токен (jti попадает в persistent blacklist — работает между воркерами)"""
+    is_valid, payload, error = ScholarAuthService.verify_jwt_token(req.token)
+    if not is_valid and error != "Token expired":
+        raise HTTPException(status_code=401, detail=error or "Unauthorized")
+    storage.revoke_jti(payload.get("jti", ""), payload.get("orcid", ""), payload.get("exp", 0))
+    return {"status": "LOGGED_OUT", "jti": payload.get("jti")}
+
+@app.post("/api/v1/auth/refresh")
+def refresh_scholar_jwt_token(req: VerifyTokenRequest):
+    """Выпускает новый JWT по валидному токену с ротацией (старый jti отзывается)"""
+    is_valid, payload, error = ScholarAuthService.verify_jwt_token(req.token)
+    if not is_valid:
+        raise HTTPException(status_code=401, detail=error or "Unauthorized")
+
+    profile = {k: v for k, v in payload.items() if k not in ("iat", "exp", "jti")}
+    new_token = ScholarAuthService.create_jwt_token(profile)
+
+    # Ротация: старый токен немедленно отзывается
+    storage.revoke_jti(payload.get("jti", ""), payload.get("orcid", ""), payload.get("exp", 0))
+
+    return {
+        "status": "REFRESHED",
+        "access_token": new_token,
+        "token_type": "Bearer",
+        "profile": profile
+    }

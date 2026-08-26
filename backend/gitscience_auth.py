@@ -11,9 +11,15 @@ import time
 import re
 import os
 import secrets as _secrets
+import uuid
 import urllib.request
 import urllib.error
 from typing import Dict, Any, Optional, Tuple
+
+try:
+    import gitscience_storage as _storage
+except ImportError:
+    _storage = None
 
 _jwt_secret_env = os.environ.get("JWT_SECRET")
 if not _jwt_secret_env:
@@ -102,9 +108,10 @@ class ScholarAuthService:
 
     @staticmethod
     def create_jwt_token(payload: Dict[str, Any]) -> str:
-        """Генерирует криптографический JWT токен доступа (HS256)."""
+        """Генерирует криптографический JWT токен доступа (HS256) с уникальным jti для revocation."""
         header = {"alg": "HS256", "typ": "JWT"}
         data = payload.copy()
+        data["jti"] = uuid.uuid4().hex
         data["iat"] = int(time.time())
         data["exp"] = int(time.time()) + JWT_EXPIRATION_SECONDS
 
@@ -139,6 +146,8 @@ class ScholarAuthService:
             payload = json.loads(base64.urlsafe_b64decode(padded_p_b64).decode())
             if payload.get("exp", 0) < time.time():
                 return False, None, "Token expired"
+            if _storage is not None and _storage.is_jti_revoked(payload.get("jti", "")):
+                return False, None, "Token revoked"
             return True, payload, None
         except Exception as e:
             return False, None, f"Payload decode error: {e}"
