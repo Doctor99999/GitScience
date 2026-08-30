@@ -11,7 +11,15 @@ services:
         value: 3.11.9
       - key: PYTHONUNBUFFERED
         value: "1"
+      # JWT подписи: обязателен в проде — впишите длинный случайный секрет
+      # в дашборде Render (переменная создастся автоматически).
+      - key: JWT_SECRET
+        sync: false
+      # HMAC-подпись fiat-вебхуков: обязателен в проде.
       - key: FIAT_WEBHOOK_SECRET
+        sync: false
+      # 1 = включить живое якорение в Bitcoin-календари OpenTimestamps
+      - key: GITSCIENCE_OTS_LIVE
         sync: false
 
   # 2. Next.js Frontend Service
