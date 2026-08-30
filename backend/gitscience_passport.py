@@ -65,7 +65,10 @@ class SoulboundPassportEngine:
         institution: str,
         wallet_address: Optional[str] = None,
         works_count: int = 12,
-        citations_count: int = 28
+        citations_count: int = 28,
+        display_name: Optional[str] = None,
+        h_index: Optional[int] = None,
+        source: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Формирует структуру суверенного профиля исследователя
@@ -82,6 +85,13 @@ class SoulboundPassportEngine:
             "scholar_name": name,
             "institution": institution,
             "associated_wallet": wallet_address or "0x71C...3929",
+            "orcid_public_metrics": {
+                "display_name": display_name or name,
+                "h_index": h_index,
+                "works_count": works_count,
+                "citations_count": citations_count,
+                "source": source or "local"
+            },
             "git_impact_score": gis_data["git_impact_score"],
             "platform_tier": gis_data["rank"],
             "gis_breakdown": gis_data["breakdown"],

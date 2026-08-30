@@ -107,6 +107,33 @@ def sanitize_header_value(value: str) -> str:
     """Санитизация значений для HTTP-заголовков (Content-Disposition) — защита от CRLF-инъекции."""
     return re.sub(r"[^A-Za-z0-9._\-]", "_", value)[:120]
 
+
+def _fetch_openalex_metrics(orcid: str) -> Dict[str, Any]:
+    """Возвращает реальные публичные метрики учёного из OpenAlex (по ORCID).
+
+    Используется для честного формирования паспорта исследователя вместо
+    захардкоженных значений. При недоступности OpenAlex — возвращает нули
+    с пометкой источника, НЕ выдуманные данные.
+    """
+    clean_orcid = orcid.strip().replace("https://orcid.org/", "")
+    if not re.match(r"^\d{4}-\d{4}-\d{4}-[\dXx]{4}$", clean_orcid):
+        return {"works_count": 0, "citations_count": 0, "h_index": None, "display_name": None, "source": "invalid_orcid"}
+    try:
+        url = f"https://api.openalex.org/authors/https://orcid.org/{clean_orcid}"
+        res = requests.get(url, timeout=4.0, headers={"User-Agent": "GitScience-Protocol/3.0"})
+        if res.status_code == 200:
+            data = res.json()
+            return {
+                "works_count": data.get("works_count", 0),
+                "citations_count": data.get("cited_by_count", 0),
+                "h_index": (data.get("summary_stats") or {}).get("h_index"),
+                "display_name": data.get("display_name"),
+                "source": "OpenAlex Live API"
+            }
+    except Exception:
+        pass
+    return {"works_count": 0, "citations_count": 0, "h_index": None, "display_name": None, "source": "openalex_unavailable"}
+
 app = FastAPI(
     title="GitScience™ Sovereign Protocol API",
     description="Суверенный децентрализованный нотариат открытий, реестр манускриптов, исполняемая математика и B2B маршрутизатор Аманата",
@@ -467,23 +494,12 @@ def get_certificate_deep_inspection(registration_code: str):
 def download_official_priority_certificate_pdf(registration_code: str):
     article = storage.get_manuscript_by_code(registration_code)
 
-    # 1. Если статьи нет в базе, используем базовые метаданные для гарантированной выдачи
+    # Безопасность: не генерируем «сертификат» из поддельных данных для несуществующих записей.
+    # Только реально зарегистрированный манускрипт получает официальный сертификат.
     if not article:
-        article = {
-            "registration_code": registration_code,
-            "title": "Coupling of Neuro-Immuno-Oncological Axes & Tk Equation",
-            "author_name": CONSTANTS["founder"]["name"],
-            "orcid": CONSTANTS["founder"]["orcid"],
-            "category": "Clinical Oncology & Surgery",
-            "ipc_class": "A61B",
-            "sha256_hash": "a4f89d3c11e74b21908d132a0d1e57c6b548b29f0e132049e6f1a8c903429381",
-            "git_commit_hash": "7f8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b",
-            "ast_merkle_digest": "9f83a4c2e1b789d6e5a4f3b2c1d0e9f8a7b6c5d4e3f2a1b0c9d8e7f6a5b4c3d2",
-            "ots_proof_file": f"{registration_code}.ots",
-            "license_type": "CC-BY-4.0"
-        }
+        raise HTTPException(status_code=404, detail="Сертификат не найден: манускрипт отсутствует в реестре")
 
-    # 3. Генерируем официальный векторный PDF сертификат WIPO Prior Art
+    # Генерируем официальный векторный PDF сертификат WIPO Prior Art
     credit_contributors = storage.get_credit_contributions(article["registration_code"])
     pdf_bytes = CertificateGenerator.generate_priority_certificate_pdf(
         registration_code=article["registration_code"],
@@ -848,13 +864,17 @@ def iot_status(record_id: Optional[str] = None):
 @app.get("/api/v1/passport/{orcid}")
 def get_soulbound_passport(orcid: str, wallet: Optional[str] = None):
     clean_orcid = orcid.strip()
+    metrics = _fetch_openalex_metrics(clean_orcid)
     return SoulboundPassportEngine.issue_soulbound_passport(
         orcid=clean_orcid,
         name="Salauat Abiltayevich Yeshimov" if "3929" in clean_orcid else "Sovereign Scholar",
-        institution="National Scientific Oncology Center",
+        institution="National Scientific Oncology Center" if "3929" in clean_orcid else "Independent Scientific Research",
         wallet_address=wallet,
-        works_count=12,
-        citations_count=28
+        works_count=metrics.get("works_count", 0),
+        citations_count=metrics.get("citations_count", 0),
+        display_name=metrics.get("display_name"),
+        h_index=metrics.get("h_index"),
+        source=metrics.get("source"),
     )
 
 
@@ -1090,10 +1110,15 @@ class IPNFTMintRequest(BaseModel):
 
 @app.post("/api/v1/ipnft/mint")
 def mint_sovereign_ip_nft(req: IPNFTMintRequest):
-    return IPNFTEngine.generate_token_metadata(
-        registration_code=req.registration_code,
-        wallet_address=req.wallet_address
-    )
+    try:
+        return IPNFTEngine.generate_token_metadata(
+            registration_code=req.registration_code,
+            wallet_address=req.wallet_address
+        )
+    except RuntimeError as e:
+        detail = str(e)
+        status_code = 503 if "не задеплоен" in detail else 404
+        raise HTTPException(status_code=status_code, detail=detail)
 
 
 # =====================================================================
@@ -1196,13 +1221,17 @@ class ScholarRegisterRequest(BaseModel):
 def register_scholar_profile(req: ScholarRegisterRequest):
     """Регистрирует нового исследователя по ORCID в суверенном паспорте"""
     clean_orcid = req.orcid.strip()
+    metrics = _fetch_openalex_metrics(clean_orcid)
     return SoulboundPassportEngine.issue_soulbound_passport(
         orcid=clean_orcid,
         name=req.name,
         institution=req.institution or "Independent Scientific Research",
         wallet_address=req.wallet_address,
-        works_count=1,
-        citations_count=0
+        works_count=metrics.get("works_count", 0),
+        citations_count=metrics.get("citations_count", 0),
+        display_name=metrics.get("display_name"),
+        h_index=metrics.get("h_index"),
+        source=metrics.get("source"),
     )
 
 
@@ -1223,6 +1252,38 @@ def lookup_orcid_public_profile(orcid: str):
     if not profile:
         raise HTTPException(status_code=400, detail="Невалидный формат ORCID iD")
     return profile
+
+class OAuthCallbackRequest(BaseModel):
+    code: str = Field(...)
+    redirect_uri: str = Field(...)
+
+@app.post("/api/v1/auth/orcid/callback")
+def handle_orcid_oauth_callback(req: OAuthCallbackRequest):
+    """Обменивает временный authorization_code на подтвержденный ORCID iD и выдает JWT"""
+    ok, token_data, err = ScholarAuthService.exchange_code_for_orcid_token(req.code, req.redirect_uri)
+    if not ok or not token_data:
+        raise HTTPException(status_code=400, detail=err or "Ошибка авторизации через ORCID OAuth 2.0")
+    
+    orcid_id = token_data.get("orcid")
+    name = token_data.get("name")
+    profile = ScholarAuthService.fetch_orcid_public_profile(orcid_id) or {
+        "orcid": orcid_id,
+        "name": name or f"Scholar {orcid_id}",
+        "is_verified": True,
+        "source": "ORCID OAuth 2.0"
+    }
+    
+    jwt_token = ScholarAuthService.create_jwt_token(profile)
+    return {
+        "status": "AUTHENTICATED",
+        "access_token": jwt_token,
+        "token_type": "Bearer",
+        "profile": profile,
+        "orcid_oauth": {
+            "scope": token_data.get("scope"),
+            "orcid": orcid_id
+        }
+    }
 
 @app.post("/api/v1/auth/login")
 def authenticate_scholar_orcid(req: LoginRequest):

@@ -140,14 +140,16 @@ class DICOMWebGateway:
         series_uid = f"1.2.840.10008.5.1.4.1.1.2.{int(time.time())}.1.{uuid.uuid4().hex[:4]}"
         
         return {
-            "status": "DICOM_WADO_RS_ACCESSIBLE",
+            "status": "DICOM_SIMULATED_DATA",
+            "simulated": True,
+            "note": "Данные сгенерированы локально — реальная PACS-интеграция требует подключения к DICOM Web Gateway больницы",
             "study_instance_uid": study_uid,
             "series_instance_uid": series_uid,
             "patient_id": patient_id,
             "modality": modality,
             "body_part_examined": body_part,
-            "oncology_target_segmented": True,
-            "vascular_clamping_risk_score": 0.142,
+            "oncology_target_segmented": None,
+            "vascular_clamping_risk_score": None,
             "wado_uri": f"https://pacs.hospital.org/wado-rs/studies/{study_uid}",
             "gitscience_linked_formula": "(Artery + Vein) / (Lymph + 1.0)",
             "compliance": "DICOM PS3.18 / ISO 12052"

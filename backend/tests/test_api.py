@@ -102,7 +102,9 @@ def test_web3_live_wallet_balance(client):
     data = res.json()
     assert data["is_connected"] is True
     assert data["is_founder"] is True
-    assert data["usdt_balance"] >= 10000
+    assert data["simulated"] is False
+    assert data["offchain_usdt_balance"] is None
+    assert "native_balance_matic" in data
 
 def test_orcid_auth_and_jwt_flow(client):
     lookup_res = client.get("/api/v1/auth/orcid/0009-0003-3929-3605")

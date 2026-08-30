@@ -19,23 +19,30 @@ class IPNFTEngine:
         registration_code: str,
         wallet_address: str = ""
     ) -> Dict[str, Any]:
+        """
+        Формирует EIP-721 совместимые метаданные для токенизации научной работы.
+
+        Честная семантика: метаданные генерируются ТОЛЬКО для реально
+        зарегистрированного манускрипта. Никакой фабрикации:
+          * нет записи в реестре            -> RuntimeError (404)
+          * контракт SovereignIPNFT не задеплоен -> RuntimeError (503)
+          * поле mint_transaction_hash        -> НЕ заполняется без реальной
+            ончейн-транзакции (None).
+        Нажим/симуляция НЕ выдается за совершенный минт.
+        """
         if not wallet_address:
             wallet_address = storage.get_founder_identity()["wallet"]
         article = storage.get_manuscript_by_code(registration_code)
         if not article:
-            article = {
-                "registration_code": registration_code,
-                "title": "Coupling of Neuro-Immuno-Oncological Axes & Tk Equation",
-                "author_name": "Salauat Abiltayevich Yeshimov",
-                "orcid": storage.get_founder_identity()["orcid"],
-                "category": "Clinical Oncology & Surgery",
-                "ipc_class": "A61B",
-                "sha256_hash": "a4f89d3c11e74b21908d132a0d1e57c6b548b29f0e132049e6f1a8c903429381",
-                "ast_merkle_digest": "ebc0f046b03c47aa1234567890abcdef1234567890abcdef1234567890abcdef",
-                "git_commit_hash": "7f8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b",
-                "abstract": "Mathematical formalization of neuro-immuno-oncological axes via deterministic Tk equation.",
-                "created_at": "2026-08-17 00:00:00"
-            }
+            raise RuntimeError(f"Манускрипт {registration_code} не найден в реестре — минтить нечего")
+
+        from .gitscience_web3 import cfg_get
+        contract_address = cfg_get("contracts", "sovereign_ipnft")
+        if not contract_address:
+            raise RuntimeError(
+                "Контракт SovereignIPNFT не задеплоен/не сконфигурирован — ончейн-минт невозможен. "
+                "Укажите адрес в PROTOCOL_CONSTANTS.json `contracts.sovereign_ipnft` после деплоя."
+            )
 
         metadata = {
             "name": f"GitScience™ IP-NFT: {article['title']}",
@@ -48,10 +55,10 @@ class IPNFTEngine:
             "attributes": [
                 {"trait_type": "Registration Code", "value": article["registration_code"]},
                 {"trait_type": "Lead Author", "value": article["author_name"]},
-                {"trait_type": "ORCID iD", "value": article["orcid"]},
+                {"trait_type": "ORCID iD", "value": article.get("orcid", "")},
                 {"trait_type": "WIPO IPC Class", "value": article.get("ipc_class", "A61B")},
                 {"trait_type": "Discipline", "value": article.get("category", "General Science")},
-                {"trait_type": "SHA-256 Digest", "value": article["sha256_hash"][:16] + "..."},
+                {"trait_type": "SHA-256 Digest", "value": str(article.get("sha256_hash", ""))[:16] + "..."},
                 {"trait_type": "AST Merkle Digest", "value": (article.get("ast_merkle_digest") or "N/A")[:16] + "..."},
                 {"trait_type": "Regulatory Standard", "value": "RUO Class I CDSS"},
                 {"trait_type": "Royalty Standard", "value": "EIP-2981 (30% Protocol Treasury)"},
@@ -60,21 +67,21 @@ class IPNFTEngine:
             "properties": {
                 "legal_statute": "35 U.S.C. § 102 & EPC Article 54(2)",
                 "contract_splitter": wallet_address,
-                "git_commit_oid": article["git_commit_hash"],
+                "git_commit_oid": article.get("git_commit_hash", ""),
                 "minted_by": wallet_address,
                 "timestamp_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
             }
         }
 
         token_id = int(hashlib.sha256(registration_code.encode()).hexdigest()[:8], 16)
-        tx_hash = f"0x{hashlib.sha256((registration_code + str(time.time())).encode()).hexdigest()}"
 
         return {
             "status": "IP_NFT_MINT_READY",
             "token_id": token_id,
-            "contract_address": "0x4B825dC642cB6EB9a060e54bf8d69288FbEe4904",
+            "contract_address": contract_address,
             "network": "Base Mainnet / Polygon PoS",
-            "mint_transaction_hash": tx_hash,
+            "mint_transaction_hash": None,
+            "mint_status": "AWAITING_ONCHAIN_TRANSACTION",
             "owner_wallet": wallet_address,
             "metadata": metadata
         }
