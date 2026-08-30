@@ -36,6 +36,7 @@ from gitscience_fortress import (
 )
 from gitscience_vampire import VampireProtocolEngine, AutoHarvesterWorker, AutonomousIngestionDaemon
 from gitscience_zk import ZKDiscoveryEngine
+from gitscience_iot import GitscienceIoTGateway
 from gitscience_passport import SoulboundPassportEngine
 from gitscience_review import BlindPeerReviewEngine
 from gitscience_certificate import CertificateGenerator
@@ -768,7 +769,23 @@ class ZKRevealRequest(BaseModel):
     revealed_formula: Optional[str] = None
     author_orcid: Optional[str] = None
 
+class IoTRegisterRequest(BaseModel):
+    device_id: str = Field(..., min_length=2, max_length=128)
+    label: str = Field(..., max_length=256)
+    public_key_pem: str = Field(...)
+    issuer: Optional[str] = "GitScience Lab Infrastructure"
+
+class IoTIngestRequest(BaseModel):
+    device_id: str = Field(..., min_length=2, max_length=128)
+    timestamp: int = Field(...)
+    nonce: str = Field(..., min_length=8, max_length=128)
+    payload: Dict[str, Any] = Field(...)
+    signature: str = Field(...)
+
 zk_engine = ZKDiscoveryEngine(storage.STORAGE_DIR)
+
+# IoT Hardware Gateway (HSM) — верификация подписанных данных лабоборудования
+iot_gateway = GitscienceIoTGateway(storage.STORAGE_DIR)
 
 @app.post("/api/v1/zk/commit")
 def create_zk_blind_commitment(req: ZKCommitRequest):
@@ -794,6 +811,34 @@ def reveal_zk_commitment(req: ZKRevealRequest):
 @app.get("/api/v1/zk/list")
 def list_zk_commitments():
     return {"commitments": zk_engine.get_all_commitments()}
+
+# =====================================================================
+# 12.5 IoT HARDWARE GATEWAY (HSM) — подписанные данные лабоборудования
+# =====================================================================
+
+@app.post("/api/v1/iot/register")
+def iot_register_device(req: IoTRegisterRequest):
+    try:
+        return iot_gateway.register_device(
+            device_id=req.device_id,
+            label=req.label,
+            public_key_pem=req.public_key_pem,
+            issuer=req.issuer or "GitScience Lab Infrastructure",
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/api/v1/iot/ingest")
+def iot_ingest_signed_data(req: IoTIngestRequest):
+    return iot_gateway.ingest(req.model_dump())
+
+@app.get("/api/v1/iot/devices")
+def iot_list_devices():
+    return {"devices": iot_gateway.list_devices()}
+
+@app.get("/api/v1/iot/status")
+def iot_status(record_id: Optional[str] = None):
+    return iot_gateway.get_status(record_id)
 
 
 # =====================================================================

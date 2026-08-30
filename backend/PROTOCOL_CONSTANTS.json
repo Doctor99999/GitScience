@@ -16,6 +16,7 @@
     "infra_percent": 15.0,
     "founder_percent": 30.0
   },
+  "b2b_tax_grossup_pct": 20,
   "legal_framework": [
     "35 U.S.C. § 102 (US Patent Act)",
     "EPC Article 54(2) (European Patent Convention)",
