@@ -17,24 +17,64 @@
   --font-display: "Anybody", "Inter", sans-serif;
 }
 
+html, body {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+  position: relative;
+  margin: 0;
+  padding: 0;
+  overscroll-behavior-x: none;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
-  overflow-x: hidden;
   min-height: 100dvh;
+  min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   scroll-behavior: smooth;
   overflow-wrap: break-word;
   word-break: break-word;
+  contain: layout;
 }
 
 /* Crypto hash & address truncation */
 .break-hash {
   word-break: break-all;
   overflow-wrap: anywhere;
+}
+
+/* Prevent any horizontal overflow */
+* {
+  box-sizing: border-box;
+}
+
+/* Fixed layout: prevent main screen from floating */
+#__next,
+main {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+/* Sticky header stabilization */
+header {
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+/* Tabs container: prevent overflow on mobile */
+nav {
+  overscroll-behavior-x: contain;
+}
+
+/* Prevent content shift when switching tabs */
+.tab-panel {
+  min-height: 400px;
 }
 
 /* Scrollbar Utilities */
@@ -54,6 +94,7 @@ body {
   border-radius: 0px; 
   position: relative;
   overflow: hidden;
+  max-width: 100%;
 }
 
 /* Button & Link Hover Styles */

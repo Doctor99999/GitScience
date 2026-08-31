@@ -67,7 +67,7 @@ export default function InspectorTab({
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Layer 1 */}
-              <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 space-y-2 text-xs font-mono">
+              <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 space-y-2 text-xs font-mono min-w-0 overflow-hidden">
                 <strong className="text-emerald-400 block font-bold text-xs">{t.layer1Title}</strong>
                 <div className="text-[11px] text-slate-400 space-y-1">
                   <div>WIPO IPC: <span className="text-slate-200">{inspectedDoc.ipc_class}</span></div>
@@ -77,21 +77,21 @@ export default function InspectorTab({
               </div>
 
               {/* Layer 2 */}
-              <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 space-y-2 text-xs font-mono">
+              <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 space-y-2 text-xs font-mono min-w-0 overflow-hidden">
                 <strong className="text-cyan-400 block font-bold text-xs">{t.layer2Title}</strong>
                 <div className="text-[11px] text-slate-400 space-y-1">
-                  <div className="truncate">SHA-256: <span className="text-slate-200">{inspectedDoc.sha256_hash}</span></div>
-                  <div className="truncate">Git OID: <span className="text-slate-200">{inspectedDoc.git_commit_hash}</span></div>
+                  <div className="break-all">SHA-256: <span className="text-slate-200 break-all">{inspectedDoc.sha256_hash}</span></div>
+                  <div className="break-all">Git OID: <span className="text-slate-200 break-all">{inspectedDoc.git_commit_hash}</span></div>
                   <div>Anchor: <span className="text-emerald-400">Bitcoin OTS Anchored</span></div>
                 </div>
               </div>
 
               {/* Layer 3 */}
-              <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 space-y-2 text-xs font-mono">
+              <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 space-y-2 text-xs font-mono min-w-0 overflow-hidden">
                 <strong className="text-purple-400 block font-bold text-xs">{t.layer3Title}</strong>
                 <div className="text-[11px] text-slate-400 space-y-1">
-                  <div>Формула: <span className="text-cyan-300">{inspectedDoc.formula_math}</span></div>
-                  <div className="truncate">AST Merkle: <span className="text-slate-200">{inspectedDoc.ast_merkle_digest}</span></div>
+                  <div className="break-all">Формула: <span className="text-cyan-300 break-all">{inspectedDoc.formula_math}</span></div>
+                  <div className="break-all">AST Merkle: <span className="text-slate-200 break-all">{inspectedDoc.ast_merkle_digest}</span></div>
                   <div>Режим: <span className="text-amber-300">RUO Class I CDSS</span></div>
                 </div>
               </div>

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-gitscience_auth.py — Sovereign Scholar Authentication & ORCID Integration
-Поддержка ORCID Public API v3.0, верификация личности ученых и выпуск JWT-токенов.
+gitscience_auth.py — Sovereign Scholar Authentication & ORCID Integration v3.4-HARDENED
+Поддержка ORCID Public API v3.0, OAuth 2.0 Authorization Code Exchange, верификация личности ученых и выпуск JWT-токенов.
 """
 import hmac
 import hashlib
@@ -13,6 +13,7 @@ import os
 import secrets as _secrets
 import uuid
 import urllib.request
+import urllib.parse
 import urllib.error
 from typing import Dict, Any, Optional, Tuple
 
@@ -31,6 +32,11 @@ JWT_SECRET = _jwt_secret_env
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRATION_SECONDS = 86400 * 7  # 7 days
 
+ORCID_CLIENT_ID = os.environ.get("ORCID_CLIENT_ID", "")
+ORCID_CLIENT_SECRET = os.environ.get("ORCID_CLIENT_SECRET", "")
+ORCID_TOKEN_URL = "https://orcid.org/oauth/token"
+IS_PRODUCTION = os.environ.get("ENVIRONMENT", "development").lower() == "production"
+
 class ScholarAuthService:
     """Сервис суверенной аутентификации исследователей по ORCID."""
 
@@ -39,6 +45,53 @@ class ScholarAuthService:
         """Проверяет соответствие стандарту ISO 27729 (ORCID iD)."""
         clean = orcid.strip()
         return bool(re.match(r"^\d{4}-\d{4}-\d{4}-[\dXx]{4}$", clean))
+
+    @classmethod
+    def exchange_code_for_orcid_token(cls, code: str, redirect_uri: str) -> Tuple[bool, Optional[Dict[str, Any]], Optional[str]]:
+        """
+        Обменивает временный OAuth-код на подтвержденный ORCID iD через защищенный бэк-канал ORCID.
+        """
+        if not (ORCID_CLIENT_ID and ORCID_CLIENT_SECRET):
+            if IS_PRODUCTION:
+                return False, None, "ORCID OAuth credentials (ORCID_CLIENT_ID/SECRET) не настроены на сервере."
+            # В dev-режиме эмулируем успешный обмен
+            mock_orcid = "0009-0003-3929-3605"
+            return True, {
+                "orcid": mock_orcid,
+                "name": "Dev Verified Scholar",
+                "access_token": "mock_token_dev",
+                "token_type": "bearer",
+                "scope": "/authenticate"
+            }, None
+
+        form_data = {
+            "client_id": ORCID_CLIENT_ID,
+            "client_secret": ORCID_CLIENT_SECRET,
+            "grant_type": "authorization_code",
+            "code": code.strip(),
+            "redirect_uri": redirect_uri.strip()
+        }
+        encoded_data = urllib.parse.urlencode(form_data).encode("utf-8")
+        req = urllib.request.Request(
+            ORCID_TOKEN_URL,
+            data=encoded_data,
+            headers={
+                "Accept": "application/json",
+                "Content-Type": "application/x-www-form-urlencoded",
+                "User-Agent": "GitScience-Sovereign-Protocol/3.4"
+            }
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                if resp.status == 200:
+                    data = json.loads(resp.read().decode("utf-8"))
+                    return True, data, None
+                return False, None, f"ORCID auth error: HTTP {resp.status}"
+        except urllib.error.HTTPError as e:
+            err_body = e.read().decode("utf-8", errors="ignore")
+            return False, None, f"ORCID OAuth failed: {err_body}"
+        except Exception as e:
+            return False, None, f"ORCID connection error: {e}"
 
     @classmethod
     def fetch_orcid_public_profile(cls, orcid: str) -> Optional[Dict[str, Any]]:
@@ -68,7 +121,7 @@ class ScholarAuthService:
             url,
             headers={
                 "Accept": "application/json",
-                "User-Agent": "GitScience-Sovereign-Protocol/3.3 (+https://gitscience.org)"
+                "User-Agent": "GitScience-Sovereign-Protocol/3.4 (+https://gitscience.org)"
             }
         )
         try:
@@ -96,14 +149,14 @@ class ScholarAuthService:
         except Exception:
             pass
 
-        # Fallback profile for offline/sandbox
+        # Fallback profile for offline/sandbox mode
         return {
             "orcid": clean,
-            "name": f"Verified Scholar ({clean[-4:]})",
+            "name": f"Scholar ({clean[-4:]})",
             "institution": "Independent Scientific Research",
             "discipline": "General Science & Mathematics",
-            "is_verified": True,
-            "source": "Sovereign Cache"
+            "is_verified": not IS_PRODUCTION,
+            "source": "Sovereign Cache (Offline/Sandbox)"
         }
 
     @staticmethod

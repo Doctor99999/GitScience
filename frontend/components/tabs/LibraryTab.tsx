@@ -92,21 +92,21 @@ export default function LibraryTab({
           {filteredLibrary.map((art) => (
             <div
               key={art.registration_code}
-              className="bg-slate-900/90 border border-slate-800 hover:border-emerald-500/50 rounded-2xl p-4 sm:p-5 space-y-3 transition flex flex-col justify-between shadow-lg"
+              className="bg-slate-900/90 border border-slate-800 hover:border-emerald-500/50 rounded-2xl p-4 sm:p-5 space-y-3 transition flex flex-col justify-between shadow-lg min-w-0 overflow-hidden"
             >
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-xs font-mono text-cyan-400 font-bold">{art.registration_code}</span>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/40">
+              <div className="space-y-2 min-w-0">
+                <div className="flex justify-between items-center gap-2">
+                  <span className="text-xs font-mono text-cyan-400 font-bold truncate">{art.registration_code}</span>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/40 shrink-0">
                     {art.license_type || "CC-BY-4.0"}
                   </span>
                 </div>
-                <h3 className="font-bold text-sm sm:text-base text-slate-100 line-clamp-2">{art.title}</h3>
+                <h3 className="font-bold text-sm sm:text-base text-slate-100 line-clamp-2 break-words">{art.title}</h3>
                 <p className="text-xs text-slate-400 truncate">
                   Автор: <strong className="text-slate-200">{art.author_name}</strong>
                 </p>
-                <div className="text-[11px] text-slate-500 font-mono space-y-0.5">
-                  <div className="truncate">IPFS CID: <span className="text-cyan-400">{art.ipfs_cid || "bafyafybeid6..."}</span></div>
+                <div className="text-[11px] text-slate-500 font-mono space-y-0.5 min-w-0">
+                  <div className="truncate">IPFS CID: <span className="text-cyan-400 truncate">{art.ipfs_cid || "bafyafybeid6..."}</span></div>
                   <div>Дереккөз: <span className="text-amber-300">{art.source_archive || "Sovereign Notary"}</span></div>
                 </div>
               </div>

@@ -2,19 +2,15 @@
 pragma solidity ^0.8.20;
 
 /**
- * @title GitScience™ AmanatSplitter v3.3
+ * @title GitScience™ AmanatSplitter v3.4-HARDENED
  * @notice Децентрализованный смарт-контракт маршрутизации авторских роялти Аманата.
  * @dev Применяет единый золотой стандарт консенсуса Fair-Share:
  *      - 5500 bps (55%) Авторский пул (распределяется по CRediT CASRAI)
  *      - 1500 bps (15%) Фонд независимых рецензентов и валидаторов
  *      - 3000 bps (30%) Фонд Создателя протокола / Protocol Treasury
  *      - +20% B2B Tax Gross-Up для корпоративных покупателей и клиник
+ *      - Устойчивые низкоуровневые безопасные переводы SafeERC20 для поддержки USDT/USDC.
  */
-
-interface IERC20 {
-    function transferFrom(address sender, address recipient, uint256 amount) external returns (bool);
-    function transfer(address recipient, uint256 amount) external returns (bool);
-}
 
 contract AmanatSplitter {
     address public immutable founderWallet;
@@ -48,6 +44,20 @@ contract AmanatSplitter {
         infrastructurePool = _infrastructurePool;
     }
 
+    function _safeTransfer(address token, address to, uint256 value) internal {
+        (bool success, bytes memory data) = token.call(
+            abi.encodeWithSelector(0xa9059cbb, to, value)
+        );
+        require(success && (data.length == 0 || abi.decode(data, (bool))), "GS: SafeTransfer failed");
+    }
+
+    function _safeTransferFrom(address token, address from, address to, uint256 value) internal {
+        (bool success, bytes memory data) = token.call(
+            abi.encodeWithSelector(0x23b872dd, from, to, value)
+        );
+        require(success && (data.length == 0 || abi.decode(data, (bool))), "GS: SafeTransferFrom failed");
+    }
+
     /**
      * @notice Распределяет роялти в ERC-20 (USDT / USDC) по единой формуле 55 / 15 / 30 с B2B Gross-Up (+20%)
      */
@@ -70,25 +80,25 @@ contract AmanatSplitter {
         // Расчет инвойса с учетом B2B Tax Gross-Up (+20%)
         uint256 invoiceTotal = baseAmount + (baseAmount * B2B_TAX_GROSSUP_BPS / BPS_DENOMINATOR);
 
-        IERC20 token = IERC20(tokenAddress);
-        require(token.transferFrom(msg.sender, address(this), invoiceTotal), "Payment transfer failed");
+        // Безопасное списание средств с покупателя (поддерживает стандартный и нестандартный USDT)
+        _safeTransferFrom(tokenAddress, msg.sender, address(this), invoiceTotal);
 
         // 1. Распределение авторского пула (55% от baseAmount)
         uint256 authorTotal = (baseAmount * AUTHOR_POOL_BPS) / BPS_DENOMINATOR;
         for (uint256 i = 0; i < authors.length; i++) {
             uint256 authorShare = (authorTotal * authors[i].weightBasisPoints) / BPS_DENOMINATOR;
-            if (authorShare > 0) {
-                token.transfer(authors[i].wallet, authorShare);
+            if (authorShare > 0 && authors[i].wallet != address(0)) {
+                _safeTransfer(tokenAddress, authors[i].wallet, authorShare);
             }
         }
 
         // 2. Распределение фонда инфраструктуры и рецензентов (15% от baseAmount)
         uint256 infraTotal = (baseAmount * INFRA_POOL_BPS) / BPS_DENOMINATOR;
-        token.transfer(infrastructurePool, infraTotal);
+        _safeTransfer(tokenAddress, infrastructurePool, infraTotal);
 
         // 3. Распределение фонда Создателя (30% от baseAmount) + остаток налогового Gross-Up
         uint256 founderTotal = invoiceTotal - authorTotal - infraTotal;
-        token.transfer(founderWallet, founderTotal);
+        _safeTransfer(tokenAddress, founderWallet, founderTotal);
 
         emit RoyaltyDistributed(
             registrationCodeHash,

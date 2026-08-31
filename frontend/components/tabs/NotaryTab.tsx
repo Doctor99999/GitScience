@@ -253,14 +253,14 @@ export default function NotaryTab({
 
         {/* Notary Success Banner */}
         {notarySuccess && (
-          <div className="p-5 bg-emerald-950/40 border border-emerald-500/50 rounded-2xl space-y-3 text-xs font-mono shadow-xl">
+          <div className="p-5 bg-emerald-950/40 border border-emerald-500/50 rounded-2xl space-y-3 text-xs font-mono shadow-xl min-w-0 overflow-hidden">
             <div className="text-emerald-400 font-bold text-sm sm:text-base flex items-center gap-2">
               <span>🛡️</span> {t.notarySuccessTitle}
             </div>
-            <div className="space-y-1 text-slate-300 text-[11px]">
-              <div>{t.notaryCertId}: <strong className="text-cyan-300">{notarySuccess.registration_code}</strong></div>
-              <div className="truncate">{t.notarySha}: <strong className="text-emerald-300">{notarySuccess.sha256_hash}</strong></div>
-              <div className="truncate">{t.notaryOid}: <strong className="text-purple-300">{notarySuccess.git_commit_hash}</strong></div>
+            <div className="space-y-1 text-slate-300 text-[11px] min-w-0">
+              <div className="break-all">{t.notaryCertId}: <strong className="text-cyan-300 break-all">{notarySuccess.registration_code}</strong></div>
+              <div className="break-all">{t.notarySha}: <strong className="text-emerald-300 break-all">{notarySuccess.sha256_hash}</strong></div>
+              <div className="break-all">{t.notaryOid}: <strong className="text-purple-300 break-all">{notarySuccess.git_commit_hash}</strong></div>
             </div>
             <a
               href={`${apiBase}/certificate/pdf/${notarySuccess.registration_code}`}

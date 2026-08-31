@@ -18,7 +18,7 @@ export default function Footer({ t, platformStats, apiBase }: FooterProps) {
   return (
     <footer className="border-t border-[var(--surface-border)] bg-[var(--background)] mt-16 pt-12 pb-12 relative overflow-hidden">
       <div className="absolute top-0 left-0 w-full h-1 bg-[var(--sci-red)] opacity-50 shadow-[0_0_20px_rgba(241,78,50,0.5)]"></div>
-      <div className="max-w-7xl mx-auto px-6 space-y-12 relative z-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-12 relative z-10">
         
         {/* Statistics Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">

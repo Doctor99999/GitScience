@@ -14,7 +14,7 @@ export default function WelcomeBanner({
   setShowWalletModal,
 }: WelcomeBannerProps) {
   return (
-    <section className="relative w-full min-h-[90vh] bg-[var(--background)] border-b border-[var(--surface-border)] flex items-center justify-center px-6 py-20 overflow-hidden">
+    <section className="relative w-full min-h-[90vh] bg-[var(--background)] border-b border-[var(--surface-border)] flex items-center justify-center px-4 sm:px-6 py-16 sm:py-20 overflow-hidden">
       {/* Background Grid Pattern */}
       <div 
         className="absolute inset-0 z-0 opacity-20 pointer-events-none"
@@ -33,7 +33,7 @@ export default function WelcomeBanner({
             <span className="font-mono text-[10px] text-[var(--sci-red)] uppercase tracking-widest font-bold">System Online // v 2.4</span>
           </div>
 
-          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-display font-black uppercase tracking-tight text-white mb-6 leading-[1.1]">
+          <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-display font-black uppercase tracking-tight text-white mb-4 sm:mb-6 leading-[1.1] break-words">
             Scientific<br/>Sovereignty.<br/><span className="text-white">Engineered.</span>
           </h1>
           

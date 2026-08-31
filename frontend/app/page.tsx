@@ -172,9 +172,18 @@ export default function GitScienceApp() {
   };
 
   return (
-    <div className="min-h-screen bg-[#050505] text-[#ffffff] font-sans flex flex-col justify-between selection:bg-[#da291c] selection:text-white">
-      <div className="w-full">
-        {/* 1. Header */}
+    <div className="min-h-screen w-full max-w-[100vw] overflow-x-hidden bg-[#050505] text-[#ffffff] font-sans flex flex-col selection:bg-[#da291c] selection:text-white">
+      {/* Welcome Banner for guests — scrolls away */}
+      {!activeScholar && (
+        <WelcomeBanner
+          t={t}
+          setShowOrcidModal={setShowOrcidModal}
+          setShowWalletModal={setShowWalletModal}
+        />
+      )}
+
+      {/* Sticky header + tabs block — always visible when scrolling */}
+      <div className="sticky top-0 z-40 w-full bg-[var(--background)] border-b border-[var(--surface-border)]">
         <Header
           lang={lang}
           setLang={setLang}
@@ -190,23 +199,15 @@ export default function GitScienceApp() {
           passkeyNotice={passkeyNotice}
         />
 
-        {/* 2. Welcome Banner for Visitors / Guests */}
-        {!activeScholar && (
-          <WelcomeBanner
-            t={t}
-            setShowOrcidModal={setShowOrcidModal}
-            setShowWalletModal={setShowWalletModal}
-          />
-        )}
+        <NavigationTabs
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          t={t}
+        />
+      </div>
 
-        {/* 3. Main Workspace */}
-        <main className="max-w-7xl mx-auto px-3 sm:px-6 py-6 space-y-6">
-          {/* Tabs Navigation */}
-          <NavigationTabs
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
-            t={t}
-          />
+      {/* Main Workspace — scrolls under the sticky header */}
+      <main className="w-full max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6 min-w-0">
 
           {/* Active Tab Panel */}
           {activeTab === "notary" && (
@@ -400,9 +401,8 @@ export default function GitScienceApp() {
             />
           )}
         </main>
-      </div>
 
-      {/* 4. Footer */}
+      {/* Footer */}
       <Footer
         t={t}
         platformStats={platformStats}

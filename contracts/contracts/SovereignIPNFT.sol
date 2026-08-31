@@ -2,9 +2,10 @@
 pragma solidity ^0.8.20;
 
 /**
- * @title GitScience™ SovereignIPNFT (ERC-721 + EIP-2981)
+ * @title GitScience™ SovereignIPNFT (ERC-721 + EIP-2981) - Hardened v3.4
  * @notice Децентрализованная токенизация научных открытий, патентов и математических моделей.
  * @dev Включает EIP-2981 стандарт роялти с привязкой к смарт-контракту AmanatSplitter (55/15/30).
+ *      Защищен модификатором onlyMinterOrFounder для исключения несанкционированного минтинга.
  */
 
 interface IERC165 {
@@ -36,6 +37,7 @@ contract SovereignIPNFT is IERC721, IERC2981 {
 
     address public immutable founderWallet;
     address public immutable amanatSplitterAddress;
+    address public platformMinter;
     uint256 public nextTokenId = 1;
 
     struct PatentRecord {
@@ -60,12 +62,29 @@ contract SovereignIPNFT is IERC721, IERC2981 {
         address indexed author,
         string tokenURI
     );
+    event PlatformMinterUpdated(address indexed previousMinter, address indexed newMinter);
+
+    modifier onlyMinterOrFounder() {
+        require(
+            msg.sender == platformMinter || msg.sender == founderWallet,
+            "GS: Caller is not authorized minter or founder"
+        );
+        _;
+    }
 
     constructor(address _founderWallet, address _amanatSplitter) {
         require(_founderWallet != address(0), "Invalid founder");
         require(_amanatSplitter != address(0), "Invalid splitter");
         founderWallet = _founderWallet;
         amanatSplitterAddress = _amanatSplitter;
+        platformMinter = _founderWallet;
+    }
+
+    function setPlatformMinter(address _newMinter) external {
+        require(msg.sender == founderWallet, "GS: Only founder can set platform minter");
+        require(_newMinter != address(0), "GS: Invalid zero address");
+        emit PlatformMinterUpdated(platformMinter, _newMinter);
+        platformMinter = _newMinter;
     }
 
     function supportsInterface(bytes4 interfaceId) public pure override returns (bool) {
@@ -92,6 +111,7 @@ contract SovereignIPNFT is IERC721, IERC2981 {
 
     /**
      * @notice Минтинг нового суверенного IP-NFT с привязкой Prior Art
+     * @dev Доступен только авторизованному шлюзу нотариата GitScience или Создателю протокола
      */
     function mintIPNFT(
         address to,
@@ -99,7 +119,7 @@ contract SovereignIPNFT is IERC721, IERC2981 {
         string calldata sha256Hash,
         string calldata astMerkle,
         string calldata uri
-    ) external returns (uint256) {
+    ) external onlyMinterOrFounder returns (uint256) {
         require(to != address(0), "Cannot mint to zero address");
         uint256 tokenId = nextTokenId++;
 

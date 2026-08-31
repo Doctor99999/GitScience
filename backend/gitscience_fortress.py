@@ -10,6 +10,7 @@ import os
 import json
 import time
 import hashlib
+import threading
 import concurrent.futures
 from pathlib import Path
 from typing import Dict, Any, List, Optional, Tuple
@@ -229,6 +230,8 @@ class IRBClinicalVerifier:
 class ScienceCourt:
     """Система разрешения споров об авторстве, фальсификациях и претензиях на Prior Art"""
 
+    _court_lock = threading.Lock()
+
     def __init__(self, storage_dir: Optional[Path] = None):
         self.storage_dir = Path(storage_dir) if storage_dir else Path.cwd() / "storage"
         self.storage_dir.mkdir(parents=True, exist_ok=True)
@@ -236,9 +239,12 @@ class ScienceCourt:
         self._init_db()
 
     def _init_db(self):
-        if not self.court_file.exists():
-            with open(self.court_file, "w", encoding="utf-8") as f:
-                json.dump({"disputes": []}, f, indent=2)
+        with self._court_lock:
+            if not self.court_file.exists():
+                tmp_file = self.court_file.with_suffix(".tmp")
+                with open(tmp_file, "w", encoding="utf-8") as f:
+                    json.dump({"disputes": []}, f, indent=2)
+                tmp_file.replace(self.court_file)
 
     def file_dispute(
         self,
@@ -248,59 +254,72 @@ class ScienceCourt:
         reason: str,
         evidence_hash: str
     ) -> Dict[str, Any]:
-        with open(self.court_file, "r", encoding="utf-8") as f:
-            db = json.load(f)
+        with self._court_lock:
+            db = {"disputes": []}
+            if self.court_file.exists():
+                with open(self.court_file, "r", encoding="utf-8") as f:
+                    try:
+                        db = json.load(f)
+                    except Exception:
+                        db = {"disputes": []}
 
-        case_id = f"CASE-{hashlib.sha256(f'{claimant_orcid}:{target_code}:{time.time()}'.encode()).hexdigest()[:8].upper()}"
-        case_data = {
-            "case_id": case_id,
-            "claimant_name": claimant_name,
-            "claimant_orcid": claimant_orcid,
-            "target_code": target_code,
-            "reason": reason,
-            "evidence_hash": evidence_hash,
-            "status": "OPEN",
-            "votes": {"valid": 0, "invalid": 0, "abstain": 0},
-            "jurors_voted": [],
-            "created_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-        }
-        db["disputes"].append(case_data)
+            case_id = f"CASE-{hashlib.sha256(f'{claimant_orcid}:{target_code}:{time.time()}'.encode()).hexdigest()[:8].upper()}"
+            case_data = {
+                "case_id": case_id,
+                "claimant_name": claimant_name,
+                "claimant_orcid": claimant_orcid,
+                "target_code": target_code,
+                "reason": reason,
+                "evidence_hash": evidence_hash,
+                "status": "OPEN",
+                "votes": {"valid": 0, "invalid": 0, "abstain": 0},
+                "jurors_voted": [],
+                "created_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+            }
+            db["disputes"].append(case_data)
 
-        with open(self.court_file, "w", encoding="utf-8") as f:
-            json.dump(db, f, indent=2, ensure_ascii=False)
+            tmp_file = self.court_file.with_suffix(f".tmp.{os.getpid()}")
+            with open(tmp_file, "w", encoding="utf-8") as f:
+                json.dump(db, f, indent=2, ensure_ascii=False)
+            tmp_file.replace(self.court_file)
 
-        return case_data
+            return case_data
 
     def cast_vote(self, case_id: str, juror_orcid: str, vote: str) -> Dict[str, Any]:
         """vote: 'valid' | 'invalid' | 'abstain'"""
-        with open(self.court_file, "r", encoding="utf-8") as f:
-            db = json.load(f)
+        with self._court_lock:
+            if not self.court_file.exists():
+                return {"status": "ERROR", "message": "Реестр суда не инициализирован"}
+            with open(self.court_file, "r", encoding="utf-8") as f:
+                db = json.load(f)
 
-        for case in db["disputes"]:
-            if case["case_id"] == case_id:
-                if juror_orcid in case.get("jurors_voted", []):
-                    return {"status": "ERROR", "message": "Присяжный уже проголосовал по данному делу"}
+            for case in db["disputes"]:
+                if case["case_id"] == case_id:
+                    if juror_orcid in case.get("jurors_voted", []):
+                        return {"status": "ERROR", "message": "Присяжный уже проголосовал по данному делу"}
 
-                if vote not in ["valid", "invalid", "abstain"]:
-                    return {"status": "ERROR", "message": "Неверный тип голоса"}
+                    if vote not in ["valid", "invalid", "abstain"]:
+                        return {"status": "ERROR", "message": "Неверный тип голоса"}
 
-                case["votes"][vote] += 1
-                case.setdefault("jurors_voted", []).append(juror_orcid)
+                    case["votes"][vote] += 1
+                    case.setdefault("jurors_voted", []).append(juror_orcid)
 
-                # Проверка кворума (например, 5 голосов)
-                total_votes = sum(case["votes"].values())
-                if total_votes >= 5:
-                    if case["votes"]["valid"] > case["votes"]["invalid"]:
-                        case["status"] = "VERDICT_PRIOR_ART_CHALLENGED"
-                    else:
-                        case["status"] = "VERDICT_PRIOR_ART_CONFIRMED"
+                    # Проверка кворума (например, 5 голосов)
+                    total_votes = sum(case["votes"].values())
+                    if total_votes >= 5:
+                        if case["votes"]["valid"] > case["votes"]["invalid"]:
+                            case["status"] = "VERDICT_PRIOR_ART_CHALLENGED"
+                        else:
+                            case["status"] = "VERDICT_PRIOR_ART_CONFIRMED"
 
-                with open(self.court_file, "w", encoding="utf-8") as out:
-                    json.dump(db, out, indent=2, ensure_ascii=False)
+                    tmp_file = self.court_file.with_suffix(f".tmp.{os.getpid()}")
+                    with open(tmp_file, "w", encoding="utf-8") as out:
+                        json.dump(db, out, indent=2, ensure_ascii=False)
+                    tmp_file.replace(self.court_file)
 
-                return {"status": "VOTE_RECORDED", "case": case}
+                    return {"status": "VOTE_RECORDED", "case": case}
 
-        return {"status": "ERROR", "message": "Дело не найдено в реестре суда"}
+            return {"status": "ERROR", "message": "Дело не найдено в реестре суда"}
 
     def get_all_cases(self) -> List[Dict[str, Any]]:
         if not self.court_file.exists():
