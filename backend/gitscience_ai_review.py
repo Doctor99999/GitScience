@@ -98,18 +98,26 @@ class SovereignAIAuditor:
         overlap_percentage = max(4.2, min(24.5, 30.0 - score_boost * 4.5))
         novelty_score = round(min(10.0, 7.5 + (100.0 - overlap_percentage) / 40.0), 1)
 
-        simulated_benchmarks = [
-            {"corpus": "PubMed Central / Medline", "max_similarity": f"{overlap_percentage:.1f}%", "conflict_status": "CLEAR_PRIOR_ART"},
-            {"corpus": "USPTO & EPO Patent Databases", "max_similarity": f"{overlap_percentage * 0.7:.1f}%", "conflict_status": "NO_BLOCKING_CLAIMS"},
-            {"corpus": "OpenAlex Global Scholarly Graph", "max_similarity": f"{overlap_percentage * 0.85:.1f}%", "conflict_status": "ORIGINAL_CONTRIBUTION"}
+        # Честная маркировка: это ПРОСТАЯ ЭВРИСТИКА (ключевые термины + размер текста),
+        # НЕ настоящий семантический анализ корпусов. Не выдаём за BioBERT/LLM-инференс.
+        heuristic_benchmarks = [
+            {"corpus": "PubMed Central / Medline", "max_similarity": "HEURISTIC_ESTIMATE", "conflict_status": "NOT_AUTOMATICALLY_ACCEPTED"},
+            {"corpus": "USPTO & EPO Patent Databases", "max_similarity": "HEURISTIC_ESTIMATE", "conflict_status": "NO_BLOCKING_CLAIMS"},
+            {"corpus": "OpenAlex Global Scholarly Graph", "max_similarity": "HEURISTIC_ESTIMATE", "conflict_status": "ORIGINAL_CONTRIBUTION"}
         ]
 
         return {
             "estimated_prior_art_overlap_pct": round(overlap_percentage, 1),
             "novelty_score": novelty_score,
-            "patentability_freedom_to_operate": "HIGH_CONFIDENCE_CLEARANCE",
-            "statutory_recommendation": "35 U.S.C. § 102 & EPC Article 54(2) Novelty Criterion Satisfied",
-            "benchmarks": simulated_benchmarks
+            "patentability_freedom_to_operate": "UNVERIFIED_HEURISTIC_SCREENING",
+            "statutory_recommendation": "Не является юридическим заключением — требуется патентный поверенный (35 U.S.C. § 102 / EPC Article 54(2) консультация)",
+            "benchmarks": heuristic_benchmarks,
+            "analysis_method": "HEURISTIC_KEYWORD_SCREENING",
+            "simulated": True,
+            "note": (
+                "Результат получен локальной эвристикой и НЕ подтверждён анализом реальных "
+                "патентных баз. Патентные и FTO-запросы должны проверяться патентным поверенным."
+            )
         }
 
     @classmethod

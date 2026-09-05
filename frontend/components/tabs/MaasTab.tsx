@@ -1,17 +1,18 @@
 "use client";
 
 import React from "react";
+import type { TranslationDict } from "../../lib/translations";
 
 interface MaasTabProps {
-  t: any;
+  t: TranslationDict;
   maasFormula: string;
   setMaasFormula: (s: string) => void;
   handleRunMaasSimulation: () => void;
   maasLoading: boolean;
-  maasResult: any;
+  maasResult: unknown;
   handleClinicalFhirTest: () => void;
   fhirLoading: boolean;
-  fhirResult: any;
+  fhirResult: unknown;
 }
 
 export default function MaasTab({
@@ -84,7 +85,7 @@ export default function MaasTab({
         </div>
 
         {/* FHIR Result */}
-        {fhirResult && (
+        {fhirResult != null && (
           <div className="p-4 bg-purple-950/30 border border-purple-500/40 rounded-2xl text-xs font-mono space-y-2">
             <div className="text-purple-300 font-bold">🏥 HL7 / FHIR R4 Bundle Observation:</div>
             <pre className="bg-slate-950 p-3 rounded-xl overflow-x-auto text-[11px] text-slate-300">
@@ -94,7 +95,7 @@ export default function MaasTab({
         )}
 
         {/* WASM Result */}
-        {maasResult && (
+        {maasResult != null && (
           <div className="p-4 bg-emerald-950/30 border border-emerald-500/40 rounded-2xl text-xs font-mono space-y-2">
             <div className="text-emerald-400 font-bold">⚡ WASM Stream Output:</div>
             <pre className="bg-slate-950 p-3 rounded-xl overflow-x-auto text-[11px] text-slate-300">

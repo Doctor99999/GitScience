@@ -30,16 +30,24 @@ canonical split and is enforced identically in `backend/gitscience_storage.py`,
 ```
 backend/            FastAPI application — single source of truth for all protocol logic
   ├─ main.py                 REST API, JWT auth, HMAC webhooks, rate limiting
-  ├─ gitscience_storage.py   SQLite (BEGIN IMMEDIATE) + Git OID anchoring, search
-  ├─ gitscience_fortress.py  DualTimestampingNotary (RFC 3161 + LIVE OpenTimestamps)
+  ├─ gitscience_storage.py   SQLite/PostgreSQL (BEGIN IMMEDIATE) + Git OID anchoring, search
+  ├─ gitscience_fortress.py  DualTimestampingNotary (RFC 3161 + LIVE OpenTimestamps), Science Court, CRediT, IRB, royalty router
   ├─ gitscience_compiler.py  SafeASTEvaluator (red-team hardened)
-  ├─ gitscience_verifier.py  Plagiarism / integrity verification
-  ├─ gitscience_rating.py    Scientist reputation (CDSS Class I)
-  ├─ gitscience_privacy.py   Anonymization / RUO guards
-  └─ tests/                  30 pytest suites (security, consensus, OTS, JWT)
+  ├─ gitscience_auth.py      Scholar auth (ORCID OAuth 2.0 + JWT with jti revocation)
+  ├─ gitscience_vampire.py   Open-science importer (OpenAlex / arXiv / PubMed)
+  ├─ gitscience_review.py    Blind cryptographic peer-review
+  ├─ gitscience_passport.py  Soulbound researcher passport (SRS)
+  ├─ gitscience_zk.py        Zero-Knowledge Proof of Discovery (ZK-PoD)
+  ├─ gitscience_iot.py       Lab hardware gateway (Ed25519 signed data)
+  ├─ gitscience_fhir.py      HL7 FHIR / DICOMWeb clinical gateway
+  ├─ gitscience_fiat.py      B2B fiat invoicing (+20% Gross-Up) & HMAC webhooks
+  ├─ gitscience_certificate.py  WIPO Prior Art PDF certificate generator
+  ├─ gitscience_web3.py      Non-custodial Web3 RPC gateway (real on-chain balances)
+  ├─ gitscience_ipnft.py     Sovereign IP-NFT token metadata engine
+  └─ tests/                  36 pytest tests (security, consensus, OTS, JWT, ZK)
 
 frontend/           Next.js 16 PWA (KZ / RU / EN), mobile zero-overflow
-contracts/          Solidity: AmanatSplitter v3.3 + SovereignIPNFT (Hardhat deploy)
+contracts/          Solidity: AmanatSplitter v3.5 + SovereignIPNFT (Hardhat deploy)
 nginx/              HTTPS-ready reverse proxy (TLS 1.2/1.3, HSTS, http2)
 ```
 

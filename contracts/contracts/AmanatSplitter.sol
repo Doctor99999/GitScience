@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 /**
- * @title GitScience™ AmanatSplitter v3.4-HARDENED
+ * @title GitScience™ AmanatSplitter v3.5-HARDENED
  * @notice Децентрализованный смарт-контракт маршрутизации авторских роялти Аманата.
  * @dev Применяет единый золотой стандарт консенсуса Fair-Share:
  *      - 5500 bps (55%) Авторский пул (распределяется по CRediT CASRAI)
@@ -10,11 +10,15 @@ pragma solidity ^0.8.20;
  *      - 3000 bps (30%) Фонд Создателя протокола / Protocol Treasury
  *      - +20% B2B Tax Gross-Up для корпоративных покупателей и клиник
  *      - Устойчивые низкоуровневые безопасные переводы SafeERC20 для поддержки USDT/USDC.
+ *      - Защита ReentrancyGuard + строгий доступ: settle доступен только
+ *        платформенному оператору (независимо от покупателя).
  */
 
 contract AmanatSplitter {
     address public immutable founderWallet;
     address public immutable infrastructurePool;
+    address public platformOperator;
+    bool private _entered;
 
     uint256 public constant BPS_DENOMINATOR = 10000;
     uint256 public constant AUTHOR_POOL_BPS = 5500; // 55%
@@ -36,12 +40,44 @@ contract AmanatSplitter {
         uint256 infraPoolDisbursed,
         uint256 founderDisbursed
     );
+    event PlatformOperatorUpdated(address indexed previousOperator, address indexed newOperator);
+
+    modifier onlyFounder() {
+        require(msg.sender == founderWallet, "GS: not founder");
+        _;
+    }
+
+    modifier onlyOperator() {
+        require(
+            msg.sender == platformOperator || msg.sender == founderWallet,
+            "GS: not authorized platform operator"
+        );
+        _;
+    }
+
+    modifier nonReentrant() {
+        require(!_entered, "GS: reentrancy guard");
+        _entered = true;
+        _;
+        _entered = false;
+    }
 
     constructor(address _founderWallet, address _infrastructurePool) {
         require(_founderWallet != address(0), "Invalid founder wallet");
         require(_infrastructurePool != address(0), "Invalid infra pool");
         founderWallet = _founderWallet;
         infrastructurePool = _infrastructurePool;
+        platformOperator = _founderWallet;
+    }
+
+    /**
+     * @notice Назначает новый адрес оператора платформы (инициатор верификации B2B-платежей).
+     * @dev Только Создатель протокола может сменить оператора.
+     */
+    function setPlatformOperator(address _newOperator) external onlyFounder {
+        require(_newOperator != address(0), "GS: zero operator address");
+        emit PlatformOperatorUpdated(platformOperator, _newOperator);
+        platformOperator = _newOperator;
     }
 
     function _safeTransfer(address token, address to, uint256 value) internal {
@@ -60,13 +96,16 @@ contract AmanatSplitter {
 
     /**
      * @notice Распределяет роялти в ERC-20 (USDT / USDC) по единой формуле 55 / 15 / 30 с B2B Gross-Up (+20%)
+     * @dev Доступен только верифицированному платформенному оператору (нотариальный шлюз).
+     *      Защищён от повторного входа (ReentrancyGuard) — токены с реентрантными хуками безопасны.
      */
     function settleAmanatRoyalty(
         address tokenAddress,
         bytes32 registrationCodeHash,
         uint256 baseAmount,
         Contributor[] calldata authors
-    ) external {
+    ) external onlyOperator nonReentrant {
+        require(tokenAddress != address(0), "GS: zero token address");
         require(baseAmount > 0, "Base amount must be > 0");
         require(authors.length > 0, "At least one author required");
 

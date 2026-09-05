@@ -1,11 +1,13 @@
 "use client";
 
 import React from "react";
+import type { TranslationDict } from "../../lib/translations";
+import type { ScholarProfile } from "../../lib/types";
 
 interface PassportTabProps {
-  t: any;
-  activeScholar: any;
-  passportData: any;
+  t: TranslationDict;
+  activeScholar: ScholarProfile | null;
+  passportData: ScholarProfile | null;
   targetOrcid: string;
   setTargetOrcid: (s: string) => void;
   handleFetchPassport: (orcid: string) => void;

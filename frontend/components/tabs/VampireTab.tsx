@@ -1,22 +1,24 @@
 "use client";
 
 import React from "react";
+import type { TranslationDict } from "../../lib/translations";
+import type { VampireDaemonStats, VampireSource, VampireWork } from "../../lib/types";
 
 interface VampireTabProps {
-  t: any;
+  t: TranslationDict;
   vampireQuery: string;
   setVampireQuery: (s: string) => void;
-  vampireSource: "all" | "openalex" | "arxiv" | "pubmed";
-  setVampireSource: (s: "all" | "openalex" | "arxiv" | "pubmed") => void;
+  vampireSource: VampireSource;
+  setVampireSource: (s: VampireSource) => void;
   handleMultiSourceSearch: () => void;
   vampireSearching: boolean;
-  vampireResults: any[];
-  handleImportWork: (work: any) => void;
+  vampireResults: VampireWork[];
+  handleImportWork: (work: VampireWork) => void;
   vampireImporting: boolean;
   handleTriggerBatchHarvest: () => void;
   batchHarvesting: boolean;
   daemonRunning: boolean;
-  daemonStats: any;
+  daemonStats: VampireDaemonStats | null;
   handleToggleDaemon: (action: "start" | "stop") => void;
 }
 
@@ -93,7 +95,7 @@ export default function VampireTab({
           ].map((s) => (
             <button
               key={s.id}
-              onClick={() => setVampireSource(s.id as any)}
+              onClick={() => setVampireSource(s.id as VampireSource)}
               className={`px-3 py-1.5 rounded-xl transition ${
                 vampireSource === s.id
                   ? "bg-purple-600 text-white font-bold shadow"

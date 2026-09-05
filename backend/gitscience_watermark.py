@@ -9,6 +9,9 @@ from pypdf import PdfReader, PdfWriter
 from reportlab.lib.colors import HexColor
 from reportlab.pdfgen import canvas
 
+# Защита от DoS: не штампуем «книги» произвольного размера (память+CPU).
+MAX_STAMP_PAGES = 300
+
 def generate_watermark_overlay(
     page_width: float,
     page_height: float,
@@ -87,11 +90,24 @@ def stamp_pdf_bytes(
     sha256_hash: str,
     author: str,
     timestamp_str: str,
-    verify_domain: str = "https://gitscience.org"
+    verify_domain: str = "https://gitscience.org",
+    max_stamp_pages: int = MAX_STAMP_PAGES,
 ) -> bytes:
-    """Накладывает Prior Art Shield на все страницы и возвращает PDF как bytes (in-memory)."""
+    """Накладывает Prior Art Shield на страницы и возвращает PDF как bytes (in-memory).
+
+    Ограничение на число штампуемых страниц (MAX_STAMP_PAGES) защищает от DoS через
+    «PDF-бомб»: наложение водяных знаков на каждую страницу астрономической книги
+    упёрлось бы в память и CPU. Если страниц больше лимита — страницы не штампуются,
+    документ не молчаливого необрабатывается.
+    """
     reader = PdfReader(io.BytesIO(input_pdf_bytes))
     writer = PdfWriter()
+
+    if len(reader.pages) > max_stamp_pages:
+        raise ValueError(
+            f"PDF содержит {len(reader.pages)} страниц — превышен лимит штамповки "
+            f"({max_stamp_pages}). Документ слишком большой для автоматической обработки."
+        )
 
     verify_url = f"{verify_domain}/verify/{reg_code}"
 

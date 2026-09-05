@@ -1,9 +1,11 @@
 "use client";
 
 import React from "react";
+import type { TranslationDict } from "../../lib/translations";
+import type { ZkCommitResult, ZkRevealResult } from "../../lib/types";
 
 interface ZkDiscoveryTabProps {
-  t: any;
+  t: TranslationDict;
   zkTitle: string;
   setZkTitle: (s: string) => void;
   zkSecret: string;
@@ -13,7 +15,7 @@ interface ZkDiscoveryTabProps {
   zkFormula: string;
   setZkFormula: (s: string) => void;
   handleZkCommit: () => void;
-  zkCommitResult: any;
+  zkCommitResult: ZkCommitResult | null;
   zkRevealId: string;
   setZkRevealId: (s: string) => void;
   zkRevealSecret: string;
@@ -21,7 +23,7 @@ interface ZkDiscoveryTabProps {
   zkRevealPayload: string;
   setZkRevealPayload: (s: string) => void;
   handleZkReveal: () => void;
-  zkRevealResult: any;
+  zkRevealResult: ZkRevealResult | null;
 }
 
 export default function ZkDiscoveryTab({

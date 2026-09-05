@@ -131,6 +131,15 @@ court_disputes = sa.Table(
     sa.Column('created_at', sa.DateTime, server_default=sa.func.now())
 )
 
+court_votes = sa.Table(
+    'court_votes', metadata,
+    sa.Column('case_id', sa.String, nullable=False),
+    sa.Column('juror_orcid', sa.String, nullable=False),
+    sa.Column('vote', sa.String, nullable=False),
+    sa.Column('created_at', sa.DateTime, server_default=sa.func.now()),
+    sa.PrimaryKeyConstraint('case_id', 'juror_orcid')
+)
+
 credit_contributions = sa.Table(
     'credit_contributions', metadata,
     sa.Column('id', sa.Integer, primary_key=True, autoincrement=True),
@@ -600,27 +609,38 @@ def generate_schema_org_jsonld(registration_code: str) -> Optional[Dict[str, Any
     }
 
 def get_platform_stats_summary() -> Dict[str, Any]:
+    """Возвращает живую агрегированную статистику сети.
+
+    Только реально подсчитанные значения из БД и хранилища.
+    Неотслеживаемые метрики (количество MaaS-выполнений, число активных
+    нод, верифицированные учёные без источника) не выдаются и не додумываются.
+    """
     with engine.connect() as conn:
         total_manuscripts = conn.execute(sa.select(sa.func.count()).select_from(manuscripts).where(manuscripts.c.is_genesis_anchor == 0)).scalar() or 0
-        unique_authors = conn.execute(sa.select(sa.func.count(sa.func.distinct(manuscripts.c.orcid))).where(manuscripts.c.is_genesis_anchor == 0)).scalar() or 1
-        total_royalties = conn.execute(sa.select(sa.func.coalesce(sa.func.sum(ledger_transactions.c.amount), 0))).scalar() or 0.0
+        unique_authors = conn.execute(sa.select(sa.func.count(sa.func.distinct(manuscripts.c.orcid))).where(manuscripts.c.is_genesis_anchor == 0)).scalar() or 0
+        tx_count = conn.execute(sa.select(sa.func.count()).select_from(ledger_transactions)).scalar() or 0
+        total_royalties = conn.execute(sa.select(sa.func.coalesce(sa.func.sum(ledger_transactions.c.amount), 0.0))).scalar() or 0.0
         total_disputes = conn.execute(sa.select(sa.func.count()).select_from(court_disputes)).scalar() or 0
 
-    calculated_maas_executions = (total_manuscripts * 142) + 8420
-    calculated_secured_value_usdt = round(total_royalties + 1250000.0 + (total_manuscripts * 15400.0), 2)
-    total_verified_scholars = max(unique_authors, 1) + 128
-    total_reviews = 12
+    # Реальный нотариальный след: сохранённые .ots доказательства на диске
+    ots_proofs_dir = STORAGE_DIR / "ots_proofs"
+    ots_files = 0
+    if ots_proofs_dir.exists():
+        ots_files = sum(1 for p in ots_proofs_dir.iterdir() if p.suffix == ".ots")
+    blockchain_status = (
+        f"OTS_PROOFS_FILES:{ots_files}"
+        if ots_files > 0
+        else "NO_LIVE_BITCOIN_ANCHOR_YET"
+    )
 
     return {
         "status": "LIVE_SYNCHRONIZED",
         "total_notarized_manuscripts": total_manuscripts,
-        "total_maas_executions": calculated_maas_executions,
-        "total_secured_scientific_value_usdt": calculated_secured_value_usdt,
-        "total_verified_scholars": total_verified_scholars,
-        "total_peer_reviews_conducted": total_reviews,
+        "total_ledger_transactions": tx_count,
+        "total_secured_scientific_value_usdt": round(float(total_royalties), 2),
+        "total_unique_authors": unique_authors,
         "total_court_arbitrations": total_disputes,
-        "active_consensus_nodes": 42,
-        "blockchain_attestation_status": "BITCOIN_OTS_ANCHORED_OK",
+        "blockchain_attestation_status": blockchain_status,
         "timestamp_utc": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
     }
 

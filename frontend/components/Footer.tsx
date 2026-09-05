@@ -1,14 +1,15 @@
 "use client";
 
 import React from "react";
+import type { TranslationDict } from "../lib/translations";
 
 interface FooterProps {
-  t: any;
+  t: TranslationDict;
   platformStats: {
     total_notarized_manuscripts: number;
-    total_maas_executions: number;
+    total_ledger_transactions: number;
     total_secured_scientific_value_usdt: number;
-    total_verified_scholars: number;
+    total_court_arbitrations: number;
     blockchain_attestation_status: string;
   };
   apiBase: string;
@@ -24,9 +25,9 @@ export default function Footer({ t, platformStats, apiBase }: FooterProps) {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
           {[
             { label: t.statManuscripts, value: platformStats.total_notarized_manuscripts, icon: "memory" },
-            { label: t.statMaas, value: platformStats.total_maas_executions.toLocaleString(), icon: "hub" },
+            { label: t.statTransactions, value: platformStats.total_ledger_transactions.toLocaleString(), icon: "hub" },
             { label: t.statSecuredValue, value: `$${platformStats.total_secured_scientific_value_usdt.toLocaleString()}`, icon: "account_tree" },
-            { label: t.statScholars, value: platformStats.total_verified_scholars, icon: "verified" },
+            { label: t.statCourt, value: platformStats.total_court_arbitrations, icon: "verified" },
           ].map((stat, idx) => (
             <div key={idx} className="sci-panel p-6 group transition-all duration-300">
               <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-bl from-white/5 to-transparent pointer-events-none"></div>

@@ -2,9 +2,11 @@
 
 import React from "react";
 import { IPC_CLASSES } from "../../lib/constants";
+import type { TranslationDict } from "../../lib/translations";
+import type { AiAuditResult, AstVerificationResult, NotarySuccessResult } from "../../lib/types";
 
 interface NotaryTabProps {
-  t: any;
+  t: TranslationDict;
   lang: "KZ" | "RU" | "EN";
   file: File | null;
   setFile: (f: File | null) => void;
@@ -25,13 +27,13 @@ interface NotaryTabProps {
   formulaMath: string;
   setFormulaMath: (s: string) => void;
   handleVerifyFormula: () => void;
-  astVerification: any;
+  astVerification: AstVerificationResult | null;
   handleRunAiAudit: () => void;
   aiAuditLoading: boolean;
-  aiAuditResult: any;
+  aiAuditResult: AiAuditResult | null;
   handleNotarize: () => void;
   notarySubmitting: boolean;
-  notarySuccess: any;
+  notarySuccess: NotarySuccessResult | null;
   apiBase: string;
 }
 

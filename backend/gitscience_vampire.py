@@ -108,7 +108,7 @@ class VampireProtocolEngine:
     def search_arxiv(query: str, limit: int = 5) -> List[Dict[str, Any]]:
         """Поиск препринтов в архиве arXiv.org API"""
         encoded_query = urllib.parse.quote_plus(query)
-        url = f"http://export.arxiv.org/api/query?search_query=all:{encoded_query}&start=0&max_results={limit}"
+        url = f"https://export.arxiv.org/api/query?search_query=all:{encoded_query}&start=0&max_results={limit}"
         headers = {"User-Agent": USER_AGENT}
         
         try:
@@ -334,6 +334,68 @@ class VampireProtocolEngine:
         buffer.seek(0)
         return buffer.getvalue()
 
+    @staticmethod
+    def _safe_download_pdf(pdf_url: str) -> Optional[bytes]:
+        """Качает PDF только из доверенных открытых репозиториев (SSRF-защита).
+
+        Разрешены только HTTPS и домены научных издательств/агрегаторов из allowlist.
+        Локальные/приватные сети и произвольные хосты ВСЕГДА отклоняются.
+        Лимит размера — 50 MiB (защита от OOM при обработке).
+        """
+        MAX_PDF_BYTES = 50 * 1024 * 1024  # 50 MiB
+        try:
+            parsed = urllib.parse.urlparse(pdf_url)
+        except Exception:
+            return None
+
+        if parsed.scheme != "https" or not parsed.hostname:
+            return None
+
+        host = parsed.hostname.lower().rstrip(".")
+        trusted_suffixes = (
+            "arxiv.org",
+            "openalex.org",
+            "europepmc.org",
+            "ebi.ac.uk",
+            "nature.com",
+            "sciencedirect.com",
+            "springer.com",
+            "springeropen.com",
+            "wiley.com",
+            "acs.org",
+            "ieee.org",
+            "plos.org",
+            "mdpi.com",
+            "frontiersin.org",
+            "bmj.com",
+            "lancet.com",
+            "nejm.org",
+            "jamanetwork.com",
+            "ovid.com",
+            "pubmed.ncbi.nlm.nih.gov",
+            "nih.gov",
+            "researchgate.net",
+            "hal.science",
+            "core.ac.uk",
+        )
+        if not any(host.endswith(suffix) for suffix in trusted_suffixes):
+            return None
+
+        try:
+            headers = {"User-Agent": USER_AGENT}
+            req = urllib.request.Request(pdf_url, headers=headers)
+            with urllib.request.urlopen(req, timeout=12.0) as resp:
+                if resp.status != 200:
+                    return None
+                content = resp.read(MAX_PDF_BYTES + 1)
+                if len(content) > MAX_PDF_BYTES:
+                    return None
+                if content.startswith(b"%PDF"):
+                    return content
+        except Exception:
+            return None
+        return None
+
     @classmethod
     def import_and_notarize_work(cls, work_dict: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -350,21 +412,30 @@ class VampireProtocolEngine:
         is_no_derivatives = "nd" in raw_license or "no-derivatives" in raw_license
         pdf_bytes = None
 
-        # Попытка безопасного скачивания PDF
-        if pdf_url and pdf_url.startswith("http"):
-            try:
-                headers = {"User-Agent": USER_AGENT}
-                req = urllib.request.Request(pdf_url, headers=headers)
-                with urllib.request.urlopen(req, timeout=12.0) as resp:
-                    if resp.status == 200:
-                        content = resp.read()
-                        if content.startswith(b"%PDF"):
-                            pdf_bytes = content
-            except Exception:
-                pdf_bytes = None
+        # Попытка безопасного скачивания PDF:
+        #   * SSRF-защита — разрешены только доверенные открытые репозитории (https).
+        #   * Лимит размера 50 MiB — защита от скачивания гигантских файлов.
+        if pdf_url:
+            pdf_bytes = cls._safe_download_pdf(pdf_url)
 
-        raw_seed = f"{title}:{author_name}:{time.time()}".encode('utf-8')
-        sha256_hash = hashlib.sha256(raw_seed).hexdigest()
+        # SHA-256 хеш по СОДЕРЖИМОМУ скачанного PDF (не по title:author:time).
+        # Без PDF => контент-дайджест недоступен; хеш от метаданных, но помечается честно.
+        if pdf_bytes:
+            content_hash = hashlib.sha256(pdf_bytes).hexdigest()
+            hash_source = "PDF_CONTENT_DOWNLOADED"
+        else:
+            pseudo_seed = json.dumps(
+                {
+                    "title": title,
+                    "author_name": author_name,
+                    "category": category,
+                    "doi": work_dict.get("doi"),
+                },
+                sort_keys=True,
+            )
+            content_hash = hashlib.sha256(pseudo_seed.encode('utf-8')).hexdigest()
+            hash_source = "METADATA_ONLY_NO_PDF"
+        sha256_hash = content_hash
         reg_code = f"GS-2026-VAMP-{sha256_hash[:6].upper()}"
 
         final_pdf_bytes = None
@@ -425,7 +496,8 @@ class VampireProtocolEngine:
             "ipfs_cid": saved.get("ipfs_cid"),
             "license_detected": license_applied,
             "license_treatment": treatment,
-            "sha256_hash": saved["sha256_hash"]
+            "sha256_hash": saved["sha256_hash"],
+            "sha256_hash_source": hash_source
         }
 
 

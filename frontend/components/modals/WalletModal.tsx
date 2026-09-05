@@ -1,11 +1,12 @@
 "use client";
 
 import React from "react";
+import type { TranslationDict } from "../../lib/translations";
 
 interface WalletModalProps {
   show: boolean;
   onClose: () => void;
-  t: any;
+  t: TranslationDict;
   walletConnected: boolean;
   walletAddress: string | null;
   walletBalance: number;

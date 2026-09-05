@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import type { TranslationDict } from "../lib/translations";
 
 export type TabKey =
   | "notary"
@@ -17,7 +18,7 @@ export type TabKey =
 interface NavigationTabsProps {
   activeTab: TabKey;
   setActiveTab: (tab: TabKey) => void;
-  t: any;
+  t: TranslationDict;
 }
 
 export default function NavigationTabs({

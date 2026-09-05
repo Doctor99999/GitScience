@@ -2,16 +2,14 @@
 
 import React from "react";
 import { ConnectKitButton } from "connectkit";
+import type { TranslationDict } from "../lib/translations";
+import type { ScholarProfile } from "../lib/types";
 
 interface HeaderProps {
   lang: "KZ" | "RU" | "EN";
   setLang: (l: "KZ" | "RU" | "EN") => void;
-  t: any;
-  walletConnected: boolean;
-  walletAddress: string | null;
-  walletBalance: number;
-  setShowWalletModal: (v: boolean) => void;
-  activeScholar: any;
+  t: TranslationDict;
+  activeScholar: ScholarProfile | null;
   setShowOrcidModal: (v: boolean) => void;
   setShowGuideModal: (v: boolean) => void;
   handleBiometricAuth: () => void;
@@ -22,10 +20,6 @@ export default function Header({
   lang,
   setLang,
   t,
-  walletConnected,
-  walletAddress,
-  walletBalance,
-  setShowWalletModal,
   activeScholar,
   setShowOrcidModal,
   setShowGuideModal,

@@ -91,16 +91,22 @@ class InstitutionalFiatGateway:
         paid_amount: float,
         payment_method: str = "BANK_WIRE"
     ) -> Dict[str, Any]:
-        tx_hash = f"0x{uuid.uuid4().hex}{uuid.uuid4().hex}"
+        """Честная обработка fiat-вебхука.
+
+        Fiat-платёж не вызывает контракты Amanat/Splitter БЕЗ выполнения транзакции.
+        Стейт фиксируется как оф-чейн (подтверждение ручного моста отдельно): никакой
+        имитации on-chain зачисления без реальной транзакции.
+        """
         return {
-            "status": "SETTLED_ON_CHAIN",
+            "status": "PAYMENT_ACKNOWLEDGED_AWAITING_SETTLEMENT",
             "invoice_number": invoice_number,
             "paid_amount_fiat": paid_amount,
             "payment_gateway": payment_method,
-            "on_chain_bridge": {
-                "amanat_splitter_tx": tx_hash,
-                "network": "Polygon PoS / Base Mainnet",
-                "consensus_rule": "55/15/30 Fair-Share Executed"
-            },
-            "settled_at_utc": time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime())
+            "on_chain_bridge": None,
+            "settlement_note": (
+                "Платёж получен и учтён оф-чейн. Реальная транзакция Amanat Splitter "
+                "на блокчейне НЕ выполнялась — ожидается ручной/автоматический мост."
+            ),
+            "settled_at_utc": None,
+            "acknowledged_at_utc": time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime())
         }

@@ -1,9 +1,11 @@
 "use client";
 
 import React from "react";
+import type { TranslationDict } from "../../lib/translations";
+import type { FiatInvoiceResult } from "../../lib/types";
 
 interface AmanatTabProps {
-  t: any;
+  t: TranslationDict;
   baseLicenseFee: number;
   setBaseLicenseFee: (n: number) => void;
   hospitalName: string;
@@ -12,7 +14,7 @@ interface AmanatTabProps {
   setTaxBin: (s: string) => void;
   handleGenerateFiatInvoice: () => void;
   fiatLoading: boolean;
-  fiatInvoiceResult: any;
+  fiatInvoiceResult: FiatInvoiceResult | null;
 }
 
 export default function AmanatTab({

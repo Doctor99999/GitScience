@@ -24,7 +24,7 @@ class GitScienceImporter:
         clean_id = arxiv_id.strip().replace("arXiv:", "").replace("arxiv:", "")
         if not _ARXIV_ID_RE.match(clean_id):
             raise ValueError(f"Невалидный формат arXiv ID: '{clean_id}'")
-        url = f"http://export.arxiv.org/api/query?id_list={clean_id}"
+        url = f"https://export.arxiv.org/api/query?id_list={clean_id}"
         
         # Делаем официальный запрос к серверу Корнеллского университета
         req = urllib.request.Request(url, headers={'User-Agent': 'GitScience/1.0'})

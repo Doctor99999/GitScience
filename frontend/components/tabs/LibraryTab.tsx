@@ -2,11 +2,14 @@
 
 import React from "react";
 import { IPC_CLASSES } from "../../lib/constants";
+import type { TranslationDict } from "../../lib/translations";
+import type { LibraryArticle } from "../../lib/types";
+import type { TabKey } from "../NavigationTabs";
 
 interface LibraryTabProps {
-  t: any;
+  t: TranslationDict;
   lang: "KZ" | "RU" | "EN";
-  filteredLibrary: any[];
+  filteredLibrary: LibraryArticle[];
   libSearch: string;
   setLibSearch: (s: string) => void;
   libIpcFilter: string;
@@ -14,7 +17,7 @@ interface LibraryTabProps {
   activePdfUrl: string | null;
   setActivePdfUrl: (s: string | null) => void;
   setSearchInspectCode: (s: string) => void;
-  setActiveTab: (tab: any) => void;
+  setActiveTab: (tab: TabKey) => void;
   handleInspect: (code: string) => void;
   apiBase: string;
 }

@@ -22,12 +22,15 @@ class BlindPeerReviewEngine:
         self.storage_dir = Path(storage_dir) if storage_dir else Path.cwd() / "storage"
         self.storage_dir.mkdir(parents=True, exist_ok=True)
         self.reviews_file = self.storage_dir / "peer_reviews.json"
+        self.attestations_file = self.storage_dir / "review_attestations.json"
         self._init_db()
 
     def _init_db(self):
-        if not self.reviews_file.exists():
-            with open(self.reviews_file, "w", encoding="utf-8") as f:
-                json.dump({"reviews": []}, f, indent=2)
+        for f, seed in ((self.reviews_file, {"reviews": []}),
+                        (self.attestations_file, {"attestations": [], "orcid_index": {}})):
+            if not f.exists():
+                with open(f, "w", encoding="utf-8") as fh:
+                    json.dump(seed, fh, indent=2)
 
     def submit_blind_review(
         self,
@@ -91,6 +94,10 @@ class BlindPeerReviewEngine:
         record = {
             "review_id": review_id,
             "target_code": target_code,
+            # Приватное поле авторства (НЕ возвращается в публичных списках рецензий —
+            # слепое рецензирование сохраняется). Используется только для репутации
+            # и самодекларируемых attestation рецензента.
+            "reviewer_orcid": clean_reviewer_orcid,
             "reviewer_blind_hash": hashlib.sha256(clean_reviewer_orcid.encode()).hexdigest()[:16],
             "scores": {
                 "math_rigor": math_rigor_score,
@@ -125,9 +132,122 @@ class BlindPeerReviewEngine:
     def get_reviews_for_article(self, target_code: str) -> List[Dict[str, Any]]:
         with open(self.reviews_file, "r", encoding="utf-8") as f:
             db = json.load(f)
-        return [r for r in db.get("reviews", []) if r.get("target_code") == target_code]
+        # Слепое рецензирование: публичный список НЕ раскрывает reviewer_orcid.
+        return [
+            {k: v for k, v in r.items() if k != "reviewer_orcid"}
+            for r in db.get("reviews", []) if r.get("target_code") == target_code
+        ]
 
     def get_all_reviews(self) -> List[Dict[str, Any]]:
         with open(self.reviews_file, "r", encoding="utf-8") as f:
             db = json.load(f)
-        return db.get("reviews", [])
+        return [
+            {k: v for k, v in r.items() if k != "reviewer_orcid"}
+            for r in db.get("reviews", [])
+        ]
+
+    # ------------------------------------------------------------------
+    # Reputation & Attestations (ResearchHub-style «verifiable meritocracy»)
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _clean_orcid(orcid: str) -> str:
+        return orcid.strip().replace("https://orcid.org/", "")
+
+    def _load_all_records(self) -> List[Dict[str, Any]]:
+        with open(self.reviews_file, "r", encoding="utf-8") as f:
+            return json.load(f).get("reviews", [])
+
+    def get_reviewer_reputation(self, orcid: str) -> Dict[str, Any]:
+        """Публичная агрегированная репутация рецензента (без раскрытия слепых рецензий)."""
+        clean = self._clean_orcid(orcid)
+        mine = [r for r in self._load_all_records() if r.get("reviewer_orcid") == clean]
+        if not mine:
+            return {
+                "orcid": clean,
+                "reviews_submitted": 0,
+                "mean_composite_score": None,
+                "accepted_recommendations": 0,
+                "total_reward_disbursed_usdt": 0.0,
+                "claimed_attestations_count": 0,
+                "reviewer_verified": False,
+            }
+
+        composites = [float(r["scores"]["composite_grade"]) for r in mine if r.get("scores")]
+        accepted = sum(1 for r in mine if r.get("recommendation") == "ACCEPT_SOVEREIGN_CONSENSUS")
+        total_reward = sum(float(r.get("reward_disbursed_usdt", 0.0)) for r in mine)
+
+        claimed = self.get_review_attestations(clean)
+        return {
+            "orcid": clean,
+            "reviews_submitted": len(mine),
+            "mean_composite_score": round(sum(composites) / len(composites), 2) if composites else None,
+            "accepted_recommendations": accepted,
+            "accentance_rate_pct": round(accepted / len(mine) * 100.0, 1),
+            "total_reward_disbursed_usdt": round(total_reward, 2),
+            "claimed_attestations_count": len(claimed),
+            "reviewer_verified": len(claimed) > 0,
+        }
+
+    def claim_review_attestation(self, review_id: str, orcid: str) -> Dict[str, Any]:
+        """Рецензент привязывает свою (ранее слепую) рецензию к публичному профилю.
+
+        Требуется совпадение reviewer_orcid (проверяется на уровне API по JWT).
+        Выдаёт криптографическую attestation — verifiable-запись рецензионного вклада.
+        """
+        clean = self._clean_orcid(orcid)
+        record = next((r for r in self._load_all_records() if r.get("review_id") == review_id), None)
+        if not record:
+            return {"status": "ERROR", "error": f"Рецензия {review_id} не найдена"}
+        if record.get("reviewer_orcid") != clean:
+            return {"status": "ERROR", "error": "Attestation может выпустить только автор рецензии"}
+
+        with open(self.attestations_file, "r", encoding="utf-8") as f:
+            db = json.load(f)
+        existing = [a for a in db.get("attestations", []) if a.get("review_id") == review_id]
+        if existing:
+            return {"status": "ATTESTATION_ALREADY_CLAIMED", "attestation": existing[0]}
+
+        composite = record["scores"]["composite_grade"]
+        attestation = {
+            "orcid": clean,
+            "review_id": review_id,
+            "target_code": record["target_code"],
+            "composite_score": composite,
+            "recommendation": record["recommendation"],
+            "reviewed_at_utc": record["timestamp_utc"],
+            "claimed_at_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            "attestation_sha256": hashlib.sha256(
+                f"{clean}:{review_id}:{record['target_code']}:{composite}:{record['timestamp_utc']}".encode()
+            ).hexdigest(),
+            "verifier": "GitScience Sovereign Review Registry v1",
+        }
+
+        db.setdefault("attestations", []).append(attestation)
+        db.setdefault("orcid_index", {}).setdefault(clean, []).append(review_id)
+        with open(self.attestations_file, "w", encoding="utf-8") as f:
+            json.dump(db, f, indent=2, ensure_ascii=False)
+
+        return {"status": "ATTESTATION_ISSUED", "attestation": attestation}
+
+    def get_review_attestations(self, orcid: str) -> List[Dict[str, Any]]:
+        clean = self._clean_orcid(orcid)
+        with open(self.attestations_file, "r", encoding="utf-8") as f:
+            db = json.load(f)
+        return [a for a in db.get("attestations", []) if a.get("orcid") == clean]
+
+    def verify_attestation(self, attestation_sha256: str) -> Dict[str, Any]:
+        """Проверка attestation: целостность и реальность рецензии в реестре."""
+        with open(self.attestations_file, "r", encoding="utf-8") as f:
+            db = json.load(f)
+        att = next((a for a in db.get("attestations", []) if a.get("attestation_sha256") == attestation_sha256), None)
+        if not att:
+            return {"status": "ERROR", "error": "Attestation не найдена"}
+        recompute = hashlib.sha256(
+            f"{att['orcid']}:{att['review_id']}:{att['target_code']}:{att['composite_score']}:{att['reviewed_at_utc']}".encode()
+        ).hexdigest()
+        return {
+            "status": "ATTESTATION_VALID" if recompute == attestation_sha256 else "HASH_MISMATCH",
+            "attestation": att,
+            "matches_registry": any(r.get("review_id") == att["review_id"] for r in self._load_all_records()),
+        }

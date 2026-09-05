@@ -2,13 +2,15 @@
 
 import React, { useState } from "react";
 import { DEFAULT_FOUNDER_PROFILE, getApiBase } from "../../lib/constants";
+import type { TranslationDict } from "../../lib/translations";
+import type { ScholarProfile } from "../../lib/types";
 
 interface OrcidModalProps {
   show: boolean;
   onClose: () => void;
-  t: any;
-  activeScholar: any;
-  onLogin: (profile: any) => void;
+  t: TranslationDict;
+  activeScholar: ScholarProfile | null;
+  onLogin: (profile: ScholarProfile) => void;
   onLogout: () => void;
 }
 
@@ -123,8 +125,8 @@ export default function OrcidModal({
                     }),
                   });
                   if (res.ok) {
-                    const data = await res.json();
-                    onLogin({ ...data.profile, access_token: data.access_token });
+                    const data = (await res.json()) as { profile?: ScholarProfile; access_token?: string };
+                    onLogin({ ...(data.profile || localProfile), access_token: data.access_token });
                     return;
                   }
                 } catch {}

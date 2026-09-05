@@ -6,10 +6,16 @@ pragma solidity ^0.8.20;
  * @notice Децентрализованная токенизация научных открытий, патентов и математических моделей.
  * @dev Включает EIP-2981 стандарт роялти с привязкой к смарт-контракту AmanatSplitter (55/15/30).
  *      Защищен модификатором onlyMinterOrFounder для исключения несанкционированного минтинга.
+ *      safeTransferFrom корректно вызывает onERC721Received у контрактов-получателей,
+ *      исключая безвозвратную блокировку токенов на несовместимых адресах.
  */
 
 interface IERC165 {
     function supportsInterface(bytes4 interfaceId) external view returns (bool);
+}
+
+interface IERC721Receiver {
+    function onERC721Received(address operator, address from, uint256 tokenId, bytes calldata data) external returns (bytes4);
 }
 
 interface IERC721 is IERC165 {
@@ -20,6 +26,7 @@ interface IERC721 is IERC165 {
     function balanceOf(address owner) external view returns (uint256 balance);
     function ownerOf(uint256 tokenId) external view returns (address owner);
     function safeTransferFrom(address from, address to, uint256 tokenId) external;
+    function safeTransferFrom(address from, address to, uint256 tokenId, bytes calldata data) external;
     function transferFrom(address from, address to, uint256 tokenId) external;
     function approve(address to, uint256 tokenId) external;
     function getApproved(uint256 tokenId) external view returns (address operator);
@@ -185,6 +192,27 @@ contract SovereignIPNFT is IERC721, IERC2981 {
     }
 
     function safeTransferFrom(address from, address to, uint256 tokenId) external override {
+        _safeTransferFrom(from, to, tokenId, new bytes(0));
+    }
+
+    function safeTransferFrom(address from, address to, uint256 tokenId, bytes calldata data) public override {
+        _safeTransferFrom(from, to, tokenId, data);
+    }
+
+    function _safeTransferFrom(address from, address to, uint256 tokenId, bytes memory data) private {
         transferFrom(from, to, tokenId);
+        _checkOnERC721Received(from, to, tokenId, data);
+    }
+
+    /**
+     * @dev Проверяет, поддерживает ли контракт-получатель IERC721Receiver.
+     *      Если адрес контрактен и не возвращает магическое значение — трансфер откатывается,
+     *      исключая безвозвратную блокировку токена.
+     */
+    function _checkOnERC721Received(address from, address to, uint256 tokenId, bytes memory data) private {
+        if (to.code.length > 0) {
+            bytes4 retval = IERC721Receiver(to).onERC721Received(msg.sender, from, tokenId, data);
+            require(retval == 0x150b7a02, "GS: receiver rejected ERC721 transfer");
+        }
     }
 }

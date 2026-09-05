@@ -1,15 +1,14 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 
 interface WelcomeBannerProps {
-  t: any;
   setShowOrcidModal: (v: boolean) => void;
   setShowWalletModal: (v: boolean) => void;
 }
 
 export default function WelcomeBanner({
-  t,
   setShowOrcidModal,
   setShowWalletModal,
 }: WelcomeBannerProps) {
@@ -78,9 +77,11 @@ export default function WelcomeBanner({
             <div className="h-full w-[1px] bg-white absolute"></div>
           </div>
           
-          <img 
-            src="/GitScience/vitruvian-logo.jpg" 
-            alt="GitScience Vitruvian Protocol" 
+          <Image
+            src="/GitScience/vitruvian-logo.jpg"
+            alt="GitScience Vitruvian Protocol"
+            width={500}
+            height={500}
             className="w-full max-w-[500px] h-auto object-contain relative z-10 drop-shadow-[0_0_30px_rgba(0,150,255,0.2)] mix-blend-screen"
           />
         </div>

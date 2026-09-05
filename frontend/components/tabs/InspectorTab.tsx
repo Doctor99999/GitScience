@@ -1,17 +1,19 @@
 "use client";
 
 import React from "react";
+import type { TranslationDict } from "../../lib/translations";
+import type { InspectedDoc, IpNftResult } from "../../lib/types";
 
 interface InspectorTabProps {
-  t: any;
+  t: TranslationDict;
   searchInspectCode: string;
   setSearchInspectCode: (s: string) => void;
   handleInspect: (code: string) => void;
-  inspectedDoc: any;
+  inspectedDoc: InspectedDoc | null;
   handleViewLicense: (code: string) => void;
   handleMintIpNft: (code: string) => void;
   ipNftMinting: boolean;
-  ipNftResult: any;
+  ipNftResult: IpNftResult | null;
   apiBase: string;
 }
 

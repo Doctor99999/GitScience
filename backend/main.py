@@ -44,7 +44,7 @@ from gitscience_fhir import ClinicalFHIRGateway, DICOMWebGateway
 from gitscience_fiat import InstitutionalFiatGateway
 from gitscience_ai_review import SovereignAIAuditor
 from gitscience_ipnft import IPNFTEngine
-from gitscience_auth import ScholarAuthService
+from gitscience_auth import ScholarAuthService, IS_PRODUCTION
 from gitscience_web3 import SovereignWeb3Gateway
 from gitscience_invoice_pdf import InstitutionalInvoicePDFGenerator
 from gitscience_watermark import stamp_pdf_bytes
@@ -66,6 +66,10 @@ class SimpleRateLimiter:
 
 rate_limiter = SimpleRateLimiter(max_requests=120, window_sec=60)
 
+# Пир, за которыми мы доверяем X-Real-IP (nginx/reverse-proxy). Если запрос пришёл
+# напрямую с публичного адреса — заголовок X-Real-IP ИГНОРИРУЕТСЯ (анти-спуф лимитера).
+TRUSTED_PROXY_PEERS = {host.strip() for host in os.environ.get("TRUSTED_PROXY_PEERS", "127.0.0.1,::1").split(",") if host.strip()}
+
 # =====================================================================
 # ИДЕНТИФИКАЦИЯ УЧЕНЫХ (Bearer JWT helpers)
 # =====================================================================
@@ -84,22 +88,47 @@ def _extract_bearer_payload(request: Request) -> Optional[Dict[str, Any]]:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=f"Invalid scholar token: {err}")
     return payload
 
-def require_verified_orcid(request: Request, claimed_orcid: str) -> str:
+def _is_oauth_verified(payload: Optional[Dict[str, Any]]) -> bool:
+    """Подтверждено владение ORCID через OAuth 2.0 (а не само-декларация публичного профиля)."""
+    return bool(payload and payload.get("auth_method") == "orcid_oauth")
+
+def require_active_bearer(request: Request) -> Dict[str, Any]:
+    """Требует наличие валидного JWT (без претензии на верифицированность) для чувствительных операций."""
+    payload = _extract_bearer_payload(request)
+    if payload is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required: передайте Authorization: Bearer <JWT>"
+        )
+    return payload
+
+def require_verified_orcid(request: Request, claimed_orcid: str, require_oauth: bool = False) -> str:
     """
     Жесткая привязка личности: Bearer JWT обязателен, ORCID берется ТОЛЬКО из подписанного токена.
     Защита Science Court и Peer Review от Sybil-атак (подмены ORCID в теле запроса).
+
+    require_oauth=True: в продакшене дополнительно требуется auth_method="orcid_oauth" —
+    публичный self-asserted токен (/auth/login) НЕ даёт права голоса/рецензирования.
     """
     payload = _extract_bearer_payload(request)
     if payload is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication required: передайте Authorization: Bearer <JWT> (получите на /api/v1/auth/login)"
+            detail="Authentication required: передайте Authorization: Bearer <JWT> (получите на /api/v1/auth/orcid/callback через OAuth)"
         )
     token_orcid = payload.get("orcid", "")
     if claimed_orcid and claimed_orcid.strip() != token_orcid:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="ORCID в теле запроса не совпадает с аутентифицированным ученым (Sybil protection)"
+        )
+    if require_oauth and IS_PRODUCTION and not _is_oauth_verified(payload):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=(
+                "Требуется OAuth-верификация ORCID (auth_method=orcid_oauth). "
+                "Self-asserted токен не подтверждает владение iD."
+            )
         )
     return token_orcid
 
@@ -161,12 +190,14 @@ app.add_middleware(
 async def rate_limiting_middleware(request: Request, call_next):
     """Глобальный Rate Limiting middleware для защиты API от DoS и парсинг-ботов"""
     path = request.url.path
-    if not (path.startswith("/api/docs") or path.startswith("/api/redoc") or path == "/api/v1/health" or path == "/openapi.json"):
-        # За nginx/Render реальный клиент приходит в X-Real-IP; иначе client.host
-        client_ip = (
-            request.headers.get("x-real-ip")
-            or (request.client.host if request.client else "127.0.0.1")
-        )
+    if path not in ("/", "/api/v1/health", "/openapi.json"):
+        # За nginx/Render реальный клиент приходит в X-Real-IP (пир в trust-списке);
+        # иначе доверия заголовку НЕТ — спуфить лимитер напрямую нельзя.
+        peer = request.client.host if request.client else "127.0.0.1"
+        if peer in TRUSTED_PROXY_PEERS:
+            client_ip = request.headers.get("x-real-ip") or peer
+        else:
+            client_ip = peer
         if not rate_limiter.is_allowed(client_ip):
             return JSONResponse(
                 status_code=429,
@@ -353,7 +384,12 @@ async def upload_and_notarize_manuscript(
     bearer = _extract_bearer_payload(request)
     if bearer and bearer.get("orcid") != clean_orcid:
         raise HTTPException(status_code=403, detail="ORCID манускрипта не совпадает с аутентифицированным ученым")
-    identity_source = "JWT_VERIFIED" if bearer else "ANONYMOUS_RATE_LIMITED"
+    if _is_oauth_verified(bearer):
+        identity_source = "JWT_OAUTH_VERIFIED"
+    elif bearer is not None:
+        identity_source = "JWT_SELF_ASSERTED_RATE_LIMITED"
+    else:
+        identity_source = "ANONYMOUS_RATE_LIMITED"
 
     # Проверка биоэтики (IRB)
     is_irb_ok, irb_msg = IRBClinicalVerifier.verify_ethical_approval({
@@ -688,14 +724,21 @@ def calculate_amanat_royalty(req: BillingCalculateRequest):
     )
 
 @app.post("/api/v1/billing/pay")
-def process_fair_share_payment(req: BillingCalculateRequest):
+def process_fair_share_payment(request: Request, req: BillingCalculateRequest):
+    """Фиксирует справедливый расчёт в Ledger ТОЛЬКО для аутентифицированных пользователей.
+
+    Честная семантика: это демо-модель расчёта, НЕ реальная ончейн-транзакция.
+    tx_hash помечается префиксом SIMULATED-OFFCHAIN и не выдаётся за блокчейн-подтверждение.
+    """
+    require_active_bearer(request)
     payout_data = DependencyRoyaltyRouter.calculate_split(
         base_b2b_fee=req.base_amount,
         contributors=req.contributors
     )
     
     tx_id = f"tx_{uuid.uuid4().hex[:12]}"
-    tx_hash = f"0x{hashlib.sha256(f'{tx_id}{datetime.now(timezone.utc)}'.encode()).hexdigest()}"
+    digest = hashlib.sha256(f"{tx_id}{datetime.now(timezone.utc)}".encode()).hexdigest()
+    tx_hash = f"SIMULATED-OFFCHAIN:{digest}"
     
     storage.record_transaction(
         tx_id=tx_id,
@@ -709,10 +752,11 @@ def process_fair_share_payment(req: BillingCalculateRequest):
     )
     
     return {
-        "status": "Fair-Share платеж распределен и зафиксирован в Ledger",
+        "status": "AMANAT_SPLIT_CALCULATED_AND_RECORDED_OFFCHAIN",
         "tx_id": tx_id,
         "routing_details": payout_data,
-        "transaction_hash": tx_hash
+        "transaction_hash": tx_hash,
+        "note": "Оф-чейн демо-запись в Ledger. Реальная ончейн-транзакция не выполнялась."
     }
 
 
@@ -726,7 +770,7 @@ def get_court_cases():
 
 @app.post("/api/v1/court/dispute")
 def file_academic_dispute(request: Request, req: CourtDisputeRequest):
-    verified_orcid = require_verified_orcid(request, req.claimant_orcid)
+    verified_orcid = require_verified_orcid(request, req.claimant_orcid, require_oauth=True)
     claimant_name = req.claimant_name
     case = court_engine.file_dispute(
         claimant_name=claimant_name,
@@ -739,7 +783,7 @@ def file_academic_dispute(request: Request, req: CourtDisputeRequest):
 
 @app.post("/api/v1/court/vote")
 def cast_juror_vote(request: Request, req: CourtVoteRequest):
-    verified_orcid = require_verified_orcid(request, req.juror_orcid)
+    verified_orcid = require_verified_orcid(request, req.juror_orcid, require_oauth=True)
     result = court_engine.cast_vote(
         case_id=req.case_id,
         juror_orcid=verified_orcid,
@@ -758,7 +802,8 @@ def search_vampire_openalex(req: VampireSearchRequest):
     return {"total": len(results), "results": results}
 
 @app.post("/api/v1/vampire/import")
-def import_vampire_work(req: VampireImportRequest):
+def import_vampire_work(request: Request, req: VampireImportRequest):
+    require_active_bearer(request)
     try:
         result = VampireProtocolEngine.import_and_notarize_work(req.work_data)
         return result
@@ -832,8 +877,36 @@ def list_zk_commitments():
 # 12.5 IoT HARDWARE GATEWAY (HSM) — подписанные данные лабоборудования
 # =====================================================================
 
+def _iot_device_secret_ok(provider_secret: str) -> bool:
+    """Проверяет IOT_DEVICE_SECRET (анти-регистрация фейковых «аппаратных» устройств)."""
+    expected = os.environ.get("IOT_DEVICE_SECRET", "")
+    if not expected:
+        if IS_PRODUCTION:
+            raise HTTPException(status_code=503, detail="IOT_DEVICE_SECRET не настроен — регистрация устройств заблокирована")
+        return True  # dev-sandbox
+    return hmac.compare_digest(provider_secret, expected)
+
 @app.post("/api/v1/iot/register")
-def iot_register_device(req: IoTRegisterRequest):
+def iot_register_device(request: Request, req: IoTRegisterRequest):
+    """Регистрирует лабоборудование. Требует заголовок X-GS-Device-Secret (env IOT_DEVICE_SECRET).
+
+    Перезапись уже зарегистрированного device_id другим ключом запрещена (защита цепи доверия).
+    """
+    provided_secret = request.headers.get("x-gs-device-secret", "")
+    if not provided_secret and os.environ.get("IOT_DEVICE_SECRET"):
+        raise HTTPException(status_code=401, detail="Missing X-GS-Device-Secret header")
+    if not _iot_device_secret_ok(provided_secret):
+        raise HTTPException(status_code=401, detail="Invalid X-GS-Device-Secret")
+
+    for existing in iot_gateway.list_devices():
+        if existing.get("device_id") == req.device_id:
+            if existing.get("public_key_pem") != req.public_key_pem.strip():
+                raise HTTPException(
+                    status_code=409,
+                    detail="device_id уже зарегистрирован с другим ключом — перезапись запрещена",
+                )
+            return {"status": "DEVICE_ALREADY_REGISTERED", "device_id": req.device_id}
+
     try:
         return iot_gateway.register_device(
             device_id=req.device_id,
@@ -891,11 +964,14 @@ class PeerReviewSubmitRequest(BaseModel):
     novelty_score: int = Field(..., ge=1, le=10)
     review_comments: str = Field(..., min_length=10)
 
+class ReviewClaimRequest(BaseModel):
+    review_id: str = Field(..., min_length=4)
+
 review_engine = BlindPeerReviewEngine(storage.STORAGE_DIR)
 
 @app.post("/api/v1/review/submit")
 def submit_peer_review(request: Request, req: PeerReviewSubmitRequest):
-    verified_orcid = require_verified_orcid(request, req.reviewer_orcid)
+    verified_orcid = require_verified_orcid(request, req.reviewer_orcid, require_oauth=True)
     return review_engine.submit_blind_review(
         target_code=req.target_code,
         reviewer_orcid=verified_orcid,
@@ -909,6 +985,34 @@ def submit_peer_review(request: Request, req: PeerReviewSubmitRequest):
 @app.get("/api/v1/review/list/{target_code}")
 def get_article_reviews(target_code: str):
     return {"reviews": review_engine.get_reviews_for_article(target_code)}
+
+@app.get("/api/v1/review/reputation/{orcid}")
+def get_reviewer_reputation(orcid: str):
+    """Публичная репутация рецензента (агрегаты; слепота рецензий сохраняется)."""
+    rep = review_engine.get_reviewer_reputation(orcid)
+    if rep["reviews_submitted"] == 0:
+        raise HTTPException(status_code=404, detail="У учёного пока нет рецензий в реестре")
+    return rep
+
+@app.post("/api/v1/review/claim")
+def claim_review_attestation(request: Request, req: ReviewClaimRequest):
+    """Рецензент привязывает свою слепую рецензию к профилю и получает attestation.
+
+    Требует Bearer JWT, чей ORCID совпадает с автором рецензии (declared claim).
+    """
+    bearer = require_active_bearer(request)
+    claimant_orcid = bearer.get("orcid", "")
+    if not claimant_orcid:
+        raise HTTPException(status_code=403, detail="ORCID отсутствует в токене")
+    result = review_engine.claim_review_attestation(req.review_id, claimant_orcid)
+    if result.get("status") == "ERROR":
+        raise HTTPException(status_code=403, detail=result.get("error", "Attestation отклонена"))
+    return result
+
+@app.get("/api/v1/review/attestation/{attestation_sha256}")
+def verify_review_attestation(attestation_sha256: str):
+    """Проверка attestation-хэша: целостность и присутствие рецензии в реестре."""
+    return review_engine.verify_attestation(attestation_sha256)
 
 
 # =====================================================================
@@ -1175,8 +1279,10 @@ class BatchHarvestRequest(BaseModel):
     limit: int = Field(default=4, ge=1, le=20)
 
 @app.post("/api/v1/vampire/harvest/batch")
-def trigger_batch_harvester(req: BatchHarvestRequest):
-    """Запускает порцию реального парсинга открытых статей из OpenAlex / arXiv / PubMed"""
+def trigger_batch_harvester(request: Request, req: BatchHarvestRequest):
+    """Запускает порцию реального парсинга открытых статей из OpenAlex / arXiv / PubMed.
+    Требует валидный Bearer-токен (защита от анонимного abuse внешнего трафика)."""
+    require_active_bearer(request)
     return AutonomousIngestionDaemon.harvest_batch(custom_query=req.query, source=req.source, limit=req.limit)
 
 @app.get("/api/v1/vampire/harvest/status")
@@ -1186,13 +1292,15 @@ def get_harvester_daemon_status():
     return AutonomousIngestionDaemon.get_status()
 
 @app.post("/api/v1/vampire/harvest/daemon/start")
-def start_autonomous_crawler_daemon():
-    """Запускает непрерывный фоновый сборщик научной литературы"""
+def start_autonomous_crawler_daemon(request: Request):
+    """Запускает непрерывный фоновый сборщик научной литературы. Требует Bearer-токен."""
+    require_active_bearer(request)
     return AutonomousIngestionDaemon.start_daemon()
 
 @app.post("/api/v1/vampire/harvest/daemon/stop")
-def stop_autonomous_crawler_daemon():
-    """Останавливает непрерывный фоновый сборщик"""
+def stop_autonomous_crawler_daemon(request: Request):
+    """Останавливает непрерывный фоновый сборщик. Требует Bearer-токен."""
+    require_active_bearer(request)
     return AutonomousIngestionDaemon.stop_daemon()
 
 
@@ -1259,7 +1367,10 @@ class OAuthCallbackRequest(BaseModel):
 
 @app.post("/api/v1/auth/orcid/callback")
 def handle_orcid_oauth_callback(req: OAuthCallbackRequest):
-    """Обменивает временный authorization_code на подтвержденный ORCID iD и выдает JWT"""
+    """Обменивает временный authorization_code на подтвержденный ORCID iD и выдает JWT.
+
+    ТОЛЬКО этот путь выдаёт токен с auth_method="orcid_oauth" (подтверждённое владение iD).
+    """
     ok, token_data, err = ScholarAuthService.exchange_code_for_orcid_token(req.code, req.redirect_uri)
     if not ok or not token_data:
         raise HTTPException(status_code=400, detail=err or "Ошибка авторизации через ORCID OAuth 2.0")
@@ -1269,15 +1380,19 @@ def handle_orcid_oauth_callback(req: OAuthCallbackRequest):
     profile = ScholarAuthService.fetch_orcid_public_profile(orcid_id) or {
         "orcid": orcid_id,
         "name": name or f"Scholar {orcid_id}",
-        "is_verified": True,
+        "is_verified": False,
+        "auth_method": "self_asserted",
         "source": "ORCID OAuth 2.0"
     }
     
-    jwt_token = ScholarAuthService.create_jwt_token(profile)
+    jwt_token = ScholarAuthService.create_jwt_token(profile, auth_method="orcid_oauth")
+    profile["is_verified"] = True
+    profile["auth_method"] = "orcid_oauth"
     return {
         "status": "AUTHENTICATED",
         "access_token": jwt_token,
         "token_type": "Bearer",
+        "auth_method": "orcid_oauth",
         "profile": profile,
         "orcid_oauth": {
             "scope": token_data.get("scope"),
@@ -1287,7 +1402,13 @@ def handle_orcid_oauth_callback(req: OAuthCallbackRequest):
 
 @app.post("/api/v1/auth/login")
 def authenticate_scholar_orcid(req: LoginRequest):
-    """Аутентифицирует исследователя по ORCID и выдает криптографический JWT токен"""
+    """Аутентифицирует исследователя по ORCID и выдает JWT.
+
+    Публичный self-asserted вход: владение ORCID НЕ подтверждается (только публичный
+    реестр/тело запроса). Токен помечается auth_method="self_asserted" и НЕ проходит
+    привилегированные операции (Science Court / Peer Review) в продакшене.
+    Для подтверждения личности используйте /api/v1/auth/orcid/callback (OAuth 2.0).
+    """
     profile = ScholarAuthService.fetch_orcid_public_profile(req.orcid)
     if not profile:
         raise HTTPException(status_code=400, detail="Невалидный формат ORCID iD")
@@ -1298,13 +1419,20 @@ def authenticate_scholar_orcid(req: LoginRequest):
         profile["institution"] = req.institution
     if req.discipline:
         profile["discipline"] = req.discipline
+    profile["is_verified"] = False
+    profile["auth_method"] = "self_asserted"
 
-    token = ScholarAuthService.create_jwt_token(profile)
+    token = ScholarAuthService.create_jwt_token(profile, auth_method="self_asserted")
     return {
-        "status": "AUTHENTICATED",
+        "status": "AUTHENTICATED_SELF_ASSERTED",
         "access_token": token,
         "token_type": "Bearer",
-        "profile": profile
+        "auth_method": "self_asserted",
+        "profile": profile,
+        "note": (
+            "Личность не подтверждена OAuth. "
+            "Для Science Court / Peer Review в продакшене требуется ORCID OAuth (auth_method=orcid_oauth)."
+        )
     }
 
 class VerifyTokenRequest(BaseModel):
@@ -1329,13 +1457,18 @@ def logout_scholar(req: VerifyTokenRequest):
 
 @app.post("/api/v1/auth/refresh")
 def refresh_scholar_jwt_token(req: VerifyTokenRequest):
-    """Выпускает новый JWT по валидному токену с ротацией (старый jti отзывается)"""
+    """Выпускает новый JWT по валидному токену с ротацией (старый jti отзывается).
+
+    auth_method (степень верификации) переносится из исходного токена — нельзя
+    «апгрейднуться» из self_asserted в orcid_oauth через refresh.
+    """
     is_valid, payload, error = ScholarAuthService.verify_jwt_token(req.token)
     if not is_valid:
         raise HTTPException(status_code=401, detail=error or "Unauthorized")
 
-    profile = {k: v for k, v in payload.items() if k not in ("iat", "exp", "jti")}
-    new_token = ScholarAuthService.create_jwt_token(profile)
+    profile = {k: v for k, v in payload.items() if k not in ("iat", "exp", "jti", "iss", "aud")}
+    auth_method = payload.get("auth_method", "self_asserted")
+    new_token = ScholarAuthService.create_jwt_token(profile, auth_method=auth_method)
 
     # Ротация: старый токен немедленно отзывается
     storage.revoke_jti(payload.get("jti", ""), payload.get("orcid", ""), payload.get("exp", 0))
@@ -1344,5 +1477,6 @@ def refresh_scholar_jwt_token(req: VerifyTokenRequest):
         "status": "REFRESHED",
         "access_token": new_token,
         "token_type": "Bearer",
+        "auth_method": auth_method,
         "profile": profile
     }

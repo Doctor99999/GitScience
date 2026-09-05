@@ -22,15 +22,36 @@ try:
 except ImportError:
     _storage = None
 
-_jwt_secret_env = os.environ.get("JWT_SECRET")
-if not _jwt_secret_env:
-    # Безопасный fallback: эфемерный случайный ключ вместо публично известного секрета.
-    # Сессии сбросятся при перезапуске — для продакшена обязательно задайте JWT_SECRET в .env!
-    _jwt_secret_env = _secrets.token_hex(32)
-    print("⚠️  [AUTH] JWT_SECRET не задан — сгенерирован эфемерный ключ. Задайте JWT_SECRET в .env для продакшена!", flush=True)
-JWT_SECRET = _jwt_secret_env
+_JWT_SECRET_PLACEHOLDER_MARKERS = ("CHANGE_ME", "change_me")
+
+def _load_jwt_secret() -> str:
+    """Загружает JWT_SECRET, отвергая известный плейсхолдер из .env.example.
+
+    Production: fail-fast — без реального секрета старт невозможен (иначе при
+    нескольких gunicorn-воркерах каждый сгенерирует свой ключ и токены «разъедутся»).
+    Dev: эфемерный случайный ключ — сессии сбрасываются при перезапуске.
+    """
+    raw = (os.environ.get("JWT_SECRET") or "").strip()
+    if raw and not any(m in raw for m in _JWT_SECRET_PLACEHOLDER_MARKERS):
+        return raw
+    is_prod = os.environ.get("ENVIRONMENT", "development").lower() == "production"
+    if is_prod:
+        raise RuntimeError(
+            "[AUTH] JWT_SECRET обязателен в продакшене. Сгенерируйте: "
+            "python -c \"import secrets; print(secrets.token_hex(32))\""
+        )
+    print(
+        "⚠️  [AUTH] JWT_SECRET не задан (или содержит плейсхолдер CHANGE_ME) — "
+        "сгенерирован эфемерный ключ. Задайте JWT_SECRET в .env для продакшена!",
+        flush=True,
+    )
+    return _secrets.token_hex(32)
+
+JWT_SECRET = _load_jwt_secret()
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRATION_SECONDS = 86400 * 7  # 7 days
+JWT_ISSUER = "gitscience-sovereign-auth"
+JWT_AUDIENCE = "gitscience-sovereign-api"
 
 ORCID_CLIENT_ID = os.environ.get("ORCID_CLIENT_ID", "")
 ORCID_CLIENT_SECRET = os.environ.get("ORCID_CLIENT_SECRET", "")
@@ -112,8 +133,9 @@ class ScholarAuthService:
                 "credit_name": "Salauat Abiltayevich Yeshimov",
                 "institution": "National Scientific Oncology Center",
                 "discipline": "Clinical Oncology & Surgery",
-                "is_verified": True,
-                "source": "ORCID Public Registry"
+                "is_verified": False,
+                "auth_method": "self_asserted",
+                "source": "Local Founder Preset (not proof of ownership)"
             }
 
         url = f"https://pub.orcid.org/v3.0/{clean}/record"
@@ -143,30 +165,42 @@ class ScholarAuthService:
                         "credit_name": credit_name,
                         "institution": "Independent Scientific Research",
                         "discipline": "General Science & Mathematics",
-                        "is_verified": True,
-                        "source": "ORCID Public Registry"
+                        "is_verified": False,
+                        "auth_method": "self_asserted",
+                        "source": "ORCID Public Registry (record exists; ownership NOT verified)"
                     }
         except Exception:
             pass
 
-        # Fallback profile for offline/sandbox mode
+        # Fallback profile for offline/sandbox mode — НЕ претендует на верификацию владения
         return {
             "orcid": clean,
             "name": f"Scholar ({clean[-4:]})",
             "institution": "Independent Scientific Research",
             "discipline": "General Science & Mathematics",
-            "is_verified": not IS_PRODUCTION,
+            "is_verified": False,
+            "auth_method": "self_asserted",
             "source": "Sovereign Cache (Offline/Sandbox)"
         }
 
     @staticmethod
-    def create_jwt_token(payload: Dict[str, Any]) -> str:
-        """Генерирует криптографический JWT токен доступа (HS256) с уникальным jti для revocation."""
+    def create_jwt_token(payload: Dict[str, Any], auth_method: str = "self_asserted") -> str:
+        """Генерирует криптографический JWT токен доступа (HS256) с уникальным jti для revocation.
+
+        auth_method маркирует степень верификации личности:
+          * "orcid_oauth"   — ORCID OAuth 2.0 Authorization Code: владение iD подтверждено.
+          * "self_asserted" — любой другой путь (привязка ORCID из профиля/тела), НЕ верификация.
+        Привилегированные операции (Science Court / Peer Review в проде) принимают только orcid_oauth.
+        """
         header = {"alg": "HS256", "typ": "JWT"}
         data = payload.copy()
         data["jti"] = uuid.uuid4().hex
         data["iat"] = int(time.time())
         data["exp"] = int(time.time()) + JWT_EXPIRATION_SECONDS
+        data["iss"] = JWT_ISSUER
+        data["aud"] = JWT_AUDIENCE
+        data["auth_method"] = auth_method
+        data["is_verified"] = (auth_method == "orcid_oauth")
 
         h_b64 = base64.urlsafe_b64encode(json.dumps(header).encode()).decode().rstrip("=")
         p_b64 = base64.urlsafe_b64encode(json.dumps(data).encode()).decode().rstrip("=")
@@ -199,6 +233,9 @@ class ScholarAuthService:
             payload = json.loads(base64.urlsafe_b64decode(padded_p_b64).decode())
             if payload.get("exp", 0) < time.time():
                 return False, None, "Token expired"
+            # Должные iss/aud: токены старого формата (без этих claim) отклоняются.
+            if payload.get("iss") != JWT_ISSUER or payload.get("aud") != JWT_AUDIENCE:
+                return False, None, "Token issued by unknown issuer/audience — re-login required"
             if _storage is not None and _storage.is_jti_revoked(payload.get("jti", "")):
                 return False, None, "Token revoked"
             return True, payload, None

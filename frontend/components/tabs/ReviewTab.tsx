@@ -1,9 +1,11 @@
 "use client";
 
 import React from "react";
+import type { TranslationDict } from "../../lib/translations";
+import type { ReviewResult } from "../../lib/types";
 
 interface ReviewTabProps {
-  t: any;
+  t: TranslationDict;
   revCode: string;
   setRevCode: (s: string) => void;
   revOrcid: string;
@@ -19,7 +21,24 @@ interface ReviewTabProps {
   revComments: string;
   setRevComments: (s: string) => void;
   handleSubmitReview: () => void;
-  reviewResult: any;
+  reviewResult: ReviewResult | null;
+  reviewerReputation: Record<string, unknown> | null;
+  claimResult: Record<string, unknown> | null;
+  handleClaimAttestation: () => void;
+}
+
+interface ReputationShape {
+  reviews_submitted?: number;
+  mean_composite_score?: number | null;
+  accepted_recommendations?: number;
+  total_reward_disbursed_usdt?: number;
+  claimed_attestations_count?: number;
+  reviewer_verified?: boolean;
+}
+
+interface ClaimShape {
+  status?: string;
+  attestation?: { attestation_sha256?: string; review_id?: string };
 }
 
 export default function ReviewTab({
@@ -40,7 +59,13 @@ export default function ReviewTab({
   setRevComments,
   handleSubmitReview,
   reviewResult,
+  reviewerReputation,
+  claimResult,
+  handleClaimAttestation,
 }: ReviewTabProps) {
+  const rep = reviewerReputation as ReputationShape | null;
+  const claim = claimResult as ClaimShape | null;
+  const reviewId = (reviewResult as { review_id?: string } | null)?.review_id;
   return (
     <div className="space-y-6">
       <div className="bg-[#0e1726] border border-slate-800 rounded-3xl p-4 sm:p-7 shadow-xl space-y-6">
@@ -141,9 +166,51 @@ export default function ReviewTab({
 
         {reviewResult && (
           <div className="p-4 bg-emerald-950/40 border border-emerald-500/40 rounded-xl font-mono text-[11px] space-y-1">
-            <div className="text-emerald-400 font-bold">✅ Рецензия бекітілді & 15% сыйақы есептелді:</div>
+            <div className="text-emerald-400 font-bold">✅ Рецензия бекітілді:</div>
             <div>Review ID: <span className="text-cyan-300">{reviewResult.review_id}</span></div>
-            <div>Reviewer Payout: <span className="text-emerald-300 font-bold">+{reviewResult.reviewer_reward_usdt || 50.0} USDT</span></div>
+            <div>
+              Reviewer Payout:{" "}
+              <span className="text-emerald-300 font-bold">
+                {(reviewResult as { reviewer_payout?: string }).reviewer_payout || "$0.00 USDT"}
+              </span>
+            </div>
+            <div>Consensus: <span className="text-cyan-300">{(reviewResult as { consensus_status?: string }).consensus_status}</span></div>
+
+            {reviewId && (
+              <button
+                onClick={handleClaimAttestation}
+                className="w-full mt-2 bg-cyan-700/60 hover:bg-cyan-600/60 text-slate-100 font-bold py-2 rounded-lg text-[11px]"
+              >
+                🛡 Привязать рецензию к профилю (claim attestation)
+              </button>
+            )}
+
+            {claim && (
+              <div className="mt-2 p-2 bg-slate-950/60 border border-cyan-500/40 rounded-lg text-[10px] space-y-1">
+                <div>Status: <span className="text-cyan-300">{claim.status}</span></div>
+                {claim.attestation && (
+                  <div className="break-all">
+                    Attestation SHA-256:{" "}
+                    <span className="text-emerald-300">{claim.attestation.attestation_sha256}</span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {rep && (
+          <div className="p-4 bg-slate-950/40 border border-cyan-500/30 rounded-xl font-mono text-[11px] space-y-1">
+            <div className="text-cyan-300 font-bold">🧪 Репутация рецензента {rep.reviewer_verified && "✓"}</div>
+            <div className="grid grid-cols-2 gap-1">
+              <span>Reviews: <b className="text-slate-100">{rep.reviews_submitted}</b></span>
+              <span>Avg grade: <b className="text-slate-100">{rep.mean_composite_score ?? "—"}</b></span>
+              <span>Accepted: <b className="text-slate-100">{rep.accepted_recommendations}</b></span>
+              <span>Attestations: <b className="text-slate-100">{rep.claimed_attestations_count}</b></span>
+            </div>
+            <span>
+              Заработано: <b className="text-emerald-300">{rep.total_reward_disbursed_usdt} USDT</b>
+            </span>
           </div>
         )}
       </div>

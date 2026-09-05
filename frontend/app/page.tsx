@@ -27,6 +27,7 @@ import LicenseModal from "../components/modals/LicenseModal";
 // Libs
 import { getApiBase } from "../lib/constants";
 import { TRANSLATIONS } from "../lib/translations";
+import type { PlatformStats, ScholarProfile } from "../lib/types";
 
 // Per-tab state & handlers
 import {
@@ -42,45 +43,53 @@ import {
   useVampireTab,
 } from "../hooks/useTabState";
 
-import { useAccount, useBalance } from "wagmi";
+import { useAccount } from "wagmi";
 import { useModal } from "connectkit";
-import { formatUnits } from "viem";
 
 export default function GitScienceApp() {
   const [lang, setLang] = useState<"KZ" | "RU" | "EN">("KZ");
   const [activeTab, setActiveTab] = useState<TabKey>("notary");
-  const [apiBase, setApiBase] = useState<string>(process.env.NEXT_PUBLIC_API_URL || "");
+  const [apiBase] = useState<string>(() => getApiBase());
 
   // Authentication & Guest State
-  const [activeScholar, setActiveScholar] = useState<any>(null);
+  const [activeScholar, setActiveScholar] = useState<ScholarProfile | null>(() => {
+    if (typeof window === "undefined") return null;
+    const saved = localStorage.getItem("gitscience_active_scholar");
+    if (!saved) return null;
+    try {
+      const parsed = JSON.parse(saved) as ScholarProfile;
+      // Токен НЕ хранится в localStorage — только в React-состоянии.
+      // Legacy профили могут содержать access_token от предыдущих версий: удаляем.
+      if (parsed && typeof parsed === "object" && "access_token" in parsed) {
+        delete (parsed as unknown as Record<string, unknown>).access_token;
+        localStorage.setItem("gitscience_active_scholar", JSON.stringify(parsed));
+      }
+      return parsed;
+    } catch {
+      return null;
+    }
+  });
   const [showOrcidModal, setShowOrcidModal] = useState<boolean>(false);
   const [showGuideModal, setShowGuideModal] = useState<boolean>(false);
   const [passkeyNotice, setPasskeyNotice] = useState<string | null>(null);
   const [licenseModalContent, setLicenseModalContent] = useState<string | null>(null);
 
   // Web3 Wallet State (Wagmi + ConnectKit)
-  const { address, isConnected } = useAccount();
-  const { data: balanceData } = useBalance({ address });
+  const { address } = useAccount();
   const { setOpen: setConnectKitOpen } = useModal();
 
-  const walletConnected = isConnected;
   const walletAddress = address || null;
-  const walletBalance = balanceData ? parseFloat(formatUnits(balanceData.value, balanceData.decimals)) : 0;
-
-  const [walletRoyalties, setWalletRoyalties] = useState<number>(0);
-  const [walletNetwork, setWalletNetwork] = useState<string>("Polygon PoS / Base Mainnet");
-  const [walletConnecting, setWalletConnecting] = useState<boolean>(false);
 
   // Programmatic opening of wallet modal
   const setShowWalletModal = (v: boolean) => setConnectKitOpen(v);
 
   // Platform Live Stats
   const [platformStats, setPlatformStats] = useState({
-    total_notarized_manuscripts: 11,
-    total_maas_executions: 48,
-    total_secured_scientific_value_usdt: 1419400.0,
-    total_verified_scholars: 28,
-    blockchain_attestation_status: "BITCOIN_OTS_ANCHORED_OK",
+    total_notarized_manuscripts: 0,
+    total_ledger_transactions: 0,
+    total_secured_scientific_value_usdt: 0.0,
+    total_court_arbitrations: 0,
+    blockchain_attestation_status: "NO_LIVE_BITCOIN_ANCHOR_YET",
   });
 
   const t = TRANSLATIONS[lang];
@@ -89,7 +98,7 @@ export default function GitScienceApp() {
   // Per-tab state hooks (state lives next to the feature that owns it)
   // -------------------------------------------------------------------
   const library = useLibraryTab();
-  const notary = useNotaryTab({ onLibraryRefresh: library.refresh });
+  const notary = useNotaryTab({ onLibraryRefresh: library.refresh, token: activeScholar?.access_token });
   const inspector = useInspectorTab({ walletAddress, onLicense: setLicenseModalContent });
   const zk = useZkDiscoveryTab({ orcid: notary.orcid, authorName: notary.authorName });
   const passport = usePassportTab();
@@ -97,45 +106,33 @@ export default function GitScienceApp() {
   const maas = useMaasTab();
   const amanat = useAmanatTab();
   const court = useCourtTab({ t, scholarToken: activeScholar?.access_token });
-  const vampire = useVampireTab({ onLibraryRefresh: library.refresh, t });
+  const vampire = useVampireTab({ onLibraryRefresh: library.refresh, t, token: activeScholar?.access_token });
 
   // Initial Load & Session Fetch
   useEffect(() => {
     const base = getApiBase();
-    setApiBase(base);
 
-    // 1. Session / Scholar profile
-    const saved = localStorage.getItem("gitscience_active_scholar");
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        setActiveScholar(parsed);
-        notary.setAuthorName(parsed.name || "Salauat Abiltayevich Yeshimov");
-        notary.setOrcid(parsed.orcid || "0009-0003-3929-3605");
-      } catch {
-        setActiveScholar(null);
-      }
-    }
-
-    // 2. Fetch stats
+    // 1. Fetch platform live stats
     fetch(`${base}/api/v1/stats/summary`)
       .then((r) => r.json())
-      .then((data) => setPlatformStats(data))
+      .then((data) => setPlatformStats(data as PlatformStats))
       .catch(() => {});
 
-    // 3. Register PWA Service Worker
+    // 2. Register PWA Service Worker
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("/sw.js").catch(() => {});
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Handlers
-  const handleScholarLogin = (profile: any) => {
+  const handleScholarLogin = (profile: ScholarProfile) => {
     setActiveScholar(profile);
     notary.setAuthorName(profile.name);
     notary.setOrcid(profile.orcid);
-    localStorage.setItem("gitscience_active_scholar", JSON.stringify(profile));
+    // Персистим профиль БЕЗ access_token (токен только в React-состоянии — не в localStorage).
+    const profileWithoutToken = { ...profile };
+    delete (profileWithoutToken as unknown as Record<string, unknown>).access_token;
+    localStorage.setItem("gitscience_active_scholar", JSON.stringify(profileWithoutToken));
     setShowOrcidModal(false);
   };
 
@@ -144,27 +141,6 @@ export default function GitScienceApp() {
     localStorage.removeItem("gitscience_active_scholar");
     setShowOrcidModal(false);
   };
-
-  useEffect(() => {
-    if (address && isConnected) {
-      setWalletConnecting(true);
-      fetch(`${apiBase}/api/v1/wallet/balance/${address}`)
-        .then((res) => res.json())
-        .then((data) => {
-          setWalletRoyalties(data.accumulated_royalties_usdt || 3750);
-          setWalletNetwork(data.network || "Polygon PoS");
-        })
-        .catch(() => {
-          setWalletRoyalties(3750);
-          setWalletNetwork("Polygon PoS / Base Mainnet");
-        })
-        .finally(() => {
-          setWalletConnecting(false);
-        });
-    } else {
-      setWalletRoyalties(0);
-    }
-  }, [address, isConnected, apiBase]);
 
   const handleBiometricAuth = () => {
     setPasskeyNotice("📱 Touch ID / FIDO2 аутентификациясы сәтті орындалды!");
@@ -176,7 +152,6 @@ export default function GitScienceApp() {
       {/* Welcome Banner for guests — scrolls away */}
       {!activeScholar && (
         <WelcomeBanner
-          t={t}
           setShowOrcidModal={setShowOrcidModal}
           setShowWalletModal={setShowWalletModal}
         />
@@ -188,10 +163,6 @@ export default function GitScienceApp() {
           lang={lang}
           setLang={setLang}
           t={t}
-          walletConnected={walletConnected}
-          walletAddress={walletAddress}
-          walletBalance={walletBalance}
-          setShowWalletModal={setShowWalletModal}
           activeScholar={activeScholar}
           setShowOrcidModal={setShowOrcidModal}
           setShowGuideModal={setShowGuideModal}
@@ -331,6 +302,9 @@ export default function GitScienceApp() {
               setRevComments={review.setRevComments}
               handleSubmitReview={review.handleSubmitReview}
               reviewResult={review.reviewResult}
+              reviewerReputation={review.reviewerReputation}
+              claimResult={review.claimResult}
+              handleClaimAttestation={review.handleClaimAttestation}
             />
           )}
 

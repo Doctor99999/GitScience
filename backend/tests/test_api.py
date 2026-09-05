@@ -200,6 +200,63 @@ def test_peer_review_requires_jwt_and_binds_identity(client):
         "review_comments": "Solid reproducibility via Safe AST."
     })
     assert ok_res.status_code == 200
+    review_id = ok_res.json().get("review_id")
+    assert review_id
+
+    # Публичный список НЕ раскрывает слепого рецензента (приватность)
+    listed = client.get("/api/v1/review/list/GS-2026-00001").json()["reviews"]
+    for r in listed:
+        assert "reviewer_orcid" not in r
+        assert "reviewer_blind_hash" in r
+
+def test_review_reputation_and_attestation_claim(client):
+    """Репутация рецензента + claim attestation (ResearchHub-style verifiable meritocracy)."""
+    reviewer = "0009-0007-7788-9900"
+    header = _auth_header_for(client, reviewer)
+
+    # Пустая репутация → 404
+    empty = client.get(f"/api/v1/review/reputation/{reviewer}")
+    assert empty.status_code == 404
+
+    res = client.post("/api/v1/review/submit", headers=header, json={
+        "target_code": "GS-2026-00001",
+        "reviewer_orcid": reviewer,
+        "math_rigor_score": 8, "methodology_score": 7,
+        "ethics_score": 9, "novelty_score": 8,
+        "review_comments": "Methodologically sound design.",
+    })
+    assert res.status_code == 200
+    review_id = res.json()["review_id"]
+
+    rep = client.get(f"/api/v1/review/reputation/{reviewer}").json()
+    assert rep["reviews_submitted"] == 1
+    assert rep["mean_composite_score"] is not None
+    assert rep["reviewer_verified"] is False
+
+    # Чужая claim → 403
+    stranger = client.post("/api/v1/review/claim", headers=_auth_header_for(client, "0009-0001-0000-0000"),
+                           json={"review_id": review_id})
+    assert stranger.status_code == 403
+
+    # Своя claim → ATTESTATION_ISSUED
+    claim = client.post("/api/v1/review/claim", headers=header, json={"review_id": review_id})
+    assert claim.status_code == 200
+    att_hash = claim.json()["attestation"]["attestation_sha256"]
+    assert att_hash
+
+    # Повторная claim → idempotent
+    again = client.post("/api/v1/review/claim", headers=header, json={"review_id": review_id})
+    assert again.json()["status"] == "ATTESTATION_ALREADY_CLAIMED"
+
+    # Верификация attestation
+    verify = client.get(f"/api/v1/review/attestation/{att_hash}").json()
+    assert verify["status"] == "ATTESTATION_VALID"
+    assert verify["matches_registry"] is True
+
+    # Репутация обновилась: verified теперь True
+    rep2 = client.get(f"/api/v1/review/reputation/{reviewer}").json()
+    assert rep2["reviewer_verified"] is True
+    assert rep2["claimed_attestations_count"] == 1
 
 def test_fiat_webhook_signature_enforced(client):
     body = {"invoice_number": "INV-GS-2026-SECTEST", "paid_amount": 12000.0}
@@ -235,7 +292,8 @@ def test_fiat_webhook_signature_enforced(client):
             headers={"Content-Type": "application/json", "X-GS-Timestamp": ts_now, "X-GS-Signature": sig_ok}
         )
         assert res_ok.status_code == 200
-        assert res_ok.json()["status"] == "SETTLED_ON_CHAIN"
+        assert res_ok.json()["status"] == "PAYMENT_ACKNOWLEDGED_AWAITING_SETTLEMENT"
+        assert res_ok.json()["on_chain_bridge"] is None  # честность: ончейн-мост НЕ имитируется
     finally:
         os.environ.pop("FIAT_WEBHOOK_SECRET", None)
 
@@ -252,4 +310,84 @@ def test_upload_pdf_magic_bytes_enforced(client):
         },
     )
     assert res.status_code == 415
+
+# =====================================================================
+# STATS HONESTY & SCIENCE COURT ON DB (Post-refactor regression)
+# =====================================================================
+
+def test_stats_summary_honest_metrics(client):
+    """Метрики только из реальных источников — без выдуманных констант."""
+    res = client.get("/api/v1/stats/summary")
+    assert res.status_code == 200
+    data = res.json()
+    # Неотслеживаемые «живые» показатели не выдаются
+    for fabricated in ("total_maas_executions", "total_verified_scholars",
+                       "active_consensus_nodes", "total_peer_reviews_conducted"):
+        assert fabricated not in data, f"fabricated metric leaked: {fabricated}"
+    assert data["total_notarized_manuscripts"] >= 0
+    assert data["total_ledger_transactions"] >= 0
+    assert data["total_court_arbitrations"] >= 0
+    assert data["blockchain_attestation_status"].startswith(
+        ("OTS_PROOFS_FILES:", "NO_LIVE_BITCOIN_ANCHOR_YET")
+    )
+
+def test_court_dispute_full_flow_and_quorum(client):
+    """Полный цикл суда: подача иска + 5 голосов присяжных до кворума (на БД)."""
+    claimant = _auth_header_for(client, "0009-0003-3929-3605", "Claimant Scholar")
+    filed = client.post("/api/v1/court/dispute", headers=claimant, json={
+        "claimant_name": "Claimant Scholar",
+        "claimant_orcid": "0009-0003-3929-3605",
+        "target_code": "GS-2026-00001",
+        "reason": "Плагиат методологии в производной формуле.",
+        "evidence_hash": "0x" + _hashlib.sha256(b"evidence").hexdigest(),
+    })
+    assert filed.status_code == 200
+    case = filed.json()["case"]
+    case_id = case["case_id"]
+    assert case["status"] == "OPEN"
+
+    jurors = ["0009-0001-1111-1111", "0009-0001-2222-2222", "0009-0001-3333-3333",
+              "0009-0001-4444-4444", "0009-0001-5555-5555"]
+    for juror in jurors:
+        res = client.post("/api/v1/court/vote", headers=_auth_header_for(client, juror), json={
+            "case_id": case_id, "juror_orcid": juror, "vote": "valid"
+        })
+        assert res.status_code == 200, res.text
+        assert res.json()["status"] == "VOTE_RECORDED"
+
+    # Дубликат голоса отклоняется (составной PK)
+    dup = client.post("/api/v1/court/vote", headers=_auth_header_for(client, jurors[0]), json={
+        "case_id": case_id, "juror_orcid": jurors[0], "vote": "valid"
+    })
+    assert dup.status_code == 200
+    assert dup.json()["status"] == "ERROR"
+
+    # Кворум достигнут (5 valid > 0 invalid)
+    final = client.get("/api/v1/court/cases").json()["cases"]
+    case_final = next(c for c in final if c["case_id"] == case_id)
+    assert case_final["status"] == "VERDICT_PRIOR_ART_CHALLENGED"
+    assert case_final["votes"]["valid"] == 5
+
+def test_billing_pay_requires_auth(client):
+    """billing/pay — фейковый ончейн-леджер теперь защищён и честен."""
+    payload = {
+        "base_amount": 1000.0,
+        "contributors": [{"orcid": "0009-0003-3929-3605", "role": "author", "share_pct": 60.0}]
+    }
+
+    anon = client.post("/api/v1/billing/pay", json=payload)
+    assert anon.status_code == 401
+
+    authed = client.post("/api/v1/billing/pay", headers=_auth_header_for(client, "0009-0003-3929-3605"), json=payload)
+    assert authed.status_code == 200
+    data = authed.json()
+    assert data["transaction_hash"].startswith("SIMULATED-OFFCHAIN:")
+
+def test_vampire_import_requires_auth(client):
+    """vampire/import — SSRF-вектор теперь требует валидный Bearer-токен."""
+    res = client.post("/api/v1/vampire/import", json={
+        "work_data": {"title": "Untitled", "authors": "Anon", "license": "cc-by"}
+    })
+    assert res.status_code == 401
+    assert "Authorization" in res.json()["detail"]
 

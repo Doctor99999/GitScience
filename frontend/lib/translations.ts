@@ -48,9 +48,9 @@ export const TRANSLATIONS = {
     disconnectWalletBtn: "Әмиянды ажырату ✕",
 
     statManuscripts: "Қорғалған манускрипттер",
-    statMaas: "MaaS есептеулері",
+    statTransactions: "Ledger операциялары",
     statSecuredValue: "Ғылыми капитал (USDT)",
-    statScholars: "Тіркелген ғалымдар",
+    statCourt: "Сот істері",
     statAttestation: "Bitcoin OTS Анкері",
 
     uploadHeader: "Қолжазба басымдығын бекіту (WIPO Prior Art Shield)",
@@ -225,9 +225,9 @@ export const TRANSLATIONS = {
     disconnectWalletBtn: "Отключить кошелек ✕",
 
     statManuscripts: "Защищенных манускриптов",
-    statMaas: "Вычислений MaaS",
+    statTransactions: "Ledger-транзакций",
     statSecuredValue: "Научный капитал (USDT)",
-    statScholars: "Верифицированных ученых",
+    statCourt: "Дел Science Court",
     statAttestation: "Bitcoin OTS Анкер",
 
     uploadHeader: "Фиксация приоритета манускрипта (WIPO Prior Art Shield)",
@@ -402,9 +402,9 @@ export const TRANSLATIONS = {
     disconnectWalletBtn: "Disconnect Wallet ✕",
 
     statManuscripts: "Protected Manuscripts",
-    statMaas: "MaaS Calculations",
+    statTransactions: "Ledger Transactions",
     statSecuredValue: "Secured Scientific Capital (USDT)",
-    statScholars: "Verified Scholars",
+    statCourt: "Science Court Cases",
     statAttestation: "Bitcoin OTS Anchor",
 
     uploadHeader: "Manuscript Priority Registration (WIPO Prior Art Shield)",
@@ -531,3 +531,5 @@ export const TRANSLATIONS = {
     daemonStatusStopped: "⚪ Background Daemon Standby",
   },
 };
+
+export type TranslationDict = typeof TRANSLATIONS.RU;

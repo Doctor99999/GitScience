@@ -9,9 +9,11 @@ gitscience_fortress.py — Бронекомплекс GitScience™ (8 Пром�
 import os
 import json
 import time
+import base64
 import hashlib
 import threading
 import concurrent.futures
+import sqlalchemy as sa
 from pathlib import Path
 from typing import Dict, Any, List, Optional, Tuple
 
@@ -228,23 +230,109 @@ class IRBClinicalVerifier:
 # 5. 🏛️ АКАДЕМИЧЕСКИЙ СУД И АРБИТРАЖ (Science Court & Dispute System)
 # =====================================================================
 class ScienceCourt:
-    """Система разрешения споров об авторстве, фальсификациях и претензиях на Prior Art"""
+    """Система разрешения споров об авторстве, фальсификациях и претензиях на Prior Art.
 
-    _court_lock = threading.Lock()
+    Хранится в SQLAlchemy-БД (таблицы court_disputes / court_votes) вместо JSON-файла.
+    Голоса защищены составным первичным ключом (case_id, juror_orcid) — один присяжный = один голос.
+    """
 
-    def __init__(self, storage_dir: Optional[Path] = None):
+    def __init__(self, storage_dir: Optional[Path] = None, db_engine=None):
         self.storage_dir = Path(storage_dir) if storage_dir else Path.cwd() / "storage"
         self.storage_dir.mkdir(parents=True, exist_ok=True)
+        self._db_engine = db_engine
         self.court_file = self.storage_dir / "court_cases.json"
-        self._init_db()
+        self._migrate_legacy_json()
 
-    def _init_db(self):
-        with self._court_lock:
-            if not self.court_file.exists():
-                tmp_file = self.court_file.with_suffix(".tmp")
-                with open(tmp_file, "w", encoding="utf-8") as f:
-                    json.dump({"disputes": []}, f, indent=2)
-                tmp_file.replace(self.court_file)
+    def _db(self):
+        """Возвращает (engine, storage) — поддерживает внешний engine и модуль по умолчанию."""
+        if self._db_engine is not None:
+            import gitscience_storage as storage_mod
+            return self._db_engine, storage_mod
+        import gitscience_storage as storage
+        return storage.engine, storage
+
+    def _migrate_legacy_json(self):
+        """Одноразовая миграция старых дел из JSON-файла в БД (иначе данные суда теряются)."""
+        if not self.court_file.exists():
+            return
+        try:
+            with open(self.court_file, "r", encoding="utf-8") as f:
+                db = json.load(f)
+        except Exception:
+            return
+        engine, storage = self._db()
+        disputes = db.get("disputes", []) if isinstance(db, dict) else []
+        if not disputes:
+            return
+        with engine.begin() as conn:
+            for case in disputes:
+                case_id = case.get("case_id", "")
+                if not case_id:
+                    continue
+                exists = conn.execute(
+                    sa.select(sa.func.count()).select_from(storage.court_disputes)
+                    .where(storage.court_disputes.c.case_id == case_id)
+                ).scalar()
+                if exists:
+                    continue
+                votes = case.get("votes", {}) if isinstance(case.get("votes"), dict) else {}
+                conn.execute(storage.court_disputes.insert().values(
+                    case_id=case_id,
+                    claimant_name=case.get("claimant_name", ""),
+                    claimant_orcid=case.get("claimant_orcid", ""),
+                    target_code=case.get("target_code", ""),
+                    reason=case.get("reason", ""),
+                    evidence_hash=case.get("evidence_hash", ""),
+                    status=case.get("status", "OPEN"),
+                    votes_valid=votes.get("valid", 0),
+                    votes_invalid=votes.get("invalid", 0),
+                    votes_abstain=votes.get("abstain", 0),
+                ))
+                for juror in case.get("jurors_voted", []):
+                    if conn.execute(
+                        sa.select(sa.func.count()).select_from(storage.court_votes)
+                        .where(sa.and_(
+                            storage.court_votes.c.case_id == case_id,
+                            storage.court_votes.c.juror_orcid == juror,
+                        ))
+                    ).scalar() == 0:
+                        conn.execute(storage.court_votes.insert().values(
+                            case_id=case_id, juror_orcid=juror, vote="valid"
+                        ))
+        # JSON больше не источник правды — он остаётся как резервная копия
+        try:
+            archive = self.court_file.with_suffix(".json.migrated")
+            if not archive.exists():
+                self.court_file.replace(archive)
+        except Exception:
+            pass
+
+    def _case_to_dict(self, row_mapping, votes_rows) -> Dict[str, Any]:
+        case = dict(row_mapping)
+        counted = {"valid": 0, "invalid": 0, "abstain": 0}
+        jurors = []
+        for r in votes_rows:
+            if r.vote in counted:
+                counted[r.vote] += 1
+            jurors.append(r.juror_orcid)
+        if hasattr(case.get("created_at"), "isoformat"):
+            case["created_at"] = case["created_at"].isoformat()
+        case["votes"] = counted
+        case["jurors_voted"] = jurors
+        return case
+
+    def _get_case(self, case_id: str) -> Optional[Dict[str, Any]]:
+        engine, storage = self._db()
+        with engine.connect() as conn:
+            row = conn.execute(
+                sa.select(storage.court_disputes).where(storage.court_disputes.c.case_id == case_id)
+            ).first()
+            if not row:
+                return None
+            votes_rows = conn.execute(
+                sa.select(storage.court_votes).where(storage.court_votes.c.case_id == case_id)
+            ).all()
+            return self._case_to_dict(row._mapping, votes_rows)
 
     def file_dispute(
         self,
@@ -254,78 +342,87 @@ class ScienceCourt:
         reason: str,
         evidence_hash: str
     ) -> Dict[str, Any]:
-        with self._court_lock:
-            db = {"disputes": []}
-            if self.court_file.exists():
-                with open(self.court_file, "r", encoding="utf-8") as f:
-                    try:
-                        db = json.load(f)
-                    except Exception:
-                        db = {"disputes": []}
-
-            case_id = f"CASE-{hashlib.sha256(f'{claimant_orcid}:{target_code}:{time.time()}'.encode()).hexdigest()[:8].upper()}"
-            case_data = {
-                "case_id": case_id,
-                "claimant_name": claimant_name,
-                "claimant_orcid": claimant_orcid,
-                "target_code": target_code,
-                "reason": reason,
-                "evidence_hash": evidence_hash,
-                "status": "OPEN",
-                "votes": {"valid": 0, "invalid": 0, "abstain": 0},
-                "jurors_voted": [],
-                "created_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-            }
-            db["disputes"].append(case_data)
-
-            tmp_file = self.court_file.with_suffix(f".tmp.{os.getpid()}")
-            with open(tmp_file, "w", encoding="utf-8") as f:
-                json.dump(db, f, indent=2, ensure_ascii=False)
-            tmp_file.replace(self.court_file)
-
-            return case_data
+        engine, storage = self._db()
+        case_id = f"CASE-{hashlib.sha256(f'{claimant_orcid}:{target_code}:{time.time()}'.encode()).hexdigest()[:8].upper()}"
+        with engine.begin() as conn:
+            conn.execute(storage.court_disputes.insert().values(
+                case_id=case_id,
+                claimant_name=claimant_name,
+                claimant_orcid=claimant_orcid,
+                target_code=target_code,
+                reason=reason,
+                evidence_hash=evidence_hash,
+                status="OPEN",
+                votes_valid=0,
+                votes_invalid=0,
+                votes_abstain=0,
+            ))
+        return self._get_case(case_id) or {"case_id": case_id, "status": "OPEN"}
 
     def cast_vote(self, case_id: str, juror_orcid: str, vote: str) -> Dict[str, Any]:
-        """vote: 'valid' | 'invalid' | 'abstain'"""
-        with self._court_lock:
-            if not self.court_file.exists():
-                return {"status": "ERROR", "message": "Реестр суда не инициализирован"}
-            with open(self.court_file, "r", encoding="utf-8") as f:
-                db = json.load(f)
+        if vote not in ["valid", "invalid", "abstain"]:
+            return {"status": "ERROR", "message": "Неверный тип голоса"}
+        engine, storage = self._db()
+        try:
+            with engine.begin() as conn:
+                row = conn.execute(
+                    sa.select(storage.court_disputes.c.status)
+                    .where(storage.court_disputes.c.case_id == case_id)
+                ).first()
+                if not row:
+                    return {"status": "ERROR", "message": "Дело не найдено в реестре суда"}
 
-            for case in db["disputes"]:
-                if case["case_id"] == case_id:
-                    if juror_orcid in case.get("jurors_voted", []):
-                        return {"status": "ERROR", "message": "Присяжный уже проголосовал по данному делу"}
+                # Составной PK (case_id, juror_orcid) гарантирует один голос от присяжного
+                conn.execute(storage.court_votes.insert().values(
+                    case_id=case_id, juror_orcid=juror_orcid, vote=vote
+                ))
 
-                    if vote not in ["valid", "invalid", "abstain"]:
-                        return {"status": "ERROR", "message": "Неверный тип голоса"}
+                # пересчёт голосов после вставки
+                rows = conn.execute(
+                    sa.select(storage.court_votes.c.vote, sa.func.count())
+                    .where(storage.court_votes.c.case_id == case_id)
+                    .group_by(storage.court_votes.c.vote)
+                ).all()
+                counts = {r[0]: r[1] for r in rows}
 
-                    case["votes"][vote] += 1
-                    case.setdefault("jurors_voted", []).append(juror_orcid)
+                total = sum(counts.values())
+                new_status = row.status
+                if total >= 5:
+                    if counts.get("valid", 0) > counts.get("invalid", 0):
+                        new_status = "VERDICT_PRIOR_ART_CHALLENGED"
+                    else:
+                        new_status = "VERDICT_PRIOR_ART_CONFIRMED"
 
-                    # Проверка кворума (например, 5 голосов)
-                    total_votes = sum(case["votes"].values())
-                    if total_votes >= 5:
-                        if case["votes"]["valid"] > case["votes"]["invalid"]:
-                            case["status"] = "VERDICT_PRIOR_ART_CHALLENGED"
-                        else:
-                            case["status"] = "VERDICT_PRIOR_ART_CONFIRMED"
+                conn.execute(
+                    storage.court_disputes.update().where(storage.court_disputes.c.case_id == case_id).values(
+                        votes_valid=counts.get("valid", 0),
+                        votes_invalid=counts.get("invalid", 0),
+                        votes_abstain=counts.get("abstain", 0),
+                        status=new_status,
+                    )
+                )
+        except Exception as e:
+            is_integrity = type(e).__name__ in ("IntegrityError",) or "UNIQUE" in str(e).upper()
+            if is_integrity:
+                return {"status": "ERROR", "message": "Присяжный уже проголосовал по данному делу"}
+            raise
 
-                    tmp_file = self.court_file.with_suffix(f".tmp.{os.getpid()}")
-                    with open(tmp_file, "w", encoding="utf-8") as out:
-                        json.dump(db, out, indent=2, ensure_ascii=False)
-                    tmp_file.replace(self.court_file)
-
-                    return {"status": "VOTE_RECORDED", "case": case}
-
-            return {"status": "ERROR", "message": "Дело не найдено в реестре суда"}
+        case = self._get_case(case_id)
+        return {"status": "VOTE_RECORDED", "case": case}
 
     def get_all_cases(self) -> List[Dict[str, Any]]:
-        if not self.court_file.exists():
-            return []
-        with open(self.court_file, "r", encoding="utf-8") as f:
-            return json.load(f).get("disputes", [])
+        engine, storage = self._db()
+        with engine.connect() as conn:
+            rows = conn.execute(
+                sa.select(storage.court_disputes).order_by(storage.court_disputes.c.created_at.desc())
+            ).all()
+            cases = []
+            for row in rows:
+                votes_rows = conn.execute(
+                    sa.select(storage.court_votes).where(storage.court_votes.c.case_id == row.case_id)
+                ).all()
+                cases.append(self._case_to_dict(row._mapping, votes_rows))
+            return cases
 
 
 # =====================================================================
@@ -352,9 +449,27 @@ class IoTHardwareGateway:
 
     @staticmethod
     def verify_device_signature(raw_bytes: bytes, device_hsm_pubkey: str, signature_hex: str) -> bool:
-        calculated_hash = hashlib.sha256(raw_bytes).hexdigest()
-        expected_sig = hashlib.sha256(f"{calculated_hash}:{device_hsm_pubkey}".encode('utf-8')).hexdigest()
-        return signature_hex == expected_sig
+        """Настоящая криптографическая проверка Ed25519-подписи аппаратного HSM.
+
+        Подпись устройства ставится над КАНОНИЧЕСКИМ JSON payload'а (GitscienceIoTGateway.sign_payload),
+        поэтому проверка диагностирует подмену данных, подделку публичного ключа и повторы.
+        Возвращает False при любом отклонении (невалидный PEM, не-Ed25519 ключ, битая подпись).
+        """
+        from gitscience_iot import _canonical_bytes
+        from cryptography.hazmat.primitives.serialization import load_pem_public_key
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+        from cryptography.exceptions import InvalidSignature
+
+        try:
+            payload = json.loads(raw_bytes.decode("utf-8"))
+            pub = load_pem_public_key(device_hsm_pubkey.encode("utf-8"))
+            if not isinstance(pub, Ed25519PublicKey):
+                return False
+            sig = base64.b64decode(signature_hex)
+            pub.verify(sig, _canonical_bytes(payload))
+            return True
+        except (InvalidSignature, Exception):
+            return False
 
 
 # =====================================================================

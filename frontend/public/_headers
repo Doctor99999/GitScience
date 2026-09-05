@@ -1,0 +1,11 @@
+# Deploy-time security headers (Netlify/Cloudflare Pages).
+# Note: при статическом export (output: "export") Next не может задавать заголовки сам —
+# их подхватывает Netlify / Cloudflare Pages из этого файла на границе CDN.
+# sw.js (PWA) должен оставаться без 'unsafe-inline' требований — локальный кэш.
+
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), interest-cohort=()
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://pub.orcid.org https://api.openalex.org https://export.arxiv.org https://europepmc.org https://www.ebi.ac.uk; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'

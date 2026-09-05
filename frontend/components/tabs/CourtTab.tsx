@@ -1,10 +1,12 @@
 "use client";
 
 import React from "react";
+import type { TranslationDict } from "../../lib/translations";
+import type { CourtCase } from "../../lib/types";
 
 interface CourtTabProps {
-  t: any;
-  courtCases: any[];
+  t: TranslationDict;
+  courtCases: CourtCase[];
   courtClaimantName: string;
   setCourtClaimantName: (s: string) => void;
   courtClaimantOrcid: string;
@@ -14,7 +16,7 @@ interface CourtTabProps {
   courtReason: string;
   setCourtReason: (s: string) => void;
   handleFileDispute: () => void;
-  courtDisputeResult: any;
+  courtDisputeResult: CourtCase | null;
   handleVoteCase: (caseId: string, vote: "valid" | "invalid" | "abstain") => void;
 }
 
