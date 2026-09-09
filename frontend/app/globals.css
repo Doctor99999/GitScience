@@ -87,6 +87,41 @@ nav {
   scrollbar-width: none;
 }
 
+/* Tab navigation scrollbar — thin, styled */
+.tab-scroll::-webkit-scrollbar {
+  height: 3px;
+}
+.tab-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.tab-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+}
+.tab-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+.tab-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+/* Right fade indicator for scrollable tabs */
+.tab-fade-right {
+  position: relative;
+}
+.tab-fade-right::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 40px;
+  background: linear-gradient(to right, transparent, var(--background));
+  pointer-events: none;
+  z-index: 1;
+}
+
 /* Stitch-style Panels */
 .ferrari-panel, .sci-panel {
   background: var(--carbon-gray);
