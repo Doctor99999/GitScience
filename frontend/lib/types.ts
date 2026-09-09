@@ -143,8 +143,12 @@ export interface VampireWork {
 }
 
 export interface VampireDaemonStats {
-  is_running?: boolean;
-  total_harvested?: number;
+  is_daemon_running?: boolean;
+  total_lifetime_harvested?: number;
   errors_count?: number;
-  works_ingested?: number;
+  last_run_utc?: string;
+  current_active_topic?: string;
+  active_source?: string;
+  supported_corpora?: string[];
+  recent_harvested_records?: Record<string, unknown>[];
 }

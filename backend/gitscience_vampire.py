@@ -509,6 +509,7 @@ class AutonomousIngestionDaemon:
     _is_running = False
     _thread: Optional[threading.Thread] = None
     _total_harvested_count = 0
+    _errors_count = 0
     _last_run_timestamp = None
     _current_active_topic = "Oncology Surgical Homeostasis"
     _active_source = "All Open Corpora"
@@ -564,6 +565,7 @@ class AutonomousIngestionDaemon:
                         if len(cls._harvest_log) > 20:
                             cls._harvest_log.pop()
                     except Exception:
+                        cls._errors_count += 1
                         continue
                     time.sleep(3.0)  # Безопасная пауза между записями
             except Exception:
@@ -612,6 +614,7 @@ class AutonomousIngestionDaemon:
         return {
             "is_daemon_running": cls._is_running,
             "total_lifetime_harvested": cls._total_harvested_count,
+            "errors_count": cls._errors_count,
             "last_run_utc": cls._last_run_timestamp or "Standby (Ready to Harvest)",
             "current_active_topic": cls._current_active_topic,
             "active_source": cls._active_source,

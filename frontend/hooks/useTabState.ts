@@ -611,15 +611,20 @@ export function useVampireTab(opts: { onLibraryRefresh?: () => void; t?: Transla
   const [daemonStats, setDaemonStats] = useState<VampireDaemonStats | null>(null);
 
   useEffect(() => {
-    fetch(`${getApiBase()}/api/v1/vampire/harvest/daemon/status`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (data) {
-          setDaemonRunning(data.is_running || false);
-          setDaemonStats(data);
-        }
-      })
-      .catch(() => {});
+    const fetchDaemonStatus = () => {
+      fetch(`${getApiBase()}/api/v1/vampire/harvest/daemon/status`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (data) {
+            setDaemonRunning(data.is_daemon_running || false);
+            setDaemonStats(data);
+          }
+        })
+        .catch(() => {});
+    };
+    fetchDaemonStatus();
+    const interval = setInterval(fetchDaemonStatus, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleMultiSourceSearch = async () => {

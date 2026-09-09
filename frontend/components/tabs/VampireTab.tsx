@@ -79,8 +79,8 @@ export default function VampireTab({
           </div>
           {daemonStats && (
             <div className="text-[11px] text-slate-400 flex gap-3">
-              <span>Total Harvested: <strong className="text-cyan-300">{daemonStats.total_harvested || 0}</strong></span>
-              <span>Errors: <strong className="text-red-400">{daemonStats.errors_count || 0}</strong></span>
+              <span>Harvested: <strong className="text-cyan-300">{daemonStats.total_lifetime_harvested || 0}</strong></span>
+              <span>Topic: <strong className="text-purple-300 text-[10px]">{daemonStats.current_active_topic || "—"}</strong></span>
             </div>
           )}
         </div>
