@@ -39,7 +39,7 @@ def test_valid_signed_ingest(isolated_gateway):
         "timestamp": now,
         "nonce": "n-abcdef123",
         "payload": payload,
-        "signature": isolated_gateway.sign_payload(payload, priv),
+        "signature": isolated_gateway.sign_payload("HPLC-01", now, "n-abcdef123", payload, priv),
     }
     res = isolated_gateway.ingest(rec)
     assert res["status"] == "VERIFIED"
@@ -57,7 +57,7 @@ def test_tampered_payload_rejected(isolated_gateway):
         "timestamp": now,
         "nonce": "n-tamper-0001",
         "payload": tampered,
-        "signature": isolated_gateway.sign_payload(payload, priv),
+        "signature": isolated_gateway.sign_payload("HPLC-01", now, "n-tamper-0001", payload, priv),
     }
     res = isolated_gateway.ingest(rec)
     assert res["status"] == "REJECTED"
@@ -73,7 +73,7 @@ def test_replay_nonce_rejected(isolated_gateway):
         "timestamp": now,
         "nonce": "n-replay-0007",
         "payload": payload,
-        "signature": isolated_gateway.sign_payload(payload, priv),
+        "signature": isolated_gateway.sign_payload("HPLC-01", now, "n-replay-0007", payload, priv),
     }
     assert isolated_gateway.ingest(rec)["status"] == "VERIFIED"
     assert isolated_gateway.ingest(rec)["reason"] == "REPLAY_NONCE_ALREADY_SEEN"
@@ -88,7 +88,7 @@ def test_stale_timestamp_rejected(isolated_gateway):
         "timestamp": old,
         "nonce": "n-stale-0003",
         "payload": payload,
-        "signature": isolated_gateway.sign_payload(payload, priv),
+        "signature": isolated_gateway.sign_payload("HPLC-01", old, "n-stale-0003", payload, priv),
     }
     res = isolated_gateway.ingest(rec)
     assert res["status"] == "REJECTED"
