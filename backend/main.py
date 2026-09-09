@@ -69,7 +69,39 @@ class SimpleRateLimiter:
     def __init__(self, max_requests: int = 120, window_sec: int = 60):
         self.max_requests = max_requests
         self.window_sec = window_sec
-        self.requests = defaultdict(list)
+        self.requests: Dict[str, List[float]] = defaultdict(list)
+        self._storage_file = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "gitscience_data", "editorial", "rate_limiter.json"
+        )
+        self._load()
+
+    def _load(self):
+        """Загрузка состояния rate limiter из файла"""
+        try:
+            if os.path.exists(self._storage_file):
+                with open(self._storage_file, "r") as f:
+                    data = json.load(f)
+                now = time.time()
+                for client_id, timestamps in data.items():
+                    self.requests[client_id] = [t for t in timestamps if now - t < self.window_sec]
+        except Exception:
+            pass
+
+    def _save(self):
+        """Сохранение состояния rate limiter (с TTL expiry)"""
+        try:
+            os.makedirs(os.path.dirname(self._storage_file), exist_ok=True)
+            now = time.time()
+            data = {
+                client_id: [t for t in timestamps if now - t < self.window_sec]
+                for client_id, timestamps in self.requests.items()
+                if any(now - t < self.window_sec for t in timestamps)
+            }
+            with open(self._storage_file, "w") as f:
+                json.dump(data, f)
+        except Exception:
+            pass
 
     def is_allowed(self, client_id: str) -> bool:
         now = time.time()
@@ -77,6 +109,8 @@ class SimpleRateLimiter:
         if len(self.requests[client_id]) >= self.max_requests:
             return False
         self.requests[client_id].append(now)
+        if len(self.requests) % 50 == 0:
+            self._save()
         return True
 
 rate_limiter = SimpleRateLimiter(max_requests=120, window_sec=60)
@@ -2002,7 +2036,7 @@ def complete_checklist_item(submission_id: str, item_id: str):
 @app.get("/api/v1/editorial/analytics/dashboard")
 def get_analytics_dashboard():
     """Дашборд аналитики"""
-    return editorial_engine.analytics.get_dashboard()
+    return editorial_engine.analytics.get_analytics_dashboard()
 
 
 @app.get("/api/v1/editorial/analytics/pipeline")

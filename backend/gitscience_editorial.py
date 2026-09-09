@@ -10,6 +10,7 @@ import json
 import hashlib
 import time
 import uuid
+import os
 from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional, Literal
 from dataclasses import dataclass, asdict, field
@@ -787,7 +788,7 @@ class ReproducibilityBadge:
 class EditorialEngine:
     """Главный движок editorial workflow"""
     
-    def __init__(self):
+    def __init__(self, storage_dir: Optional[str] = None):
         self.submissions: Dict[str, Submission] = {}
         self.reviews: Dict[str, PeerReview] = {}
         self.users: Dict[str, EditorialUser] = {}
@@ -800,11 +801,93 @@ class EditorialEngine:
         self.jats_exporter = JATSXMLExporter()
         self.letter_generator = DecisionLetterGenerator()
         self.reviewer_matcher = ReviewerMatcher([])
+        
+        # Persistence
+        self._storage_dir = storage_dir or os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), "gitscience_data", "editorial"
+        )
+        self._storage_file = os.path.join(self._storage_dir, "editorial_state.json")
+        self._ensure_storage_dir()
+        self._load_state()
+    
+    def _ensure_storage_dir(self):
+        """Создание директории для хранения"""
+        os.makedirs(self._storage_dir, exist_ok=True)
+    
+    def _save_state(self):
+        """Сохранение состояния в JSON файл"""
+        state = {
+            "submissions": {
+                k: asdict(v) for k, v in self.submissions.items()
+            },
+            "reviews": {
+                k: asdict(v) for k, v in self.reviews.items()
+            },
+            "users": {
+                k: asdict(v) for k, v in self.users.items()
+            },
+            "decisions": {
+                k: asdict(v) for k, v in self.decisions.items()
+            },
+            "post_pub_reviews": {
+                k: asdict(v) for k, v in self.post_pub_reviews.items()
+            },
+            "data_statements": {
+                k: asdict(v) for k, v in self.data_statements.items()
+            },
+            "reproducibility_badges": {
+                k: asdict(v) for k, v in self.reproducibility_badges.items()
+            },
+            "saved_at": datetime.now(timezone.utc).isoformat(),
+        }
+        try:
+            with open(self._storage_file, "w", encoding="utf-8") as f:
+                json.dump(state, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            print(f"[EditorialEngine] Warning: failed to save state: {e}")
+    
+    def _load_state(self):
+        """Загрузка состояния из JSON файла"""
+        if not os.path.exists(self._storage_file):
+            return
+        
+        try:
+            with open(self._storage_file, "r", encoding="utf-8") as f:
+                state = json.load(f)
+            
+            for k, v in state.get("submissions", {}).items():
+                self.submissions[k] = Submission(**v)
+            
+            for k, v in state.get("reviews", {}).items():
+                self.reviews[k] = PeerReview(**v)
+            
+            for k, v in state.get("users", {}).items():
+                self.users[k] = EditorialUser(**v)
+            
+            for k, v in state.get("decisions", {}).items():
+                self.decisions[k] = EditorialDecision(**v)
+            
+            for k, v in state.get("post_pub_reviews", {}).items():
+                self.post_pub_reviews[k] = PostPubReview(**v)
+            
+            for k, v in state.get("data_statements", {}).items():
+                self.data_statements[k] = DataAvailabilityStatement(**v)
+            
+            for k, v in state.get("reproducibility_badges", {}).items():
+                self.reproducibility_badges[k] = ReproducibilityBadge(**v)
+            
+            self.reviewer_matcher = ReviewerMatcher(list(self.users.values()))
+            
+            print(f"[EditorialEngine] Loaded {len(self.submissions)} submissions, "
+                  f"{len(self.reviews)} reviews, {len(self.users)} users from disk")
+        except Exception as e:
+            print(f"[EditorialEngine] Warning: failed to load state: {e}")
     
     def register_user(self, user: EditorialUser) -> Dict[str, Any]:
         """Регистрация пользователя с editorial ролью"""
         self.users[user.user_id] = user
         self.reviewer_matcher = ReviewerMatcher(list(self.users.values()))
+        self._save_state()
         return {"status": "ok", "user_id": user.user_id, "roles": user.roles}
     
     def submit_manuscript(self, submission: Submission) -> Dict[str, Any]:
@@ -819,6 +902,7 @@ class EditorialEngine:
         })
         
         self.submissions[submission.submission_id] = submission
+        self._save_state()
         
         return {
             "status": "ok",
@@ -845,6 +929,7 @@ class EditorialEngine:
             "timestamp": datetime.now(timezone.utc).isoformat(),
         })
         
+        self._save_state()
         return {"status": "ok", "assigned_editor": editor_id}
     
     def find_reviewers(self, submission_id: str, n: int = 3) -> List[Dict[str, Any]]:
@@ -889,6 +974,7 @@ class EditorialEngine:
             "timestamp": datetime.now(timezone.utc).isoformat(),
         })
         
+        self._save_state()
         return {"status": "ok", "review_ids": created_reviews}
     
     def submit_review(self, review_id: str, review: PeerReview) -> Dict[str, Any]:
@@ -933,6 +1019,7 @@ class EditorialEngine:
                     "timestamp": datetime.now(timezone.utc).isoformat(),
                 })
         
+        self._save_state()
         return {"status": "ok", "review_id": review_id, "hash": review.review_hash}
     
     def make_decision(
@@ -1004,6 +1091,7 @@ class EditorialEngine:
             "timestamp": datetime.now(timezone.utc).isoformat(),
         })
         
+        self._save_state()
         return {
             "status": "ok",
             "decision_id": ed_decision.decision_id,
@@ -1309,6 +1397,7 @@ class PreprintBridge:
             "timestamp": datetime.now(timezone.utc).isoformat(),
         })
         
+        self._save_state()
         return {
             "status": "ok",
             "source": resolved["source"],
@@ -1437,8 +1526,8 @@ class AIManuscriptScreener:
 class ExtendedEditorialEngine(EditorialEngine):
     """Расширенный editorial engine с плагиатом, импортом, revision workflow, tasks, email, AI screening"""
     
-    def __init__(self):
-        super().__init__()
+    def __init__(self, storage_dir: Optional[str] = None):
+        super().__init__(storage_dir=storage_dir)
         self.plagiarism_detector = PlagiarismDetector()
         self.preprint_bridge = PreprintBridge()
         self.revision_manager = RevisionWorkflowManager()
@@ -2350,8 +2439,8 @@ class PreregistrationManager:
 class FinalEditorialEngine(ExtendedEditorialEngine):
     """Финальный editorial engine со всеми функциями"""
     
-    def __init__(self):
-        super().__init__()
+    def __init__(self, storage_dir: Optional[str] = None):
+        super().__init__(storage_dir=storage_dir)
         self.cross_journal_transfer = CrossJournalTransfer()
         self.prereg_manager = PreregistrationManager()
         self.claim_graph = ClaimGraph()
@@ -2398,14 +2487,14 @@ class FinalEditorialEngine(ExtendedEditorialEngine):
         if not submission:
             return {"status": "error", "message": "Submission not found"}
         
-        from gitscience_editorial import JATSXMLExporter
         exporter = JATSXMLExporter()
+        doi = submission.submission_code or submission_id
         
         if output_format == "jats":
-            return {"jats_xml": exporter.to_jats_xml(submission)}
+            return {"jats_xml": exporter.export_submission(submission, doi)}
         
         if output_format == "html":
-            jats_xml = exporter.to_jats_xml(submission)
+            jats_xml = exporter.export_submission(submission, doi)
             return {
                 "html": f"<html><body>{jats_xml}</body></html>",
                 "format": "html",
@@ -2416,7 +2505,7 @@ class FinalEditorialEngine(ExtendedEditorialEngine):
             "status": "ok",
             "format": "pdf",
             "message": "PDF generation requires render service (puppeteer/chromium)",
-            "jats_xml": exporter.to_jats_xml(submission),
+            "jats_xml": exporter.export_submission(submission, doi),
         }
     
     def add_manuscript_claims(
@@ -2442,6 +2531,7 @@ class FinalEditorialEngine(ExtendedEditorialEngine):
                 "added_at": datetime.now(timezone.utc).isoformat(),
             })
         
+        self._save_state()
         return {
             "status": "ok",
             "claim_count": len(submission.claims),
