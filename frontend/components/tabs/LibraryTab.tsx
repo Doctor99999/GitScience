@@ -86,7 +86,7 @@ export default function LibraryTab({
                 {t.closePdfBtn}
               </button>
             </div>
-            <iframe src={activePdfUrl} className="w-full h-[550px] rounded-xl border border-slate-800" />
+            <iframe src={activePdfUrl} className="w-full h-[550px] rounded-xl border border-slate-800" sandbox="allow-scripts allow-same-origin" title="PDF Manuscript Viewer" />
           </div>
         )}
 
@@ -99,18 +99,30 @@ export default function LibraryTab({
             >
               <div className="space-y-2 min-w-0">
                 <div className="flex justify-between items-center gap-2">
-                  <span className="text-xs font-mono text-cyan-400 font-bold truncate">{art.registration_code}</span>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/40 shrink-0">
-                    {art.license_type || "CC-BY-4.0"}
+                  <span className="text-xs font-mono text-cyan-400 font-bold truncate">
+                    {art.registration_code} • <span className="text-amber-400">{art.issue || "Vol 1. Issue 1 (Spring 2026)"}</span>
                   </span>
+                  <div className="flex gap-1 shrink-0">
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-950 text-blue-300 border border-blue-500/40 shrink-0">
+                      {art.status || "Published"}
+                    </span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/40 shrink-0">
+                      {art.license_type || "CC-BY-4.0"}
+                    </span>
+                  </div>
                 </div>
                 <h3 className="font-bold text-sm sm:text-base text-slate-100 line-clamp-2 break-words">{art.title}</h3>
                 <p className="text-xs text-slate-400 truncate">
                   Автор: <strong className="text-slate-200">{art.author_name}</strong>
                 </p>
-                <div className="text-[11px] text-slate-500 font-mono space-y-0.5 min-w-0">
-                  <div className="truncate">IPFS CID: <span className="text-cyan-400 truncate">{art.ipfs_cid || "bafyafybeid6..."}</span></div>
-                  <div>Дереккөз: <span className="text-amber-300">{art.source_archive || "Sovereign Notary"}</span></div>
+                <div className="flex justify-between items-center text-[11px] text-slate-500 font-mono min-w-0 pt-1">
+                  <div>
+                    Дереккөз: <span className="text-amber-300 mr-3">{art.source_archive || "Sovereign Notary"}</span>
+                  </div>
+                  <div className="flex gap-3 text-slate-400 shrink-0">
+                    <span>👁️ {art.views_count || 0}</span>
+                    <span>📥 {art.downloads_count || 0}</span>
+                  </div>
                 </div>
               </div>
 
@@ -126,7 +138,7 @@ export default function LibraryTab({
                   {t.viewDetailsBtn}
                 </button>
                 <button
-                  onClick={() => setActivePdfUrl(`${apiBase}/certificate/pdf/${art.registration_code}`)}
+                  onClick={() => setActivePdfUrl(`${apiBase}/certificate/pdf/${encodeURIComponent(art.registration_code)}`)}
                   className="flex-1 bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 border border-emerald-500/40 text-xs py-2 rounded-xl font-mono transition font-bold"
                 >
                   {t.readPdfBtn}
