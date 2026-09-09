@@ -99,6 +99,10 @@ manuscripts = sa.Table(
     sa.Column('git_commit_hash', sa.String, nullable=False),
     sa.Column('ipfs_cid', sa.String),
     sa.Column('source_archive', sa.String, server_default='Sovereign Notary'),
+    sa.Column('views_count', sa.Integer, server_default='0'),
+    sa.Column('downloads_count', sa.Integer, server_default='0'),
+    sa.Column('status', sa.String, server_default='Published'),
+    sa.Column('issue', sa.String, server_default='Vol 1. Issue 1 (Spring 2026)'),
     sa.Column('created_at', sa.DateTime, server_default=sa.func.now()),
     sa.Column('is_genesis_anchor', sa.Integer, server_default='0')
 )
@@ -218,6 +222,17 @@ def load_protocol_constants() -> dict:
 def init_db():
     metadata.create_all(engine)
     
+    # SQLite schema auto-migration for new journal columns
+    if DATABASE_URL.startswith("sqlite"):
+        with engine.begin() as conn:
+            try:
+                conn.execute(sa.text("ALTER TABLE manuscripts ADD COLUMN views_count INTEGER DEFAULT 0"))
+                conn.execute(sa.text("ALTER TABLE manuscripts ADD COLUMN downloads_count INTEGER DEFAULT 0"))
+                conn.execute(sa.text("ALTER TABLE manuscripts ADD COLUMN status VARCHAR DEFAULT 'Published'"))
+                conn.execute(sa.text("ALTER TABLE manuscripts ADD COLUMN issue VARCHAR DEFAULT 'Vol 1. Issue 1 (Spring 2026)'"))
+            except sa.exc.OperationalError:
+                pass # Columns likely already exist
+                
     with engine.begin() as conn:
         # Genesis Root Block #0
         res = conn.execute(sa.select(sa.func.count()).select_from(manuscripts).where(manuscripts.c.is_genesis_anchor == 1))
@@ -447,6 +462,15 @@ def search_manuscripts_fts(query_str: str) -> List[Dict]:
                 d['created_at'] = d['created_at'].isoformat()
             results.append(d)
         return results
+
+def increment_stats(registration_code: str, field: str):
+    """field should be 'views_count' or 'downloads_count'"""
+    with engine.begin() as conn:
+        conn.execute(
+            sa.update(manuscripts)
+            .where(manuscripts.c.registration_code == registration_code)
+            .values({field: manuscripts.c[field] + 1})
+        )
 
 def get_all_manuscripts() -> List[Dict]:
     with engine.connect() as conn:

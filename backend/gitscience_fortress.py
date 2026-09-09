@@ -428,17 +428,22 @@ class ScienceCourt:
 # =====================================================================
 # 6. 🔐 ZK-ПРИВАТНОСТЬ ДАННЫХ ПАЦИЕНТОВ (HIPAA Safe Harbor Shield)
 # =====================================================================
+import secrets
+
 class ZKPrivacyShield:
     """Генерация слепого хэша когорты пациентов без раскрытия PII"""
 
     @staticmethod
-    def create_blind_cohort_hash(patient_records: List[Dict[str, Any]]) -> str:
+    def create_blind_cohort_hash(patient_records: List[Dict[str, Any]], blind_salt: str = "") -> Dict[str, str]:
+        if not blind_salt:
+            blind_salt = secrets.token_hex(32)
         anonymized_concat = ""
         for record in patient_records:
-            clean_str = f"{record.get('age_group')}:{record.get('outcome')}:{record.get('value')}"
+            clean_str = f"{blind_salt}:{record.get('age_group')}:{record.get('outcome')}:{record.get('value')}"
             anonymized_concat += hashlib.sha256(clean_str.encode('utf-8')).hexdigest()
 
-        return hashlib.sha256(anonymized_concat.encode('utf-8')).hexdigest()
+        final_hash = hashlib.sha256(anonymized_concat.encode('utf-8')).hexdigest()
+        return {"cohort_hash": final_hash, "blind_salt": blind_salt}
 
 
 # =====================================================================
