@@ -24,6 +24,28 @@ def safe_exp(x: float) -> float:
         return 0.0
     return math.exp(x)
 
+def _safe_min(*args):
+    for a in args:
+        if math.isnan(a) or math.isinf(a):
+            raise ValueError("NaN/Inf запрещены в аргументах min()")
+    return min(*args)
+
+def _safe_max(*args):
+    for a in args:
+        if math.isnan(a) or math.isinf(a):
+            raise ValueError("NaN/Inf запрещены в аргументах max()")
+    return max(*args)
+
+def safe_sinh(x: float) -> float:
+    if x > 700.0 or x < -700.0:
+        raise OverflowError("Превышен безопасный предел sinh()")
+    return math.sinh(x)
+
+def safe_cosh(x: float) -> float:
+    if x > 700.0 or x < -700.0:
+        raise OverflowError("Превышен безопасный предел cosh()")
+    return math.cosh(x)
+
 # Доверенный белый список математических функций и констант
 ALLOWED_NAMES: Dict[str, Any] = {
     "exp": safe_exp,
@@ -34,24 +56,23 @@ ALLOWED_NAMES: Dict[str, Any] = {
     "sin": math.sin,
     "cos": math.cos,
     "tan": math.tan,
-    "sinh": math.sinh,
-    "cosh": math.cosh,
+    "sinh": safe_sinh,
+    "cosh": safe_cosh,
     "tanh": math.tanh,
     "asin": math.asin,
     "acos": math.acos,
     "atan": math.atan,
     "abs": abs,
-    "min": min,
-    "max": max,
+    "min": _safe_min,
+    "max": _safe_max,
     "round": round,
     "floor": math.floor,
     "ceil": math.ceil,
     "gamma": safe_gamma,
-    "sigmoid": lambda x: 1.0 / (1.0 + safe_exp(-min(max(x, -500.0), 500.0))),
+    "sigmoid": lambda x: 1.0 / (1.0 + safe_exp(-_safe_min(_safe_max(x, -500.0), 500.0))),
     "e": math.e,
     "pi": math.pi,
-    "tau": math.tau,
-    "inf": float("inf")
+    "tau": math.tau
 }
 
 MAX_AST_DEPTH = 32
@@ -101,29 +122,36 @@ class SafeASTEvaluator(ast.NodeVisitor):
         left = self.visit(node.left)
         right = self.visit(node.right)
         
-        if isinstance(node.op, ast.Add): return left + right
-        elif isinstance(node.op, ast.Sub): return left - right
-        elif isinstance(node.op, ast.Mult): return left * right
+        result = None
+        if isinstance(node.op, ast.Add): result = left + right
+        elif isinstance(node.op, ast.Sub): result = left - right
+        elif isinstance(node.op, ast.Mult): result = left * right
         elif isinstance(node.op, ast.Div):
             if abs(right) < 1e-15:
                 raise ZeroDivisionError("Деление на ноль в биомедицинском уравнении")
-            return left / right
+            result = left / right
         elif isinstance(node.op, ast.FloorDiv):
             if abs(right) < 1e-15:
                 raise ZeroDivisionError("Целочисленное деление на ноль")
-            return left // right
+            result = left // right
         elif isinstance(node.op, ast.Mod):
             if abs(right) < 1e-15:
                 raise ZeroDivisionError("Остаток от деления на ноль")
-            return left % right
+            result = left % right
         elif isinstance(node.op, ast.Pow):
             if abs(left) > 1e6 or abs(right) > 50.0:
                 raise OverflowError(f"Превышен безопасный диапазон степени: {left} ** {right}")
-            # Запрет комплексных результатов: (-8.0) ** 0.5 -> complex в CPython (недетерминизм RUO)
+            if left == 0 and right < 0:
+                raise ZeroDivisionError("0 в отрицательной степени запрещен")
             if left < 0 and float(right).is_integer() is False:
                 raise ValueError("Отрицательное основание с дробной степенью запрещено (комплексный результат)")
-            return left ** right
-        raise TypeError(f"Неподдерживаемая бинарная операция: '{node.op.__class__.__name__}'")
+            result = left ** right
+        else:
+            raise TypeError(f"Неподдерживаемая бинарная операция: '{node.op.__class__.__name__}'")
+
+        if isinstance(result, float) and (math.isnan(result) or math.isinf(result)):
+            raise ValueError("Промежуточный результат NaN/Inf запрещён")
+        return result
 
     def visit_UnaryOp(self, node: ast.UnaryOp) -> Any:
         operand = self.visit(node.operand)

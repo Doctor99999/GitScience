@@ -11,6 +11,8 @@ services:
       POSTGRES_DB: gitscience_db
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - backend-net
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U gitscience -d gitscience_db"]
       interval: 5s
@@ -38,6 +40,15 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    networks:
+      - frontend-net
+      - backend-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
     volumes:
       - vault_data:/app/storage
 
@@ -49,6 +60,14 @@ services:
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-/api}
     depends_on:
       - backend
+    networks:
+      - frontend-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
 
   nginx:
     build: ./nginx
@@ -62,9 +81,19 @@ services:
     #   - ./certs/fullchain.pem:/etc/nginx/certs/fullchain.pem:ro
     #   - ./certs/privkey.pem:/etc/nginx/certs/privkey.pem:ro
     depends_on:
-      - frontend
-      - backend
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
+    networks:
+      - frontend-net
 
 volumes:
   postgres_data:
   vault_data:
+
+networks:
+  frontend-net:
+    driver: bridge
+  backend-net:
+    driver: bridge

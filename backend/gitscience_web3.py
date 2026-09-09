@@ -88,8 +88,12 @@ class SovereignWeb3Gateway:
         APR-контрактов, если их адреса сконфигурированы. Никакая выдуманная
         балансовая выдача (USDT/роялти/токены) не производится без ончейн-источника.
         """
+        import re
+        if not re.match(r'^0x[a-fA-F0-9]{40}$', address):
+            raise ValueError(f"Invalid EVM address format: {address}")
+            
         clean_addr = address.strip().lower()
-        is_founder = clean_addr == FOUNDER_WALLET_ADDRESS.lower() or "3929" in clean_addr or "71c2" in clean_addr
+        is_founder = clean_addr == FOUNDER_WALLET_ADDRESS.lower()
 
         # Реальный нативный баланс с Polygon RPC (ChainID 137)
         native_hex = cls.query_rpc(137, "eth_getBalance", [address, "latest"])

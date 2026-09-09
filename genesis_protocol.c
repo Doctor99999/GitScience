@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include <stdint.h>
 
-#define GITSCIENCE_PROTOCOL_VERSION "1.0.0-GENESIS"
+#define GITSCIENCE_PROTOCOL_VERSION "2.4.0-GENESIS"
 
 /* Базисные пункты: 10000 = 100.00% (защита от ошибок округления чисел с плавающей точкой) */
 static const uint32_t BASIS_POINTS_TOTAL   = 10000;
@@ -33,8 +33,8 @@ typedef struct {
 SplitResult calculate_fair_share(uint64_t amount_cents) {
     SplitResult result;
     result.amount_cents  = amount_cents;
-    result.author_cents  = (amount_cents * BASIS_POINTS_AUTHOR) / BASIS_POINTS_TOTAL;
-    result.infra_cents   = (amount_cents * BASIS_POINTS_INFRA) / BASIS_POINTS_TOTAL;
+    result.author_cents = (uint64_t)(((__uint128_t)amount_cents * BASIS_POINTS_AUTHOR) / BASIS_POINTS_TOTAL);
+    result.infra_cents = (uint64_t)(((__uint128_t)amount_cents * BASIS_POINTS_INFRA) / BASIS_POINTS_TOTAL);
     /* Последняя доля — остаток: без потерь от целочисленного деления */
     result.founder_cents = amount_cents - result.author_cents - result.infra_cents;
     return result;

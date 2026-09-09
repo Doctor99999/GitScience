@@ -1,8 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: "export",
-  basePath: "/GitScience",
+  ...(process.env.STATIC_EXPORT === "true" ? { output: "export" as const, basePath: "/GitScience" } : {}),
   poweredByHeader: false,
   images: {
     unoptimized: true,

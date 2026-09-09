@@ -8,4 +8,4 @@
   X-Frame-Options: DENY
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=(), interest-cohort=()
-  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://pub.orcid.org https://api.openalex.org https://export.arxiv.org https://europepmc.org https://www.ebi.ac.uk; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob:; font-src 'self' data: https://fonts.googleapis.com https://fonts.gstatic.com; connect-src 'self' https://pub.orcid.org https://api.openalex.org https://export.arxiv.org https://europepmc.org https://www.ebi.ac.uk https://polygon-rpc.com https://mainnet.base.org wss://relay.walletconnect.com https://*.walletconnect.com; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'

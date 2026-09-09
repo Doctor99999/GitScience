@@ -31,4 +31,4 @@ HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
 # Production: gunicorn + uvicorn workers.
 # --proxy-headers + forwarded-allow-ips: доверяем обратному прокси (nginx/Render) —
 # реальный IP клиента попадает в request.client.host для rate limiter и логов.
-CMD ["sh", "-c", "gunicorn -w 2 -k uvicorn.workers.UvicornWorker --timeout 120 --keep-alive 5 --forwarded-allow-ips='*' main:app --bind 0.0.0.0:${PORT:-8000}"]
+CMD ["sh", "-c", "gunicorn -w 2 -k uvicorn.workers.UvicornWorker --timeout 120 --keep-alive 5 --forwarded-allow-ips='10.0.0.0/8,172.16.0.0/12,192.168.0.0/16' main:app --bind 0.0.0.0:${PORT:-8000}"]

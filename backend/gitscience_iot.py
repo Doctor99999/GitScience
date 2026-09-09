@@ -111,15 +111,16 @@ class GitscienceIoTGateway:
 
     # ------------------------------------------------ signature verification
     @staticmethod
-    def sign_payload(payload: Dict[str, Any], private_key_pem: str) -> str:
+    def sign_payload(device_id: str, timestamp: int, nonce: str, payload: Dict[str, Any], private_key_pem: str) -> str:
         """Подпись payload частным ключом устройства (для клиента/тестов)."""
         private = serialization.load_pem_private_key(
             private_key_pem.encode("utf-8"), password=None
         )
-        sig = private.sign(_canonical_bytes(payload))  # type: ignore[attr-defined]
+        envelope = {"device_id": device_id, "timestamp": timestamp, "nonce": nonce, "payload": payload}
+        sig = private.sign(_canonical_bytes(envelope))  # type: ignore[attr-defined]
         return base64.b64encode(sig).decode("utf-8")
 
-    def verify_signature(self, device_id: str, payload: Dict[str, Any],
+    def verify_signature(self, device_id: str, timestamp: int, nonce: str, payload: Dict[str, Any],
                          signature_b64: str) -> tuple:
         """Возвращает (ok: bool, reason: str)."""
         pub = self.get_public_key(device_id)
@@ -127,7 +128,8 @@ class GitscienceIoTGateway:
             return False, "DEVICE_UNREGISTERED_OR_INACTIVE"
         try:
             sig = base64.b64decode(signature_b64)
-            pub.verify(sig, _canonical_bytes(payload))  # type: ignore[attr-defined]
+            envelope = {"device_id": device_id, "timestamp": timestamp, "nonce": nonce, "payload": payload}
+            pub.verify(sig, _canonical_bytes(envelope))  # type: ignore[attr-defined]
             return True, "SIGNATURE_VALID"
         except Exception:
             return False, "INVALID_SIGNATURE"
@@ -150,7 +152,7 @@ class GitscienceIoTGateway:
                 "status": "REJECTED", "reason": f"TIMESTAMP_OUT_OF_WINDOW (±{REPLAY_WINDOW_SECONDS}s)",
             }
 
-        ok, reason = self.verify_signature(device_id, payload, signature)
+        ok, reason = self.verify_signature(device_id, ts, nonce, payload, signature)
         if not ok:
             return {"status": "REJECTED", "reason": reason, "device_id": device_id}
 

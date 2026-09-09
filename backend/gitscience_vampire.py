@@ -378,7 +378,7 @@ class VampireProtocolEngine:
             "hal.science",
             "core.ac.uk",
         )
-        if not any(host.endswith(suffix) for suffix in trusted_suffixes):
+        if not any(host == suffix or host.endswith("." + suffix) for suffix in trusted_suffixes):
             return None
 
         try:
