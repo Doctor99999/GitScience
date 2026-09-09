@@ -93,6 +93,10 @@ export interface LibraryArticle {
   ipfs_cid?: string | null;
   source_archive?: string;
   download_url?: string;
+  issue?: string;
+  status?: string;
+  views_count?: number;
+  downloads_count?: number;
 }
 
 export interface ZkCommitResult {

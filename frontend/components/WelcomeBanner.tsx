@@ -5,12 +5,12 @@ import Image from "next/image";
 
 interface WelcomeBannerProps {
   setShowOrcidModal: (v: boolean) => void;
-  setShowWalletModal: (v: boolean) => void;
+  setShowGuideModal: (v: boolean) => void;
 }
 
 export default function WelcomeBanner({
   setShowOrcidModal,
-  setShowWalletModal,
+  setShowGuideModal,
 }: WelcomeBannerProps) {
   return (
     <section className="relative w-full min-h-[90vh] bg-[var(--background)] border-b border-[var(--surface-border)] flex items-center justify-center px-4 sm:px-6 py-16 sm:py-20 overflow-hidden">
@@ -49,7 +49,7 @@ export default function WelcomeBanner({
               <span className="material-symbols-outlined text-[14px]">chevron_right</span>
             </button>
             <button
-              onClick={() => setShowWalletModal(true)}
+              onClick={() => setShowGuideModal(true)}
               className="sci-btn-secondary px-8 py-4 text-[11px] w-full sm:w-auto"
             >
               Read Manifesto

@@ -13,7 +13,10 @@ export type TabKey =
   | "maas"
   | "amanat"
   | "court"
-  | "vampire";
+  | "vampire"
+  | "editorial"
+  | "dashboard"
+  | "preregistration";
 
 interface NavigationTabsProps {
   activeTab: TabKey;
@@ -33,6 +36,9 @@ export default function NavigationTabs({
     { key: "zk", label: t.tabZk },
     { key: "passport", label: t.tabPassport },
     { key: "review", label: t.tabReview },
+    { key: "editorial", label: t.tabEditorial || "Editorial" },
+    { key: "dashboard", label: t.tabDashboard || "Dashboard" },
+    { key: "preregistration", label: t.tabPreregistration || "Preregistration" },
     { key: "maas", label: t.tabMaas },
     { key: "amanat", label: t.tabAmanat },
     { key: "court", label: t.tabCourt },

@@ -17,6 +17,9 @@ import MaasTab from "../components/tabs/MaasTab";
 import AmanatTab from "../components/tabs/AmanatTab";
 import CourtTab from "../components/tabs/CourtTab";
 import VampireTab from "../components/tabs/VampireTab";
+import EditorialTab from "../components/tabs/EditorialTab";
+import AuthorDashboardTab from "../components/tabs/AuthorDashboardTab";
+import PreregistrationTab from "../components/tabs/PreregistrationTab";
 
 // Modals
 import OrcidModal from "../components/modals/OrcidModal";
@@ -48,7 +51,7 @@ import { useModal } from "connectkit";
 
 export default function GitScienceApp() {
   const [lang, setLang] = useState<"KZ" | "RU" | "EN">("KZ");
-  const [activeTab, setActiveTab] = useState<TabKey>("notary");
+  const [activeTab, setActiveTab] = useState<TabKey>("library");
   const [apiBase] = useState<string>(() => getApiBase());
 
   // Authentication & Guest State
@@ -153,7 +156,7 @@ export default function GitScienceApp() {
       {!activeScholar && (
         <WelcomeBanner
           setShowOrcidModal={setShowOrcidModal}
-          setShowWalletModal={setShowWalletModal}
+          setShowGuideModal={setShowGuideModal}
         />
       )}
 
@@ -372,6 +375,31 @@ export default function GitScienceApp() {
               daemonRunning={vampire.daemonRunning}
               daemonStats={vampire.daemonStats}
               handleToggleDaemon={vampire.handleToggleDaemon}
+            />
+          )}
+
+          {activeTab === "editorial" && (
+            <EditorialTab
+              t={t}
+              apiBase={apiBase}
+              token={activeScholar?.access_token}
+            />
+          )}
+
+          {activeTab === "dashboard" && (
+            <AuthorDashboardTab
+              t={t}
+              apiBase={apiBase}
+              token={activeScholar?.access_token}
+              orcid={activeScholar?.orcid}
+            />
+          )}
+
+          {activeTab === "preregistration" && (
+            <PreregistrationTab
+              t={t}
+              apiBase={apiBase}
+              token={activeScholar?.access_token}
             />
           )}
         </main>

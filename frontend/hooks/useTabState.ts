@@ -95,11 +95,8 @@ export function useNotaryTab(opts: { onLibraryRefresh?: () => void; token?: stri
       });
       const data = (await res.json()) as AstVerificationResult;
       setAstVerification(data);
-    } catch {
-      setAstVerification({
-        status: "SAFE_AST_COMPILED",
-        ast_merkle_digest: "9f83a4c2e1b789d6e5a4f3b2c1d0e9f8a7b6c5d4e3f2a1b0c9d8e7f6a5b4c3d2",
-      });
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -121,17 +118,8 @@ export function useNotaryTab(opts: { onLibraryRefresh?: () => void; token?: stri
       });
       const data = (await res.json()) as AiAuditResult;
       setAiAuditResult(data);
-    } catch {
-      setAiAuditResult({
-        dossier_id: "AI-DOSSIER-9912",
-        ai_composite_scores: {
-          composite_quality_index: 9.2,
-          math_rigor_score: 9.5,
-          methodology_score: 9.0,
-          novelty_score: 9.2,
-          bioethics_score: 9.8,
-        },
-      });
+    } catch (err) {
+      console.error(err);
     }
     setAiAuditLoading(false);
   };
@@ -163,12 +151,8 @@ export function useNotaryTab(opts: { onLibraryRefresh?: () => void; token?: stri
       const data = (await res.json()) as NotarySuccessResult;
       setNotarySuccess(data);
       opts.onLibraryRefresh?.();
-    } catch {
-      setNotarySuccess({
-        registration_code: "GS-2026-00001",
-        sha256_hash: "a4f89d3c11e74b21908d132a0d1e57c6b548b29f0e132049e6f1a8c903429381",
-        git_commit_hash: "7f8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b",
-      });
+    } catch (err) {
+      console.error(err);
     }
     setNotarySubmitting(false);
   };
@@ -211,20 +195,8 @@ export function useInspectorTab(opts: { walletAddress?: string | null; onLicense
         ast_merkle_digest: data.executable_layer?.ast_merkle_digest,
         formula_math: data.executable_layer?.formula_source,
       } : (data as InspectedDoc));
-    } catch {
-      setInspectedDoc({
-        registration_code: code,
-        title: "Coupling of Neuro-Immuno-Oncological Axes & Tk Equation",
-        author_name: "Salauat Abiltayevich Yeshimov",
-        orcid: "0009-0003-3929-3605",
-        category: "Clinical Oncology & Surgery",
-        ipc_class: "A61B",
-        license_type: "CC-BY-4.0",
-        sha256_hash: "a4f89d3c11e74b21908d132a0d1e57c6b548b29f0e132049e6f1a8c903429381",
-        git_commit_hash: "7f8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b",
-        ast_merkle_digest: "9f83a4c2e1b789d6e5a4f3b2c1d0e9f8a7b6c5d4e3f2a1b0c9d8e7f6a5b4c3d2",
-        formula_math: "(Artery + Vein) / (Lymph + 1.0)",
-      });
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -233,8 +205,8 @@ export function useInspectorTab(opts: { walletAddress?: string | null; onLicense
       const res = await fetch(`${getApiBase()}/api/v1/notary/license/${code}`);
       const data = (await res.json()) as { license_agreement_text?: string };
       opts.onLicense?.(data.license_agreement_text || JSON.stringify(data, null, 2));
-    } catch {
-      opts.onLicense?.("GitScience™ Standard Sovereign License Agreement under CC-BY-4.0 & 35 U.S.C. § 102.");
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -251,11 +223,8 @@ export function useInspectorTab(opts: { walletAddress?: string | null; onLicense
       });
       const data = (await res.json()) as IpNftResult;
       setIpNftResult(data);
-    } catch {
-      setIpNftResult({
-        contract_standard: "ERC-721 + EIP-2981 Sovereign IP-NFT",
-        founder_royalty_pct: "30% Net Royalty to Salauat Yeshimov Protocol Vault",
-      });
+    } catch (err) {
+      console.error(err);
     }
     setIpNftMinting(false);
   };
@@ -342,8 +311,8 @@ export function usePassportTab() {
       const res = await fetch(`${getApiBase()}/api/v1/passport/${target}`);
       const data = (await res.json()) as ScholarProfile;
       setPassportData(data);
-    } catch {
-      setPassportData(DEFAULT_FOUNDER_PROFILE);
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -583,23 +552,10 @@ export function useCourtTab(opts: { t?: TranslationDict; scholarToken?: string |
         return;
       }
       if (res.status === 401) { authRequired(); return; }
-      if (res.status === 403) { alert(t?.alertFillRequired); return; }
-    } catch {}
-    // Offline fallback: локальный кейс
-    const newCase = {
-      case_id: `CASE-2026-00${courtCases.length + 1}`,
-      claimant_name: courtClaimantName,
-      claimant_orcid: courtClaimantOrcid,
-      target_code: courtTargetCode,
-      reason: courtReason,
-      evidence_hash: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      status: "OPEN_ARBITRATION",
-      votes_valid: 1,
-      votes_invalid: 0,
-      votes_abstain: 0,
-    };
-    setCourtCases([newCase, ...courtCases]);
-    setCourtDisputeResult(newCase);
+      if (res.status === 403) { console.error(t?.alertFillRequired); return; }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const handleVoteCase = (caseId: string, vote: "valid" | "invalid" | "abstain") => {
