@@ -26,14 +26,20 @@ from collections import defaultdict
 
 import gitscience_storage as storage
 import gitscience_compiler as compiler
+import secrets
+
 from gitscience_fortress import (
     DependencyRoyaltyRouter,
     CRediTContributorManager,
     DualTimestampingNotary,
     ScienceCourt,
     IRBClinicalVerifier,
-    CREDIT_ROLES
+    CREDIT_ROLES,
+    SandboxedEvaluator
 )
+
+_oauth_states: dict[str, float] = {}
+_sandbox = SandboxedEvaluator()
 from gitscience_vampire import VampireProtocolEngine, AutoHarvesterWorker, AutonomousIngestionDaemon
 from gitscience_zk import ZKDiscoveryEngine
 from gitscience_iot import GitscienceIoTGateway
@@ -42,6 +48,15 @@ from gitscience_review import BlindPeerReviewEngine
 from gitscience_certificate import CertificateGenerator
 from gitscience_fhir import ClinicalFHIRGateway, DICOMWebGateway
 from gitscience_fiat import InstitutionalFiatGateway
+from gitscience_editorial import (
+    FinalEditorialEngine,
+    EditorialUser,
+    Submission,
+    PeerReview,
+    EditorialDecision,
+    DOIMintingService,
+    JATSXMLExporter,
+)
 from gitscience_ai_review import SovereignAIAuditor
 from gitscience_ipnft import IPNFTEngine
 from gitscience_auth import ScholarAuthService, IS_PRODUCTION
@@ -299,7 +314,7 @@ def verify_mathematical_formula(req: FormulaVerifyRequest):
     exec_result = None
     if req.sample_params:
         try:
-            exec_result = compiler.execute_formula(req.formula, req.sample_params)
+            exec_result = _sandbox.evaluate_safe(compiler.execute_formula, req.formula, req.sample_params)
         except Exception as e:
             exec_result = f"Error during execution: {str(e)}"
 
@@ -535,6 +550,8 @@ def download_official_priority_certificate_pdf(registration_code: str):
     if not article:
         raise HTTPException(status_code=404, detail="Сертификат не найден: манускрипт отсутствует в реестре")
 
+    storage.increment_stats(registration_code, "downloads_count")
+
     # Генерируем официальный векторный PDF сертификат WIPO Prior Art
     credit_contributors = storage.get_credit_contributions(article["registration_code"])
     pdf_bytes = CertificateGenerator.generate_priority_certificate_pdf(
@@ -684,6 +701,8 @@ def view_pdf_file(registration_code: str):
     article = storage.get_manuscript_by_code(clean_code)
     if not article or not article.get("file_path"):
         raise HTTPException(status_code=404, detail="Файл статьи не найден в реестре")
+        
+    storage.increment_stats(clean_code, "views_count")
     
     file_path = os.path.abspath(article["file_path"])
     if file_path.startswith("s3://"):
@@ -848,6 +867,11 @@ zk_engine = ZKDiscoveryEngine(storage.STORAGE_DIR)
 # IoT Hardware Gateway (HSM) — верификация подписанных данных лабоборудования
 iot_gateway = GitscienceIoTGateway(storage.STORAGE_DIR)
 
+# Editorial Workflow Engine — Peer Review, DOI, JATS XML, Decisions, Plagiarism, Preprints, Tasks, AI
+editorial_engine = FinalEditorialEngine()
+doi_service = DOIMintingService()
+jats_exporter = JATSXMLExporter()
+
 @app.post("/api/v1/zk/commit")
 def create_zk_blind_commitment(req: ZKCommitRequest):
     return zk_engine.create_blind_commitment(
@@ -860,7 +884,18 @@ def create_zk_blind_commitment(req: ZKCommitRequest):
     )
 
 @app.post("/api/v1/zk/reveal")
-def reveal_zk_commitment(req: ZKRevealRequest):
+def reveal_zk_commitment(request: Request, req: ZKRevealRequest):
+    bearer_payload = require_active_bearer(request)
+    bearer_orcid = bearer_payload.get("orcid")
+    
+    commitments = zk_engine.get_all_commitments()
+    target = next((c for c in commitments if c["commitment_id"] == req.commitment_id), None)
+    if not target:
+        raise HTTPException(status_code=404, detail="Commitment not found")
+        
+    if target.get("author_orcid") != bearer_orcid:
+        raise HTTPException(status_code=403, detail="Only the commitment author can reveal")
+
     return zk_engine.reveal_and_verify(
         commitment_id=req.commitment_id,
         secret_salt=req.secret_salt,
@@ -1032,7 +1067,7 @@ def simulate_biomedical_formula(req: MaaSSimulateRequest):
     for i in range(req.steps + 1):
         val = req.range_min + (i * step_size)
         try:
-            res = compiler.execute_formula(req.formula, {"Artery": val, "Vein": val * 0.6, "Lymph": 1.2})
+            res = _sandbox.evaluate_safe(compiler.execute_formula, req.formula, {"Artery": val, "Vein": val * 0.6, "Lymph": 1.2})
             curve.append({"input_artery": round(val, 2), "output_tk_homeostasis": round(res, 4)})
         except Exception:
             break
@@ -1361,9 +1396,21 @@ def lookup_orcid_public_profile(orcid: str):
         raise HTTPException(status_code=400, detail="Невалидный формат ORCID iD")
     return profile
 
+@app.get("/api/v1/auth/orcid/state")
+def generate_oauth_state():
+    state = secrets.token_urlsafe(32)
+    _oauth_states[state] = time.time()
+    # Prune old states
+    cutoff = time.time() - 600
+    for k in list(_oauth_states):
+        if _oauth_states[k] < cutoff:
+            del _oauth_states[k]
+    return {"state": state}
+
 class OAuthCallbackRequest(BaseModel):
     code: str = Field(...)
     redirect_uri: str = Field(...)
+    state: str = Field(..., description="OAuth 2.0 CSRF state")
 
 @app.post("/api/v1/auth/orcid/callback")
 def handle_orcid_oauth_callback(req: OAuthCallbackRequest):
@@ -1371,6 +1418,10 @@ def handle_orcid_oauth_callback(req: OAuthCallbackRequest):
 
     ТОЛЬКО этот путь выдаёт токен с auth_method="orcid_oauth" (подтверждённое владение iD).
     """
+    stored_ts = _oauth_states.pop(req.state, None)
+    if stored_ts is None or (time.time() - stored_ts) > 600:
+        raise HTTPException(status_code=403, detail="Invalid or expired OAuth state")
+
     ok, token_data, err = ScholarAuthService.exchange_code_for_orcid_token(req.code, req.redirect_uri)
     if not ok or not token_data:
         raise HTTPException(status_code=400, detail=err or "Ошибка авторизации через ORCID OAuth 2.0")
@@ -1480,3 +1531,651 @@ def refresh_scholar_jwt_token(req: VerifyTokenRequest):
         "auth_method": auth_method,
         "profile": profile
     }
+
+
+# =====================================================================
+# EDITORIAL WORKFLOW API — Peer Review, DOI, JATS, Decisions
+# =====================================================================
+
+class EditorialUserRequest(BaseModel):
+    user_id: str
+    orcid: str
+    name: str
+    email: str
+    roles: List[str]
+    expertise_areas: List[str] = []
+    institution: str = ""
+    h_index: int = 0
+
+class SubmitManuscriptRequest(BaseModel):
+    title: str
+    abstract: str
+    authors: List[Dict[str, str]]
+    corresponding_author_orcid: str
+    category: str
+    keywords: List[str] = []
+    funding_statement: str = ""
+    data_availability: str = ""
+    conflict_of_interest: str = ""
+    ethical_approval: str = ""
+    author_contribution: str = ""
+
+class AssignReviewersRequest(BaseModel):
+    reviewer_orcids: List[str]
+
+class SubmitReviewRequest(BaseModel):
+    reviewer_orcid: str
+    recommendation: str
+    confidence_level: int = 3
+    summary: str
+    strengths: List[str] = []
+    weaknesses: List[str] = []
+    detailed_comments: str = ""
+    minor_comments: str = ""
+    scores: Dict[str, int] = {}
+
+class MakeDecisionRequest(BaseModel):
+    editor_orcid: str
+    decision: str
+    rationale: str = ""
+    editorial_comments: str = ""
+    required_changes: List[str] = []
+    deadline_days: int = 30
+
+class PostPubCommentRequest(BaseModel):
+    author_orcid: str
+    content: str
+    comment_type: str = "comment"
+    parent_comment_id: Optional[str] = None
+
+
+@app.post("/api/v1/editorial/register-user")
+def register_editorial_user(req: EditorialUserRequest):
+    """Регистрация пользователя с editorial ролью"""
+    user = EditorialUser(
+        user_id=req.user_id,
+        orcid=req.orcid,
+        name=req.name,
+        email=req.email,
+        roles=req.roles,
+        expertise_areas=req.expertise_areas,
+        institution=req.institution,
+        h_index=req.h_index,
+    )
+    return editorial_engine.register_user(user)
+
+
+@app.post("/api/v1/editorial/submit")
+def submit_manuscript(req: SubmitManuscriptRequest):
+    """Подача рукописи"""
+    submission = Submission(
+        submission_id=str(uuid.uuid4()),
+        title=req.title,
+        abstract=req.abstract,
+        authors=req.authors,
+        corresponding_author_orcid=req.corresponding_author_orcid,
+        category=req.category,
+        keywords=req.keywords,
+        funding_statement=req.funding_statement,
+        data_availability=req.data_availability,
+        conflict_of_interest=req.conflict_of_interest,
+        ethical_approval=req.ethical_approval,
+        author_contribution=req.author_contribution,
+    )
+    return editorial_engine.submit_manuscript(submission)
+
+
+@app.post("/api/v1/editorial/assign-editor/{submission_id}/{editor_id}")
+def assign_editor(submission_id: str, editor_id: str):
+    """Назначение редактора секции"""
+    return editorial_engine.assign_editor(submission_id, editor_id)
+
+
+@app.get("/api/v1/editorial/find-reviewers/{submission_id}")
+def find_reviewers(submission_id: str, n: int = 3):
+    """Поиск подходящих рецензентов"""
+    reviewers = editorial_engine.find_reviewers(submission_id, n)
+    return {"reviewers": reviewers, "count": len(reviewers)}
+
+
+@app.post("/api/v1/editorial/assign-reviewers/{submission_id}")
+def assign_reviewers(submission_id: str, req: AssignReviewersRequest):
+    """Назначение рецензентов"""
+    return editorial_engine.assign_reviewers(submission_id, req.reviewer_orcids)
+
+
+@app.post("/api/v1/editorial/submit-review/{review_id}")
+def submit_review(review_id: str, req: SubmitReviewRequest):
+    """Подача рецензии"""
+    review = PeerReview(
+        review_id=review_id,
+        submission_id="",  # Will be filled from existing review
+        reviewer_orcid=req.reviewer_orcid,
+        recommendation=req.recommendation,
+        confidence_level=req.confidence_level,
+        summary=req.summary,
+        strengths=req.strengths,
+        weaknesses=req.weaknesses,
+        detailed_comments=req.detailed_comments,
+        minor_comments=req.minor_comments,
+        scores=req.scores,
+        status="completed",
+    )
+    return editorial_engine.submit_review(review_id, review)
+
+
+@app.post("/api/v1/editorial/decision/{submission_id}")
+def make_editorial_decision(submission_id: str, req: MakeDecisionRequest):
+    """Принятие решения по manuscript"""
+    return editorial_engine.make_decision(
+        submission_id=submission_id,
+        editor_orcid=req.editor_orcid,
+        decision=req.decision,
+        rationale=req.rationale,
+        editorial_comments=req.editorial_comments,
+        required_changes=req.required_changes,
+        deadline_days=req.deadline_days,
+    )
+
+
+@app.get("/api/v1/editorial/submission/{submission_id}")
+def get_submission_details(submission_id: str):
+    """Детали submission"""
+    details = editorial_engine.get_submission_details(submission_id)
+    if not details:
+        raise HTTPException(status_code=404, detail="Submission not found")
+    return details
+
+
+@app.get("/api/v1/editorial/dashboard/{user_orcid}")
+def get_user_dashboard(user_orcid: str):
+    """Дашборд пользователя (submissions + reviews)"""
+    return editorial_engine.get_user_dashboard(user_orcid)
+
+
+@app.post("/api/v1/editorial/doi/mint/{submission_id}")
+def mint_doi(submission_id: str):
+    """Минт DOI через CrossRef"""
+    submission = editorial_engine.submissions.get(submission_id)
+    if not submission:
+        raise HTTPException(status_code=404, detail="Submission not found")
+    
+    submission.doi = doi_service.generate_doi(submission_id, submission.current_version)
+    deposit = doi_service.prepare_deposit(submission)
+    
+    return {
+        "status": "ok",
+        "doi": submission.doi,
+        "deposit": deposit,
+        "message": "DOI prepared for CrossRef deposit"
+    }
+
+
+@app.get("/api/v1/editorial/export/jats/{submission_id}")
+def export_jats_xml(submission_id: str):
+    """Экспорт в JATS XML"""
+    submission = editorial_engine.submissions.get(submission_id)
+    if not submission:
+        raise HTTPException(status_code=404, detail="Submission not found")
+    
+    if not submission.doi:
+        submission.doi = doi_service.generate_doi(submission_id, submission.current_version)
+    
+    xml_content = jats_exporter.export_submission(submission, submission.doi)
+    
+    return Response(
+        content=xml_content,
+        media_type="application/xml",
+        headers={"Content-Disposition": f"attachment; filename={submission_id}.xml"}
+    )
+
+
+@app.get("/api/v1/editorial/letter/{submission_id}")
+def get_decision_letter(submission_id: str):
+    """Получение письма с решением"""
+    submission = editorial_engine.submissions.get(submission_id)
+    if not submission:
+        raise HTTPException(status_code=404, detail="Submission not found")
+    
+    if not submission.decision_letter:
+        raise HTTPException(status_code=404, detail="No decision letter yet")
+    
+    return {
+        "submission_id": submission_id,
+        "decision": submission.decision,
+        "letter": submission.decision_letter,
+    }
+
+
+@app.post("/api/v1/editorial/post-pub-comment/{submission_id}")
+def add_post_pub_comment(submission_id: str, req: PostPubCommentRequest):
+    """Добавление публичного комментария после публикации"""
+    return editorial_engine.add_post_pub_comment(
+        submission_id=submission_id,
+        author_orcid=req.author_orcid,
+        content=req.content,
+        comment_type=req.comment_type,
+        parent_comment_id=req.parent_comment_id,
+    )
+
+
+@app.get("/api/v1/editorial/post-pub-comments/{submission_id}")
+def get_post_pub_comments(submission_id: str):
+    """Получение публичных комментариев"""
+    comments = editorial_engine.get_post_pub_reviews(submission_id)
+    return {"submission_id": submission_id, "comments": comments}
+
+
+@app.get("/api/v1/editorial/stats")
+def get_editorial_stats():
+    """Статистика editorial workflow"""
+    submissions = editorial_engine.submissions
+    reviews = editorial_engine.reviews
+    
+    status_counts = {}
+    for sub in submissions.values():
+        status_counts[sub.status] = status_counts.get(sub.status, 0) + 1
+    
+    review_status_counts = {}
+    for review in reviews.values():
+        review_status_counts[review.status] = review_status_counts.get(review.status, 0) + 1
+    
+    return {
+        "total_submissions": len(submissions),
+        "submissions_by_status": status_counts,
+        "total_reviews": len(reviews),
+        "reviews_by_status": review_status_counts,
+        "published": len([s for s in submissions.values() if s.status == "published"]),
+        "avg_reviews_per_manuscript": round(len(reviews) / max(1, len(submissions)), 1),
+    }
+
+
+# =====================================================================
+# PLAGIARISM DETECTION API
+# =====================================================================
+
+class PlagiarismCheckRequest(BaseModel):
+    reference_texts: List[Dict[str, str]]  # [{title, text}]
+
+@app.post("/api/v1/editorial/plagiarism-check/{submission_id}")
+def check_plagiarism(submission_id: str, req: PlagiarismCheckRequest):
+    """Проверка manuscript на плагиат"""
+    return editorial_engine.check_plagiarism(submission_id, req.reference_texts)
+
+
+# =====================================================================
+# PREPRINT BRIDGE API
+# =====================================================================
+
+class PreprintImportRequest(BaseModel):
+    identifier: str  # arXiv ID, DOI, or URL
+
+@app.post("/api/v1/editorial/import-preprint/{submission_id}")
+def import_preprint(submission_id: str, req: PreprintImportRequest):
+    """Импорт препринта (arXiv, DOI, bioRxiv)"""
+    return editorial_engine.import_preprint(submission_id, req.identifier)
+
+
+@app.get("/api/v1/editorial/resolve-identifier/{identifier}")
+def resolve_identifier(identifier: str):
+    """Разрешение идентификатора (arXiv/DOI) в метаданные"""
+    from gitscience_editorial import PreprintBridge
+    return PreprintBridge.resolve_identifier(identifier)
+
+
+# =====================================================================
+# REVISION WORKFLOW API
+# =====================================================================
+
+class CreateRevisionRequest(BaseModel):
+    required_changes: List[str]
+    editor_comments: str = ""
+    reviewer_comments: str = ""
+    deadline_days: int = 30
+
+class SubmitRevisionRequest(BaseModel):
+    response_to_reviewers: str = ""
+    version_files: List[Dict[str, str]] = []
+
+@app.post("/api/v1/editorial/revision/create/{submission_id}")
+def create_revision(submission_id: str, req: CreateRevisionRequest):
+    """Создание запроса на правки"""
+    submission = editorial_engine.submissions.get(submission_id)
+    if not submission:
+        raise HTTPException(status_code=404, detail="Submission not found")
+    
+    revision = editorial_engine.revision_manager.create_revision_request(
+        submission_id=submission_id,
+        revision_number=submission.current_version,
+        required_changes=req.required_changes,
+        editor_comments=req.editor_comments,
+        reviewer_comments=req.reviewer_comments,
+        deadline_days=req.deadline_days,
+    )
+    
+    # Send notification to author
+    if submission.authors:
+        author_email = submission.authors[0].get("email", "")
+        if author_email:
+            editorial_engine.email_service.send_notification(
+                "revision_request",
+                author_email,
+                author_name=submission.authors[0].get("name", "Author"),
+                manuscript_title=submission.title,
+                deadline=revision.due_date,
+                revision_number=revision.revision_number,
+                required_changes="\n".join(f"- {c}" for c in req.required_changes),
+                editor_name="Editor-in-Chief",
+            )
+    
+    return {
+        "status": "ok",
+        "revision_id": revision.revision_id,
+        "due_date": revision.due_date,
+        "revision_number": revision.revision_number,
+    }
+
+
+@app.post("/api/v1/editorial/revision/submit/{revision_id}")
+def submit_revision(revision_id: str, req: SubmitRevisionRequest):
+    """Автор загружает правки"""
+    return editorial_engine.revision_manager.submit_revision(
+        revision_id=revision_id,
+        response_to_reviewers=req.response_to_reviewers,
+        version_files=req.version_files,
+    )
+
+
+@app.get("/api/v1/editorial/revision/overdue")
+def get_overdue_revisions():
+    """Просроченные правки"""
+    return {"overdue": editorial_engine.revision_manager.check_overdue_revisions()}
+
+
+@app.get("/api/v1/editorial/revision/reminders")
+def get_pending_reminders():
+    """Напоминания для отправки"""
+    return {"reminders": editorial_engine.revision_manager.get_pending_reminders()}
+
+
+@app.get("/api/v1/editorial/revision/timeline/{submission_id}")
+def get_revision_timeline(submission_id: str):
+    """Timeline правок для submission"""
+    return {"timeline": editorial_engine.revision_manager.get_revision_timeline(submission_id)}
+
+
+# =====================================================================
+# EMAIL NOTIFICATIONS API
+# =====================================================================
+
+@app.get("/api/v1/editorial/emails/history")
+def get_email_history(limit: int = 50):
+    """История отправленных писем"""
+    return {"emails": editorial_engine.email_service.get_email_history(limit)}
+
+
+# =====================================================================
+# EDITORIAL TASKS API
+# =====================================================================
+
+class CreateTaskRequest(BaseModel):
+    title: str
+    description: str = ""
+    task_type: str = "general"
+    assigned_to: Optional[str] = None
+    assigned_role: Optional[str] = None
+    due_date: Optional[str] = None
+    priority: str = "normal"
+    depends_on: List[str] = []
+
+@app.post("/api/v1/editorial/tasks/create/{submission_id}")
+def create_task(submission_id: str, req: CreateTaskRequest):
+    """Создание editorial задачи"""
+    task = editorial_engine.task_manager.create_task(
+        submission_id=submission_id,
+        title=req.title,
+        description=req.description,
+        task_type=req.task_type,
+        assigned_to=req.assigned_to,
+        assigned_role=req.assigned_role,
+        due_date=req.due_date,
+        priority=req.priority,
+        depends_on=req.depends_on,
+    )
+    return {"status": "ok", "task_id": task.task_id}
+
+
+@app.post("/api/v1/editorial/tasks/complete/{task_id}")
+def complete_task(task_id: str):
+    """Завершение задачи"""
+    return editorial_engine.task_manager.complete_task(task_id)
+
+
+@app.get("/api/v1/editorial/tasks/{submission_id}")
+def get_submission_tasks(submission_id: str):
+    """Задачи для submission"""
+    return {"tasks": editorial_engine.task_manager.get_submission_tasks(submission_id)}
+
+
+@app.get("/api/v1/editorial/tasks/overdue")
+def get_overdue_tasks():
+    """Просроченные задачи"""
+    return {"overdue": editorial_engine.task_manager.get_overdue_tasks()}
+
+
+# =====================================================================
+# VERSION HISTORY API
+# =====================================================================
+
+@app.get("/api/v1/editorial/versions/{submission_id}")
+def get_version_history(submission_id: str):
+    """История версий"""
+    return {"versions": editorial_engine.version_tracker.get_version_history(submission_id)}
+
+
+@app.get("/api/v1/editorial/versions/{submission_id}/diff")
+def get_version_diff(submission_id: str, v1: int = 1, v2: int = 2):
+    """Сравнение версий"""
+    return editorial_engine.version_tracker.get_version_diff(submission_id, v1, v2)
+
+
+# =====================================================================
+# SUBMISSION CHECKLIST API
+# =====================================================================
+
+@app.get("/api/v1/editorial/checklist/{submission_id}")
+def get_checklist(submission_id: str):
+    """Получение чеклиста"""
+    return editorial_engine.checklist_manager.get_checklist(submission_id)
+
+
+@app.post("/api/v1/editorial/checklist/{submission_id}/complete/{item_id}")
+def complete_checklist_item(submission_id: str, item_id: str):
+    """Отметка выполнения пункта чеклиста"""
+    return editorial_engine.checklist_manager.complete_item(submission_id, item_id)
+
+
+# =====================================================================
+# ANALYTICS DASHBOARD API
+# =====================================================================
+
+@app.get("/api/v1/editorial/analytics/dashboard")
+def get_analytics_dashboard():
+    """Дашборд аналитики"""
+    return editorial_engine.analytics.get_dashboard()
+
+
+@app.get("/api/v1/editorial/analytics/pipeline")
+def get_pipeline_view():
+    """Pipeline view — все submissions по статусам"""
+    submissions = editorial_engine.submissions
+    
+    pipeline = {
+        "draft": [],
+        "submitted": [],
+        "editorial_check": [],
+        "under_review": [],
+        "revision_requested": [],
+        "accepted": [],
+        "rejected": [],
+        "published": [],
+    }
+    
+    for sub in submissions.values():
+        status = sub.status
+        if status in pipeline:
+            pipeline[status].append({
+                "submission_id": sub.submission_id,
+                "title": sub.title,
+                "submitted_at": sub.submitted_at,
+                "last_updated": sub.last_updated,
+                "authors": [a.get("name", "") for a in sub.authors[:3]],
+            })
+    
+    return {
+        "pipeline": pipeline,
+        "summary": {status: len(items) for status, items in pipeline.items()},
+    }
+
+
+# =====================================================================
+# AI MANUSCRIPT SCREENING API
+# =====================================================================
+
+@app.get("/api/v1/editorial/ai-screen/{submission_id}")
+def ai_screen_manuscript(submission_id: str):
+    """AI-powered предварительная проверка manuscript"""
+    submission = editorial_engine.submissions.get(submission_id)
+    if not submission:
+        raise HTTPException(status_code=404, detail="Submission not found")
+    
+    return editorial_engine.ai_screener.screen_manuscript(submission)
+
+
+# =====================================================================
+# CROSS-JOURNAL TRANSFER API
+# =====================================================================
+
+class TransferRequest(BaseModel):
+    target_journal: str
+    reason: str = ""
+
+@app.post("/api/v1/editorial/transfer/{submission_id}")
+def transfer_manuscript(submission_id: str, req: TransferRequest):
+    """Перенос manuscript в другой журнал"""
+    return editorial_engine.transfer_manuscript(submission_id, req.target_journal, req.reason)
+
+
+@app.get("/api/v1/editorial/transfer/history/{submission_id}")
+def get_transfer_history(submission_id: str):
+    """История переносов"""
+    return {"transfers": editorial_engine.cross_journal_transfer.get_transfer_history(submission_id)}
+
+
+# =====================================================================
+# PREREGISTRATION API
+# =====================================================================
+
+class PreregistrationRequest(BaseModel):
+    title: str
+    hypothesis: str
+    methods: str
+    analysis_plan: str
+    authors: List[Dict[str, str]] = []
+    corresponding_author_orcid: str = ""
+
+class AmendmentRequest(BaseModel):
+    amendment_description: str
+    changes: str
+
+@app.post("/api/v1/editorial/preregistration/create")
+def create_preregistration(req: PreregistrationRequest):
+    """Создание пререгистрации"""
+    return editorial_engine.create_preregistration(
+        title=req.title,
+        hypothesis=req.hypothesis,
+        methods=req.methods,
+        analysis_plan=req.analysis_plan,
+        authors=req.authors,
+        corresponding_author_orcid=req.corresponding_author_orcid,
+    )
+
+
+@app.post("/api/v1/editorial/preregistration/register/{prereg_id}")
+def register_preregistration(prereg_id: str):
+    """Регистрация пререгистрации (фиксация во времени)"""
+    return editorial_engine.register_preregistration(prereg_id)
+
+
+@app.get("/api/v1/editorial/preregistration/{prereg_id}")
+def get_preregistration(prereg_id: str):
+    """Получение пререгистрации"""
+    prereg = editorial_engine.get_preregistration(prereg_id)
+    if not prereg:
+        raise HTTPException(status_code=404, detail="Preregistration not found")
+    return prereg
+
+
+@app.post("/api/v1/editorial/preregistration/{prereg_id}/amendment")
+def add_preregistration_amendment(prereg_id: str, req: AmendmentRequest):
+    """Добавление поправки к пререгистрации"""
+    return editorial_engine.prereg_manager.add_amendment(
+        prereg_id=prereg_id,
+        amendment_description=req.amendment_description,
+        changes=req.changes,
+    )
+
+
+# =====================================================================
+# GALLEY PRODUCTION API
+# =====================================================================
+
+@app.get("/api/v1/editorial/galley/{submission_id}")
+def generate_galley(submission_id: str, format: str = "jats"):
+    """Генерация production-ready manuscript (JATS/HTML/PDF)"""
+    return editorial_engine.generate_galley(submission_id, format)
+
+
+# =====================================================================
+# CLAIM GRAPH API
+# =====================================================================
+
+class ClaimRequest(BaseModel):
+    statement: str
+    claim_type: str = "contribution"
+    evidence_refs: List[str] = []
+    strength: str = "moderate"
+    author_orcid: str = ""
+
+class LinkClaimsRequest(BaseModel):
+    claim_id_1: str
+    claim_id_2: str
+    relationship: str = "supports"
+
+@app.post("/api/v1/editorial/claims/{submission_id}")
+def add_claims(submission_id: str, claims: List[ClaimRequest]):
+    """Добавление claims к manuscript"""
+    return editorial_engine.add_manuscript_claims(
+        submission_id,
+        [c.model_dump() for c in claims],
+    )
+
+
+@app.get("/api/v1/editorial/claims/{submission_id}")
+def get_claims(submission_id: str):
+    """Получение claims manuscripts"""
+    return editorial_engine.get_manuscript_claims(submission_id)
+
+
+@app.post("/api/v1/editorial/claims/graph/link")
+def link_claims(req: LinkClaimsRequest):
+    """Связь между claims"""
+    return editorial_engine.claim_graph.link_claims(
+        req.claim_id_1, req.claim_id_2, req.relationship
+    )
+
+
+@app.get("/api/v1/editorial/claims/graph/{submission_id}")
+def get_claim_graph(submission_id: str):
+    """Получение графа claims"""
+    return editorial_engine.claim_graph.get_graph(submission_id)
