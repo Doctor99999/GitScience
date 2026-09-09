@@ -43,7 +43,7 @@ contract SovereignIPNFT is IERC721, IERC2981 {
     string public symbol = "GS-IPNFT";
 
     address public immutable founderWallet;
-    address public immutable amanatSplitterAddress;
+    address public amanatSplitterAddress;
     address public platformMinter;
     uint256 public nextTokenId = 1;
 
@@ -61,6 +61,7 @@ contract SovereignIPNFT is IERC721, IERC2981 {
     mapping(uint256 => address) private _tokenApprovals;
     mapping(address => mapping(address => bool)) private _operatorApprovals;
     mapping(uint256 => PatentRecord) public patentRecords;
+    mapping(bytes32 => bool) public registeredHashes;
 
     event PatentTokenized(
         uint256 indexed tokenId,
@@ -70,6 +71,7 @@ contract SovereignIPNFT is IERC721, IERC2981 {
         string tokenURI
     );
     event PlatformMinterUpdated(address indexed previousMinter, address indexed newMinter);
+    event SplitterUpdated(address indexed oldSplitter, address indexed newSplitter);
 
     modifier onlyMinterOrFounder() {
         require(
@@ -94,10 +96,19 @@ contract SovereignIPNFT is IERC721, IERC2981 {
         platformMinter = _newMinter;
     }
 
+    function updateSplitterAddress(address newSplitter) external {
+        require(msg.sender == founderWallet, "GS: not founder");
+        require(newSplitter != address(0), "GS: zero address");
+        address oldSplitter = amanatSplitterAddress;
+        amanatSplitterAddress = newSplitter;
+        emit SplitterUpdated(oldSplitter, newSplitter);
+    }
+
     function supportsInterface(bytes4 interfaceId) public pure override returns (bool) {
         return interfaceId == type(IERC721).interfaceId || 
                interfaceId == type(IERC2981).interfaceId ||
-               interfaceId == type(IERC165).interfaceId;
+               interfaceId == type(IERC165).interfaceId ||
+               interfaceId == 0x5b5e139f;
     }
 
     function balanceOf(address owner) public view override returns (uint256) {
@@ -128,10 +139,23 @@ contract SovereignIPNFT is IERC721, IERC2981 {
         string calldata uri
     ) external onlyMinterOrFounder returns (uint256) {
         require(to != address(0), "Cannot mint to zero address");
+        
+        bytes32 hashKey = keccak256(bytes(sha256Hash));
+        require(!registeredHashes[hashKey], "GS: duplicate prior art hash");
+        registeredHashes[hashKey] = true;
+
         uint256 tokenId = nextTokenId++;
 
         _owners[tokenId] = to;
         _balances[to] += 1;
+
+        if (to.code.length > 0) {
+            try IERC721Receiver(to).onERC721Received(msg.sender, address(0), tokenId, "") returns (bytes4 retval) {
+                require(retval == IERC721Receiver.onERC721Received.selector, "GS: unsafe recipient");
+            } catch {
+                revert("GS: unsafe recipient");
+            }
+        }
 
         patentRecords[tokenId] = PatentRecord({
             registrationCode: registrationCode,

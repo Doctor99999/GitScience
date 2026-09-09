@@ -18,7 +18,7 @@ contract AmanatSplitter {
     address public immutable founderWallet;
     address public immutable infrastructurePool;
     address public platformOperator;
-    bool private _entered;
+    uint256 private _status = 1;
 
     uint256 public constant BPS_DENOMINATOR = 10000;
     uint256 public constant AUTHOR_POOL_BPS = 5500; // 55%
@@ -41,6 +41,7 @@ contract AmanatSplitter {
         uint256 founderDisbursed
     );
     event PlatformOperatorUpdated(address indexed previousOperator, address indexed newOperator);
+    event TokensRecovered(address indexed token, address indexed to, uint256 amount);
 
     modifier onlyFounder() {
         require(msg.sender == founderWallet, "GS: not founder");
@@ -56,10 +57,10 @@ contract AmanatSplitter {
     }
 
     modifier nonReentrant() {
-        require(!_entered, "GS: reentrancy guard");
-        _entered = true;
+        require(_status != 2, "GS: reentrant call");
+        _status = 2;
         _;
-        _entered = false;
+        _status = 1;
     }
 
     constructor(address _founderWallet, address _infrastructurePool) {
@@ -101,11 +102,13 @@ contract AmanatSplitter {
      */
     function settleAmanatRoyalty(
         address tokenAddress,
+        address buyer,
         bytes32 registrationCodeHash,
         uint256 baseAmount,
         Contributor[] calldata authors
     ) external onlyOperator nonReentrant {
         require(tokenAddress != address(0), "GS: zero token address");
+        require(buyer != address(0), "GS: zero buyer");
         require(baseAmount > 0, "Base amount must be > 0");
         require(authors.length > 0, "At least one author required");
 
@@ -120,14 +123,17 @@ contract AmanatSplitter {
         uint256 invoiceTotal = baseAmount + (baseAmount * B2B_TAX_GROSSUP_BPS / BPS_DENOMINATOR);
 
         // Безопасное списание средств с покупателя (поддерживает стандартный и нестандартный USDT)
-        _safeTransferFrom(tokenAddress, msg.sender, address(this), invoiceTotal);
+        _safeTransferFrom(tokenAddress, buyer, address(this), invoiceTotal);
 
         // 1. Распределение авторского пула (55% от baseAmount)
         uint256 authorTotal = (baseAmount * AUTHOR_POOL_BPS) / BPS_DENOMINATOR;
+        uint256 totalAuthorDisbursed = 0;
         for (uint256 i = 0; i < authors.length; i++) {
+            require(authors[i].wallet != address(0), "GS: zero author wallet");
             uint256 authorShare = (authorTotal * authors[i].weightBasisPoints) / BPS_DENOMINATOR;
-            if (authorShare > 0 && authors[i].wallet != address(0)) {
+            if (authorShare > 0) {
                 _safeTransfer(tokenAddress, authors[i].wallet, authorShare);
+                totalAuthorDisbursed += authorShare;
             }
         }
 
@@ -136,17 +142,33 @@ contract AmanatSplitter {
         _safeTransfer(tokenAddress, infrastructurePool, infraTotal);
 
         // 3. Распределение фонда Создателя (30% от baseAmount) + остаток налогового Gross-Up
-        uint256 founderTotal = invoiceTotal - authorTotal - infraTotal;
+        uint256 founderTotal = invoiceTotal - totalAuthorDisbursed - infraTotal;
         _safeTransfer(tokenAddress, founderWallet, founderTotal);
 
         emit RoyaltyDistributed(
             registrationCodeHash,
-            msg.sender,
+            buyer,
             baseAmount,
             invoiceTotal,
             authorTotal,
             infraTotal,
             founderTotal
         );
+    }
+    function recoverERC20(address token, address to, uint256 amount) external {
+        require(msg.sender == founderWallet, "GS: not founder");
+        require(to != address(0), "GS: zero address");
+        _safeTransfer(token, to, amount);
+        emit TokensRecovered(token, to, amount);
+    }
+
+    receive() external payable {}
+
+    function withdrawNative(address payable to, uint256 amount) external {
+        require(msg.sender == founderWallet, "GS: not founder");
+        require(to != address(0), "GS: zero address");
+        require(amount <= address(this).balance, "GS: insufficient balance");
+        (bool success, ) = to.call{value: amount}("");
+        require(success, "GS: native transfer failed");
     }
 }

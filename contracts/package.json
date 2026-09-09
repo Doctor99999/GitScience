@@ -1,8 +1,8 @@
 {
   "name": "gitscience-contracts",
-  "version": "1.0.0",
+  "version": "2.4.0",
   "private": true,
-  "description": "Deploy tooling for GitScienceT AmanatSplitter v3.3 and SovereignIPNFT",
+  "description": "Deploy tooling for GitScienceT AmanatSplitter v2.4.0-GENESIS and SovereignIPNFT",
   "scripts": {
     "compile": "hardhat compile",
     "deploy:polygon": "hardhat run scripts/deploy.ts --network polygon",
