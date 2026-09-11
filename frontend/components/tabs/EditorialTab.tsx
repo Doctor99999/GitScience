@@ -73,7 +73,9 @@ export default function EditorialTab({ t, apiBase, token }: EditorialTabProps) {
   const loadPipeline = async () => {
     setPipelineLoading(true);
     try {
-      const res = await fetch(`${apiBase}/api/v1/editorial/analytics/pipeline`);
+      const res = await fetch(`${apiBase}/api/v1/editorial/analytics/pipeline`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       const data = await res.json();
       setPipeline(data.pipeline);
     } catch {
@@ -86,7 +88,9 @@ export default function EditorialTab({ t, apiBase, token }: EditorialTabProps) {
   const loadAnalytics = async () => {
     setAnalyticsLoading(true);
     try {
-      const res = await fetch(`${apiBase}/api/v1/editorial/analytics/dashboard`);
+      const res = await fetch(`${apiBase}/api/v1/editorial/analytics/dashboard`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       const data = await res.json();
       setAnalytics(data);
     } catch {
@@ -101,7 +105,9 @@ export default function EditorialTab({ t, apiBase, token }: EditorialTabProps) {
     setScreenLoading(true);
     setScreenResult(null);
     try {
-      const res = await fetch(`${apiBase}/api/v1/editorial/ai-screen/${screenTarget}`);
+      const res = await fetch(`${apiBase}/api/v1/editorial/ai-screen/${screenTarget}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       const data = await res.json();
       setScreenResult(data);
     } catch {

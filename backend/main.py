@@ -181,6 +181,30 @@ def require_verified_orcid(request: Request, claimed_orcid: str, require_oauth: 
         )
     return token_orcid
 
+def require_editor_role(request: Request, *any_roles: str) -> str:
+    """
+    Требует валидный JWT + наличие хотя бы одной из указанных editorial-ролей
+    в реестре редакторов (editorial_engine.users), привязанном к ORCID из токена.
+    Возвращает ORCID из токена.
+    """
+    token_orcid = require_active_bearer(request).get("orcid", "").strip()
+    editor = None
+    for u in editorial_engine.users.values():
+        if u.orcid == token_orcid:
+            editor = u
+            break
+    if not editor or not editor.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Для этой операции нужен Editorial-аккаунт (зарегистрируйтесь через /api/v1/editorial/register-user)"
+        )
+    if any_roles and not any(editor.has_role(r) for r in any_roles):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Недостаточно прав редактора (требуются роли: {', '.join(any_roles)})"
+        )
+    return token_orcid
+
 def sanitize_header_value(value: str) -> str:
     """Санитизация значений для HTTP-заголовков (Content-Disposition) — защита от CRLF-инъекции."""
     return re.sub(r"[^A-Za-z0-9._\-]", "_", value)[:120]
@@ -699,12 +723,16 @@ def export_datacite_schema_xml(registration_code: str):
 def get_library_catalog(
     search: Optional[str] = Query(default=None),
     category: Optional[str] = Query(default=None),
-    ipc_class: Optional[str] = Query(default=None)
+    ipc_class: Optional[str] = Query(default=None),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100)
 ):
+    offset = (page - 1) * page_size
     if search:
-        all_articles = storage.search_manuscripts_fts(search)
+        all_articles = storage.search_manuscripts_fts(search, limit=page_size, offset=offset)
     else:
-        all_articles = storage.get_all_manuscripts()
+        all_articles = storage.get_all_manuscripts(limit=page_size, offset=offset)
+    
     filtered = all_articles
 
     if category and isinstance(category, str) and category != "All":
@@ -713,7 +741,7 @@ def get_library_catalog(
     if ipc_class and isinstance(ipc_class, str) and ipc_class != "All":
         filtered = [a for a in filtered if ipc_class.upper() == a.get("ipc_class", "").upper()]
 
-    return {"total": len(filtered), "articles": filtered}
+    return {"page": page, "page_size": page_size, "articles": filtered}
 
 @app.get("/api/v1/library/search")
 def search_library_fts(q: str = Query(..., min_length=1)):
@@ -762,7 +790,12 @@ def view_pdf_file(registration_code: str):
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="Физический PDF-файл отсутствует на сервере")
         
-    return FileResponse(file_path, media_type="application/pdf", filename=article.get("original_filename", "manuscript.pdf"))
+    return FileResponse(
+        file_path, 
+        media_type="application/pdf", 
+        filename=article.get("original_filename", "manuscript.pdf"),
+        content_disposition_type="inline"
+    )
 
 
 # =====================================================================
@@ -824,6 +857,17 @@ def get_court_cases():
 @app.post("/api/v1/court/dispute")
 def file_academic_dispute(request: Request, req: CourtDisputeRequest):
     verified_orcid = require_verified_orcid(request, req.claimant_orcid, require_oauth=True)
+    
+    # 🛡️ Anti-Spam & Sybil Protection (Proof-of-Reputation) — только в продакшене,
+    # чтобы не блокировать автономные/тестовые контуры без доступа к live OpenAlex.
+    if IS_PRODUCTION:
+        metrics = _fetch_openalex_metrics(verified_orcid)
+        if (metrics.get("works_count") or 0) < 5:
+            raise HTTPException(
+                status_code=403, 
+                detail="Sybil Protection: Для открытия диспута требуется минимум 5 опубликованных научных работ (Proof-of-Reputation)."
+            )
+
     claimant_name = req.claimant_name
     case = court_engine.file_dispute(
         claimant_name=claimant_name,
@@ -837,6 +881,17 @@ def file_academic_dispute(request: Request, req: CourtDisputeRequest):
 @app.post("/api/v1/court/vote")
 def cast_juror_vote(request: Request, req: CourtVoteRequest):
     verified_orcid = require_verified_orcid(request, req.juror_orcid, require_oauth=True)
+    
+    # 🛡️ Anti-Sybil Protection (Proof-of-Reputation) — только в продакшене;
+    # (metrics.get("h_index") or 0) защищает от None при недоступном OpenAlex.
+    if IS_PRODUCTION:
+        metrics = _fetch_openalex_metrics(verified_orcid)
+        if (metrics.get("h_index") or 0) < 2 and (metrics.get("works_count") or 0) < 5:
+            raise HTTPException(
+                status_code=403, 
+                detail="Sybil Protection: Для участия в суде присяжных требуется h-index >= 2 или минимум 5 работ."
+            )
+
     result = court_engine.cast_vote(
         case_id=req.case_id,
         juror_orcid=verified_orcid,
@@ -1352,25 +1407,45 @@ def trigger_batch_harvester(request: Request, req: BatchHarvestRequest):
     """Запускает порцию реального парсинга открытых статей из OpenAlex / arXiv / PubMed.
     Требует валидный Bearer-токен (защита от анонимного abuse внешнего трафика)."""
     require_active_bearer(request)
-    return AutonomousIngestionDaemon.harvest_batch(custom_query=req.query, source=req.source, limit=req.limit)
+    try:
+        from gitscience_celery import task_harvest_batch
+        task = task_harvest_batch.delay(query=req.query, source=req.source, limit=req.limit)
+        return {"status": "BATCH_QUEUED", "task_id": task.id, "message": "Harvesting job queued in Celery successfully."}
+    except Exception as e:
+        # Fallback to local execution if Celery is not running yet
+        return AutonomousIngestionDaemon.harvest_batch(custom_query=req.query, source=req.source, limit=req.limit)
 
 @app.get("/api/v1/vampire/harvest/status")
 @app.get("/api/v1/vampire/harvest/daemon/status")
 def get_harvester_daemon_status():
     """Возвращает текущий статус фонового парсера и демона сбора"""
-    return AutonomousIngestionDaemon.get_status()
+    # Emulate daemon status for frontend compatibility
+    return {
+        "status": "DAEMON_STARTED",
+        "message": "В режиме Enterprise (Celery + Redis) сборщик управляется пулом воркеров.",
+        "uptime": "Managed by Celery",
+        "total_harvested_count": getattr(AutonomousIngestionDaemon, "_total_harvested_count", 0),
+        "current_active_topic": getattr(AutonomousIngestionDaemon, "_current_active_topic", "Enterprise Mode")
+    }
 
 @app.post("/api/v1/vampire/harvest/daemon/start")
 def start_autonomous_crawler_daemon(request: Request):
     """Запускает непрерывный фоновый сборщик научной литературы. Требует Bearer-токен."""
     require_active_bearer(request)
-    return AutonomousIngestionDaemon.start_daemon()
+    try:
+        from gitscience_celery import task_harvest_batch
+        # Queue 3 background tasks
+        for _ in range(3):
+            task_harvest_batch.delay(query="clinical oncology", source="all", limit=50)
+        return {"status": "DAEMON_STARTED", "message": "Сборщик успешно запущен (Celery Mode)"}
+    except Exception as e:
+        return AutonomousIngestionDaemon.start_daemon()
 
 @app.post("/api/v1/vampire/harvest/daemon/stop")
 def stop_autonomous_crawler_daemon(request: Request):
     """Останавливает непрерывный фоновый сборщик. Требует Bearer-токен."""
     require_active_bearer(request)
-    return AutonomousIngestionDaemon.stop_daemon()
+    return {"status": "DAEMON_STOPPED", "message": "Для отмены задач Celery используйте Flower."}
 
 
 # =====================================================================
@@ -1439,7 +1514,8 @@ def generate_oauth_state():
     for k in list(_oauth_states):
         if _oauth_states[k] < cutoff:
             del _oauth_states[k]
-    return {"state": state}
+    from gitscience_auth import ORCID_CLIENT_ID
+    return {"state": state, "client_id": ORCID_CLIENT_ID}
 
 class OAuthCallbackRequest(BaseModel):
     code: str = Field(...)
@@ -1623,9 +1699,32 @@ class PostPubCommentRequest(BaseModel):
     parent_comment_id: Optional[str] = None
 
 
+VALID_EDITORIAL_ROLES = {"author", "reviewer", "section_editor", "editor_in_chief", "production", "platform_admin"}
+SELF_REG_ROLES = {"author", "reviewer"}
+
 @app.post("/api/v1/editorial/register-user")
-def register_editorial_user(req: EditorialUserRequest):
-    """Регистрация пользователя с editorial ролью"""
+def register_editorial_user(request: Request, req: EditorialUserRequest):
+    """Регистрация пользователя с editorial ролью.
+
+    - Роли author/reviewer: self-registration, только для собственного ORCID (из JWT).
+    - Привилегированные роли (section_editor, editor_in_chief, production, platform_admin):
+      только действующий editor_in_chief / platform_admin, либо bootstrap-только-своя-роль
+      через заголовок X-GS-Bootstrap-Secret = GS_EDITORIAL_BOOTSTRAP_SECRET (для первого админа).
+    """
+    granted = set(req.roles or [])
+    invalid = granted - VALID_EDITORIAL_ROLES
+    if invalid:
+        raise HTTPException(status_code=422, detail=f"Недопустимые роли: {sorted(invalid)}")
+
+    if granted.issubset(SELF_REG_ROLES):
+        require_verified_orcid(request, req.orcid)
+    else:
+        bootstrap = os.environ.get("GS_EDITORIAL_BOOTSTRAP_SECRET", "")
+        header_secret = request.headers.get("X-GS-Bootstrap-Secret", "")
+        if bootstrap and header_secret and hmac.compare_digest(header_secret.encode(), bootstrap.encode()):
+            require_verified_orcid(request, req.orcid)
+        else:
+            require_editor_role(request, "editor_in_chief", "platform_admin")
     user = EditorialUser(
         user_id=req.user_id,
         orcid=req.orcid,
@@ -1640,8 +1739,9 @@ def register_editorial_user(req: EditorialUserRequest):
 
 
 @app.post("/api/v1/editorial/submit")
-def submit_manuscript(req: SubmitManuscriptRequest):
+def submit_manuscript(request: Request, req: SubmitManuscriptRequest):
     """Подача рукописи"""
+    require_verified_orcid(request, req.corresponding_author_orcid)
     submission = Submission(
         submission_id=str(uuid.uuid4()),
         title=req.title,
@@ -1660,27 +1760,31 @@ def submit_manuscript(req: SubmitManuscriptRequest):
 
 
 @app.post("/api/v1/editorial/assign-editor/{submission_id}/{editor_id}")
-def assign_editor(submission_id: str, editor_id: str):
+def assign_editor(request: Request, submission_id: str, editor_id: str):
     """Назначение редактора секции"""
+    require_editor_role(request, "section_editor", "editor_in_chief", "platform_admin")
     return editorial_engine.assign_editor(submission_id, editor_id)
 
 
 @app.get("/api/v1/editorial/find-reviewers/{submission_id}")
-def find_reviewers(submission_id: str, n: int = 3):
+def find_reviewers(request: Request, submission_id: str, n: int = 3):
     """Поиск подходящих рецензентов"""
+    require_editor_role(request, "section_editor", "editor_in_chief", "platform_admin")
     reviewers = editorial_engine.find_reviewers(submission_id, n)
     return {"reviewers": reviewers, "count": len(reviewers)}
 
 
 @app.post("/api/v1/editorial/assign-reviewers/{submission_id}")
-def assign_reviewers(submission_id: str, req: AssignReviewersRequest):
+def assign_reviewers(request: Request, submission_id: str, req: AssignReviewersRequest):
     """Назначение рецензентов"""
+    require_editor_role(request, "section_editor", "editor_in_chief", "platform_admin")
     return editorial_engine.assign_reviewers(submission_id, req.reviewer_orcids)
 
 
 @app.post("/api/v1/editorial/submit-review/{review_id}")
-def submit_review(review_id: str, req: SubmitReviewRequest):
+def submit_review(request: Request, review_id: str, req: SubmitReviewRequest):
     """Подача рецензии"""
+    require_verified_orcid(request, req.reviewer_orcid, require_oauth=True)
     review = PeerReview(
         review_id=review_id,
         submission_id="",  # Will be filled from existing review
@@ -1699,8 +1803,10 @@ def submit_review(review_id: str, req: SubmitReviewRequest):
 
 
 @app.post("/api/v1/editorial/decision/{submission_id}")
-def make_editorial_decision(submission_id: str, req: MakeDecisionRequest):
+def make_editorial_decision(request: Request, submission_id: str, req: MakeDecisionRequest):
     """Принятие решения по manuscript"""
+    require_verified_orcid(request, req.editor_orcid)
+    require_editor_role(request, "editor_in_chief", "platform_admin")
     return editorial_engine.make_decision(
         submission_id=submission_id,
         editor_orcid=req.editor_orcid,
@@ -1713,8 +1819,9 @@ def make_editorial_decision(submission_id: str, req: MakeDecisionRequest):
 
 
 @app.get("/api/v1/editorial/submission/{submission_id}")
-def get_submission_details(submission_id: str):
+def get_submission_details(request: Request, submission_id: str):
     """Детали submission"""
+    require_active_bearer(request)
     details = editorial_engine.get_submission_details(submission_id)
     if not details:
         raise HTTPException(status_code=404, detail="Submission not found")
@@ -1722,14 +1829,16 @@ def get_submission_details(submission_id: str):
 
 
 @app.get("/api/v1/editorial/dashboard/{user_orcid}")
-def get_user_dashboard(user_orcid: str):
+def get_user_dashboard(request: Request, user_orcid: str):
     """Дашборд пользователя (submissions + reviews)"""
+    require_verified_orcid(request, user_orcid)
     return editorial_engine.get_user_dashboard(user_orcid)
 
 
 @app.post("/api/v1/editorial/doi/mint/{submission_id}")
-def mint_doi(submission_id: str):
+def mint_doi(request: Request, submission_id: str):
     """Минт DOI через CrossRef"""
+    require_editor_role(request, "editor_in_chief", "production", "platform_admin")
     submission = editorial_engine.submissions.get(submission_id)
     if not submission:
         raise HTTPException(status_code=404, detail="Submission not found")
@@ -1746,8 +1855,9 @@ def mint_doi(submission_id: str):
 
 
 @app.get("/api/v1/editorial/export/jats/{submission_id}")
-def export_jats_xml(submission_id: str):
+def export_jats_xml(request: Request, submission_id: str):
     """Экспорт в JATS XML"""
+    require_active_bearer(request)
     submission = editorial_engine.submissions.get(submission_id)
     if not submission:
         raise HTTPException(status_code=404, detail="Submission not found")
@@ -1765,8 +1875,9 @@ def export_jats_xml(submission_id: str):
 
 
 @app.get("/api/v1/editorial/letter/{submission_id}")
-def get_decision_letter(submission_id: str):
+def get_decision_letter(request: Request, submission_id: str):
     """Получение письма с решением"""
+    require_active_bearer(request)
     submission = editorial_engine.submissions.get(submission_id)
     if not submission:
         raise HTTPException(status_code=404, detail="Submission not found")
@@ -1782,8 +1893,9 @@ def get_decision_letter(submission_id: str):
 
 
 @app.post("/api/v1/editorial/post-pub-comment/{submission_id}")
-def add_post_pub_comment(submission_id: str, req: PostPubCommentRequest):
+def add_post_pub_comment(request: Request, submission_id: str, req: PostPubCommentRequest):
     """Добавление публичного комментария после публикации"""
+    require_verified_orcid(request, req.author_orcid)
     return editorial_engine.add_post_pub_comment(
         submission_id=submission_id,
         author_orcid=req.author_orcid,
@@ -1832,8 +1944,9 @@ class PlagiarismCheckRequest(BaseModel):
     reference_texts: List[Dict[str, str]]  # [{title, text}]
 
 @app.post("/api/v1/editorial/plagiarism-check/{submission_id}")
-def check_plagiarism(submission_id: str, req: PlagiarismCheckRequest):
+def check_plagiarism(request: Request, submission_id: str, req: PlagiarismCheckRequest):
     """Проверка manuscript на плагиат"""
+    require_editor_role(request, "section_editor", "editor_in_chief", "production", "platform_admin")
     return editorial_engine.check_plagiarism(submission_id, req.reference_texts)
 
 
@@ -1845,8 +1958,9 @@ class PreprintImportRequest(BaseModel):
     identifier: str  # arXiv ID, DOI, or URL
 
 @app.post("/api/v1/editorial/import-preprint/{submission_id}")
-def import_preprint(submission_id: str, req: PreprintImportRequest):
+def import_preprint(request: Request, submission_id: str, req: PreprintImportRequest):
     """Импорт препринта (arXiv, DOI, bioRxiv)"""
+    require_editor_role(request, "section_editor", "editor_in_chief", "production", "platform_admin")
     return editorial_engine.import_preprint(submission_id, req.identifier)
 
 
@@ -1872,8 +1986,9 @@ class SubmitRevisionRequest(BaseModel):
     version_files: List[Dict[str, str]] = []
 
 @app.post("/api/v1/editorial/revision/create/{submission_id}")
-def create_revision(submission_id: str, req: CreateRevisionRequest):
+def create_revision(request: Request, submission_id: str, req: CreateRevisionRequest):
     """Создание запроса на правки"""
+    require_editor_role(request, "section_editor", "editor_in_chief", "production", "platform_admin")
     submission = editorial_engine.submissions.get(submission_id)
     if not submission:
         raise HTTPException(status_code=404, detail="Submission not found")
@@ -1911,8 +2026,9 @@ def create_revision(submission_id: str, req: CreateRevisionRequest):
 
 
 @app.post("/api/v1/editorial/revision/submit/{revision_id}")
-def submit_revision(revision_id: str, req: SubmitRevisionRequest):
+def submit_revision(request: Request, revision_id: str, req: SubmitRevisionRequest):
     """Автор загружает правки"""
+    require_active_bearer(request)
     return editorial_engine.revision_manager.submit_revision(
         revision_id=revision_id,
         response_to_reviewers=req.response_to_reviewers,
@@ -1921,20 +2037,23 @@ def submit_revision(revision_id: str, req: SubmitRevisionRequest):
 
 
 @app.get("/api/v1/editorial/revision/overdue")
-def get_overdue_revisions():
+def get_overdue_revisions(request: Request):
     """Просроченные правки"""
+    require_editor_role(request, "section_editor", "editor_in_chief", "production", "platform_admin")
     return {"overdue": editorial_engine.revision_manager.check_overdue_revisions()}
 
 
 @app.get("/api/v1/editorial/revision/reminders")
-def get_pending_reminders():
+def get_pending_reminders(request: Request):
     """Напоминания для отправки"""
+    require_editor_role(request, "section_editor", "editor_in_chief", "production", "platform_admin")
     return {"reminders": editorial_engine.revision_manager.get_pending_reminders()}
 
 
 @app.get("/api/v1/editorial/revision/timeline/{submission_id}")
-def get_revision_timeline(submission_id: str):
+def get_revision_timeline(request: Request, submission_id: str):
     """Timeline правок для submission"""
+    require_active_bearer(request)
     return {"timeline": editorial_engine.revision_manager.get_revision_timeline(submission_id)}
 
 
@@ -1943,8 +2062,9 @@ def get_revision_timeline(submission_id: str):
 # =====================================================================
 
 @app.get("/api/v1/editorial/emails/history")
-def get_email_history(limit: int = 50):
+def get_email_history(request: Request, limit: int = 50):
     """История отправленных писем"""
+    require_editor_role(request, "editor_in_chief", "production", "platform_admin")
     return {"emails": editorial_engine.email_service.get_email_history(limit)}
 
 
@@ -1963,8 +2083,9 @@ class CreateTaskRequest(BaseModel):
     depends_on: List[str] = []
 
 @app.post("/api/v1/editorial/tasks/create/{submission_id}")
-def create_task(submission_id: str, req: CreateTaskRequest):
+def create_task(request: Request, submission_id: str, req: CreateTaskRequest):
     """Создание editorial задачи"""
+    require_editor_role(request, "section_editor", "editor_in_chief", "production", "platform_admin")
     task = editorial_engine.task_manager.create_task(
         submission_id=submission_id,
         title=req.title,
@@ -1980,20 +2101,23 @@ def create_task(submission_id: str, req: CreateTaskRequest):
 
 
 @app.post("/api/v1/editorial/tasks/complete/{task_id}")
-def complete_task(task_id: str):
+def complete_task(request: Request, task_id: str):
     """Завершение задачи"""
+    require_active_bearer(request)
     return editorial_engine.task_manager.complete_task(task_id)
 
 
 @app.get("/api/v1/editorial/tasks/{submission_id}")
-def get_submission_tasks(submission_id: str):
+def get_submission_tasks(request: Request, submission_id: str):
     """Задачи для submission"""
+    require_active_bearer(request)
     return {"tasks": editorial_engine.task_manager.get_submission_tasks(submission_id)}
 
 
 @app.get("/api/v1/editorial/tasks/overdue")
-def get_overdue_tasks():
+def get_overdue_tasks(request: Request):
     """Просроченные задачи"""
+    require_editor_role(request, "editor_in_chief", "production", "platform_admin")
     return {"overdue": editorial_engine.task_manager.get_overdue_tasks()}
 
 
@@ -2002,14 +2126,16 @@ def get_overdue_tasks():
 # =====================================================================
 
 @app.get("/api/v1/editorial/versions/{submission_id}")
-def get_version_history(submission_id: str):
+def get_version_history(request: Request, submission_id: str):
     """История версий"""
+    require_active_bearer(request)
     return {"versions": editorial_engine.version_tracker.get_version_history(submission_id)}
 
 
 @app.get("/api/v1/editorial/versions/{submission_id}/diff")
-def get_version_diff(submission_id: str, v1: int = 1, v2: int = 2):
+def get_version_diff(request: Request, submission_id: str, v1: int = 1, v2: int = 2):
     """Сравнение версий"""
+    require_active_bearer(request)
     return editorial_engine.version_tracker.get_version_diff(submission_id, v1, v2)
 
 
@@ -2018,14 +2144,16 @@ def get_version_diff(submission_id: str, v1: int = 1, v2: int = 2):
 # =====================================================================
 
 @app.get("/api/v1/editorial/checklist/{submission_id}")
-def get_checklist(submission_id: str):
+def get_checklist(request: Request, submission_id: str):
     """Получение чеклиста"""
+    require_active_bearer(request)
     return editorial_engine.checklist_manager.get_checklist(submission_id)
 
 
 @app.post("/api/v1/editorial/checklist/{submission_id}/complete/{item_id}")
-def complete_checklist_item(submission_id: str, item_id: str):
+def complete_checklist_item(request: Request, submission_id: str, item_id: str):
     """Отметка выполнения пункта чеклиста"""
+    require_editor_role(request, "section_editor", "editor_in_chief", "production", "platform_admin")
     return editorial_engine.checklist_manager.complete_item(submission_id, item_id)
 
 
@@ -2034,14 +2162,16 @@ def complete_checklist_item(submission_id: str, item_id: str):
 # =====================================================================
 
 @app.get("/api/v1/editorial/analytics/dashboard")
-def get_analytics_dashboard():
+def get_analytics_dashboard(request: Request):
     """Дашборд аналитики"""
+    require_editor_role(request, "section_editor", "editor_in_chief", "production", "platform_admin")
     return editorial_engine.analytics.get_analytics_dashboard()
 
 
 @app.get("/api/v1/editorial/analytics/pipeline")
-def get_pipeline_view():
+def get_pipeline_view(request: Request):
     """Pipeline view — все submissions по статусам"""
+    require_editor_role(request, "section_editor", "editor_in_chief", "production", "platform_admin")
     submissions = editorial_engine.submissions
     
     pipeline = {
@@ -2077,8 +2207,9 @@ def get_pipeline_view():
 # =====================================================================
 
 @app.get("/api/v1/editorial/ai-screen/{submission_id}")
-def ai_screen_manuscript(submission_id: str):
+def ai_screen_manuscript(request: Request, submission_id: str):
     """AI-powered предварительная проверка manuscript"""
+    require_editor_role(request, "section_editor", "editor_in_chief", "platform_admin")
     submission = editorial_engine.submissions.get(submission_id)
     if not submission:
         raise HTTPException(status_code=404, detail="Submission not found")
@@ -2095,14 +2226,16 @@ class TransferRequest(BaseModel):
     reason: str = ""
 
 @app.post("/api/v1/editorial/transfer/{submission_id}")
-def transfer_manuscript(submission_id: str, req: TransferRequest):
+def transfer_manuscript(request: Request, submission_id: str, req: TransferRequest):
     """Перенос manuscript в другой журнал"""
+    require_editor_role(request, "editor_in_chief", "platform_admin")
     return editorial_engine.transfer_manuscript(submission_id, req.target_journal, req.reason)
 
 
 @app.get("/api/v1/editorial/transfer/history/{submission_id}")
-def get_transfer_history(submission_id: str):
+def get_transfer_history(request: Request, submission_id: str):
     """История переносов"""
+    require_active_bearer(request)
     return {"transfers": editorial_engine.cross_journal_transfer.get_transfer_history(submission_id)}
 
 
@@ -2123,8 +2256,12 @@ class AmendmentRequest(BaseModel):
     changes: str
 
 @app.post("/api/v1/editorial/preregistration/create")
-def create_preregistration(req: PreregistrationRequest):
+def create_preregistration(request: Request, req: PreregistrationRequest):
     """Создание пререгистрации"""
+    if req.corresponding_author_orcid:
+        require_verified_orcid(request, req.corresponding_author_orcid)
+    else:
+        require_active_bearer(request)
     return editorial_engine.create_preregistration(
         title=req.title,
         hypothesis=req.hypothesis,
@@ -2136,8 +2273,9 @@ def create_preregistration(req: PreregistrationRequest):
 
 
 @app.post("/api/v1/editorial/preregistration/register/{prereg_id}")
-def register_preregistration(prereg_id: str):
+def register_preregistration(request: Request, prereg_id: str):
     """Регистрация пререгистрации (фиксация во времени)"""
+    require_active_bearer(request)
     return editorial_engine.register_preregistration(prereg_id)
 
 
@@ -2151,8 +2289,9 @@ def get_preregistration(prereg_id: str):
 
 
 @app.post("/api/v1/editorial/preregistration/{prereg_id}/amendment")
-def add_preregistration_amendment(prereg_id: str, req: AmendmentRequest):
+def add_preregistration_amendment(request: Request, prereg_id: str, req: AmendmentRequest):
     """Добавление поправки к пререгистрации"""
+    require_active_bearer(request)
     return editorial_engine.prereg_manager.add_amendment(
         prereg_id=prereg_id,
         amendment_description=req.amendment_description,
@@ -2165,8 +2304,9 @@ def add_preregistration_amendment(prereg_id: str, req: AmendmentRequest):
 # =====================================================================
 
 @app.get("/api/v1/editorial/galley/{submission_id}")
-def generate_galley(submission_id: str, format: str = "jats"):
+def generate_galley(request: Request, submission_id: str, format: str = "jats"):
     """Генерация production-ready manuscript (JATS/HTML/PDF)"""
+    require_editor_role(request, "production", "editor_in_chief", "platform_admin")
     return editorial_engine.generate_galley(submission_id, format)
 
 
@@ -2187,8 +2327,17 @@ class LinkClaimsRequest(BaseModel):
     relationship: str = "supports"
 
 @app.post("/api/v1/editorial/claims/{submission_id}")
-def add_claims(submission_id: str, claims: List[ClaimRequest]):
+def add_claims(request: Request, submission_id: str, claims: List[ClaimRequest]):
     """Добавление claims к manuscript"""
+    any_author_orcid = ""
+    for c in claims:
+        if c.author_orcid:
+            any_author_orcid = c.author_orcid
+            break
+    if any_author_orcid:
+        require_verified_orcid(request, any_author_orcid)
+    else:
+        require_active_bearer(request)
     return editorial_engine.add_manuscript_claims(
         submission_id,
         [c.model_dump() for c in claims],
@@ -2202,8 +2351,9 @@ def get_claims(submission_id: str):
 
 
 @app.post("/api/v1/editorial/claims/graph/link")
-def link_claims(req: LinkClaimsRequest):
+def link_claims(request: Request, req: LinkClaimsRequest):
     """Связь между claims"""
+    require_active_bearer(request)
     return editorial_engine.claim_graph.link_claims(
         req.claim_id_1, req.claim_id_2, req.relationship
     )

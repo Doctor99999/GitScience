@@ -125,6 +125,34 @@ export default function GitScienceApp() {
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("/sw.js").catch(() => {});
     }
+
+    // 3. Check for ORCID OAuth callback in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get("code");
+    const state = urlParams.get("state");
+    if (code && state) {
+      // Show loading or just clear the URL immediately to avoid replay
+      window.history.replaceState({}, document.title, window.location.pathname);
+      fetch(`${base}/api/v1/auth/orcid/callback`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code,
+          state,
+          redirect_uri: window.location.origin
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.access_token && data.profile) {
+          handleScholarLogin({ ...data.profile, access_token: data.access_token });
+          alert("Successfully authenticated with ORCID!");
+        } else {
+          alert(data.detail || "ORCID Authentication failed.");
+        }
+      })
+      .catch(err => console.error("OAuth Error:", err));
+    }
   }, []);
 
   // Handlers
@@ -244,6 +272,9 @@ export default function GitScienceApp() {
               setLibIpcFilter={library.setLibIpcFilter}
               activePdfUrl={library.activePdfUrl}
               setActivePdfUrl={library.setActivePdfUrl}
+              isLoading={library.isLoading}
+              page={library.page}
+              setPage={library.setPage}
               setSearchInspectCode={inspector.setSearchInspectCode}
               setActiveTab={setActiveTab}
               handleInspect={inspector.handleInspect}

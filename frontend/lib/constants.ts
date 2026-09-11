@@ -1,3 +1,5 @@
+const PRODUCTION_API = "https://gitscience-api.onrender.com";
+
 export const getApiBase = (): string => {
   if (typeof window !== "undefined") {
     if (process.env.NEXT_PUBLIC_API_BASE) {
@@ -10,8 +12,9 @@ export const getApiBase = (): string => {
     if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
       return "http://127.0.0.1:8000";
     }
+    return PRODUCTION_API;
   }
-  return "http://127.0.0.1:8000";
+  return PRODUCTION_API;
 };
 
 export const CREDIT_14_ROLES = [

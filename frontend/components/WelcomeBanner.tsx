@@ -78,7 +78,7 @@ export default function WelcomeBanner({
           </div>
           
           <Image
-            src="/GitScience/vitruvian-logo.jpg"
+            src="/vitruvian-logo.jpg"
             alt="GitScience Vitruvian Protocol"
             width={500}
             height={500}

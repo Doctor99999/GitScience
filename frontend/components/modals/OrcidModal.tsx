@@ -100,6 +100,34 @@ export default function OrcidModal({
           <div className="pt-2 space-y-2">
             <button
               onClick={async () => {
+                try {
+                  const res = await fetch(`${getApiBase()}/api/v1/auth/orcid/state`);
+                  const data = await res.json();
+                  if (data.state && data.client_id) {
+                    const redirectUri = window.location.origin;
+                    const authUrl = `https://orcid.org/oauth/authorize?client_id=${data.client_id}&response_type=code&scope=/authenticate&redirect_uri=${encodeURIComponent(redirectUri)}&state=${data.state}`;
+                    window.location.href = authUrl;
+                  } else {
+                    alert("ORCID OAuth is not configured on the server (missing Client ID).");
+                  }
+                } catch (e) {
+                  alert("Failed to initialize ORCID OAuth.");
+                }
+              }}
+              className="w-full bg-[#A6CE39] hover:bg-[#8eb32c] text-slate-900 font-bold py-3 rounded-xl text-xs sm:text-sm shadow transition font-sans flex items-center justify-center gap-2 mb-4"
+            >
+              <img src="https://info.orcid.org/wp-content/uploads/2019/11/orcid_16x16.png" alt="ORCID iD" className="w-4 h-4" />
+              Sign in with ORCID
+            </button>
+
+            <div className="flex items-center gap-3 mb-4">
+              <div className="h-px bg-slate-800 flex-1"></div>
+              <span className="text-[10px] text-slate-500 font-mono uppercase tracking-widest">or manually (Dev/Local)</span>
+              <div className="h-px bg-slate-800 flex-1"></div>
+            </div>
+
+            <button
+              onClick={async () => {
                 if (!inputOrcid || !inputScholarName) {
                   alert(t.orcidFormAlert);
                   return;
@@ -133,7 +161,7 @@ export default function OrcidModal({
                 // Offline fallback: локальный профиль без токена
                 onLogin(localProfile);
               }}
-              className="w-full bg-gradient-to-r from-emerald-500 to-cyan-500 text-slate-950 font-bold py-3 rounded-xl text-xs sm:text-sm shadow transition hover:opacity-90 font-mono"
+              className="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-3 rounded-xl text-xs sm:text-sm shadow transition font-mono"
             >
               {t.loginSubmitBtn}
             </button>

@@ -139,3 +139,6 @@ Code-complete and audit-hardened. Remaining owner actions:
 1. Deploy `AmanatSplitter` / `SovereignIPNFT` to mainnet.
 2. Rotate the previously-exposed MetaMask password.
 3. Mount production TLS certificates.
+
+## Deployment
+See the [Enterprise Deployment Guide](README_DEPLOY.md) for instructions on how to deploy the full GitScience stack on a VPS using Docker Compose.

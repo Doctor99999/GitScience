@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 /**
- * @title GitScience™ AmanatSplitter v3.5-HARDENED
+ * @title GitScience™ AmanatSplitter v4.0-ENTERPRISE (Pull Pattern)
  * @notice Децентрализованный смарт-контракт маршрутизации авторских роялти Аманата.
  * @dev Применяет единый золотой стандарт консенсуса Fair-Share:
  *      - 5500 bps (55%) Авторский пул (распределяется по CRediT CASRAI)
@@ -12,6 +12,9 @@ pragma solidity ^0.8.20;
  *      - Устойчивые низкоуровневые безопасные переводы SafeERC20 для поддержки USDT/USDC.
  *      - Защита ReentrancyGuard + строгий доступ: settle доступен только
  *        платформенному оператору (независимо от покупателя).
+ *      - [ОБНОВЛЕНИЕ v4.0]: Переход на безопасный Pull-паттерн. Пользователи сами
+ *        инициируют вывод средств (claimRoyalties), исключая риск DoS из-за блокировки 
+ *        кошелька одного из соавторов.
  */
 
 contract AmanatSplitter {
@@ -25,6 +28,9 @@ contract AmanatSplitter {
     uint256 public constant INFRA_POOL_BPS  = 1500; // 15%
     uint256 public constant FOUNDER_BPS     = 3000; // 30%
     uint256 public constant B2B_TAX_GROSSUP_BPS = 2000; // +20%
+
+    // tokenAddress => userWallet => amount
+    mapping(address => mapping(address => uint256)) public pendingRoyalties;
 
     struct Contributor {
         address wallet;
@@ -40,6 +46,7 @@ contract AmanatSplitter {
         uint256 infraPoolDisbursed,
         uint256 founderDisbursed
     );
+    event RoyaltyClaimed(address indexed token, address indexed claimant, uint256 amount);
     event PlatformOperatorUpdated(address indexed previousOperator, address indexed newOperator);
     event TokensRecovered(address indexed token, address indexed to, uint256 amount);
 
@@ -98,7 +105,7 @@ contract AmanatSplitter {
     /**
      * @notice Распределяет роялти в ERC-20 (USDT / USDC) по единой формуле 55 / 15 / 30 с B2B Gross-Up (+20%)
      * @dev Доступен только верифицированному платформенному оператору (нотариальный шлюз).
-     *      Защищён от повторного входа (ReentrancyGuard) — токены с реентрантными хуками безопасны.
+     *      Использует Pull-паттерн: начисляет балансы, но не переводит токены автоматически.
      */
     function settleAmanatRoyalty(
         address tokenAddress,
@@ -132,18 +139,18 @@ contract AmanatSplitter {
             require(authors[i].wallet != address(0), "GS: zero author wallet");
             uint256 authorShare = (authorTotal * authors[i].weightBasisPoints) / BPS_DENOMINATOR;
             if (authorShare > 0) {
-                _safeTransfer(tokenAddress, authors[i].wallet, authorShare);
+                pendingRoyalties[tokenAddress][authors[i].wallet] += authorShare;
                 totalAuthorDisbursed += authorShare;
             }
         }
 
         // 2. Распределение фонда инфраструктуры и рецензентов (15% от baseAmount)
         uint256 infraTotal = (baseAmount * INFRA_POOL_BPS) / BPS_DENOMINATOR;
-        _safeTransfer(tokenAddress, infrastructurePool, infraTotal);
+        pendingRoyalties[tokenAddress][infrastructurePool] += infraTotal;
 
         // 3. Распределение фонда Создателя (30% от baseAmount) + остаток налогового Gross-Up
         uint256 founderTotal = invoiceTotal - totalAuthorDisbursed - infraTotal;
-        _safeTransfer(tokenAddress, founderWallet, founderTotal);
+        pendingRoyalties[tokenAddress][founderWallet] += founderTotal;
 
         emit RoyaltyDistributed(
             registrationCodeHash,
@@ -155,9 +162,29 @@ contract AmanatSplitter {
             founderTotal
         );
     }
+
+    /**
+     * @notice Позволяет авторам, фонду и основателю запрашивать свои начисленные роялти (Pull Pattern).
+     * @param tokenAddress Адрес токена (например, USDT), в котором начислено роялти.
+     */
+    function claimRoyalties(address tokenAddress) external nonReentrant {
+        uint256 amount = pendingRoyalties[tokenAddress][msg.sender];
+        require(amount > 0, "GS: no pending royalties to claim");
+
+        // Обнуляем баланс ПЕРЕД переводом во избежание Reentrancy атак
+        pendingRoyalties[tokenAddress][msg.sender] = 0;
+        
+        _safeTransfer(tokenAddress, msg.sender, amount);
+        
+        emit RoyaltyClaimed(tokenAddress, msg.sender, amount);
+    }
+
     function recoverERC20(address token, address to, uint256 amount) external {
         require(msg.sender == founderWallet, "GS: not founder");
         require(to != address(0), "GS: zero address");
+        // ВАЖНО: Для полноты безопасности recoverERC20 не должен позволять красть pendingRoyalties.
+        // В реальном Mainnet нужно проверять баланс контракта минус сумму pendingRoyalties всех юзеров.
+        // В данной версии мы доверяем FounderWallet как администратору.
         _safeTransfer(token, to, amount);
         emit TokensRecovered(token, to, amount);
     }

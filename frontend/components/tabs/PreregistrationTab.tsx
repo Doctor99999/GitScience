@@ -91,7 +91,10 @@ export default function PreregistrationTab({
     try {
       const res = await fetch(
         `${apiBase}/api/v1/editorial/preregistration/register/${viewTarget}`,
-        { method: "POST" }
+        {
+          method: "POST",
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        }
       );
       const data = await res.json();
       setRegisterResult(data.registered_at ? "Registered!" : "Error");

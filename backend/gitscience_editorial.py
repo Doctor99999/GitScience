@@ -238,18 +238,18 @@ class DOIMintingService:
             "resource": {
                 "primary": {
                     "type": "text/html",
-                    "URL": f"https://gitscience.org/manuscript/{submission.submission_code or submission.submission_id}"
+                    "URL": f"https://gitscience.org/manuscript/{submission.manuscript_code or submission.submission_id}"
                 }
             },
             "link": [
                 {
-                    "URL": f"https://gitscience.org/api/v1/manuscript/export/pdf/{submission.submission_code}",
+                    "URL": f"https://gitscience.org/api/v1/manuscript/export/pdf/{submission.manuscript_code}",
                     "content-type": "application/pdf",
                     "content-version": "vor",
                     "intended-application": "text-mining"
                 },
                 {
-                    "URL": f"https://gitscience.org/manuscript/{submission.submission_code}",
+                    "URL": f"https://gitscience.org/manuscript/{submission.manuscript_code}",
                     "content-type": "text/html",
                     "content-version": "vor",
                     "intended-application": "syndication"
@@ -446,7 +446,7 @@ class JATSXMLExporter:
   <body>
     <sec>
       <title>Manuscript Content</title>
-      <p>[Full text available at <ext-link ext-link-type="uri" href="https://gitscience.org/manuscript/{submission.submission_code or submission.submission_id}">GitScience Repository</ext-link>]</p>
+      <p>[Full text available at <ext-link ext-link-type="uri" href="https://gitscience.org/manuscript/{submission.manuscript_code or submission.submission_id}">GitScience Repository</ext-link>]</p>
     </sec>
   </body>
   <back>
@@ -574,7 +574,7 @@ Editor-in-Chief, GitScience Open Repository
         template = self.TEMPLATES.get(decision, self.TEMPLATES["reject"])
         
         return template.format(
-            manuscript_code=submission.submission_code or submission.submission_id,
+            manuscript_code=submission.manuscript_code or submission.submission_id,
             title=submission.title,
             author_name=submission.authors[0].get("name", "Author") if submission.authors else "Author",
             doi=submission.doi or "Pending",
@@ -2272,7 +2272,7 @@ class CrossJournalTransfer:
         transfer_record = {
             "transfer_id": transfer_id,
             "submission_id": submission.submission_id,
-            "source_manuscript_code": submission.submission_code,
+            "source_manuscript_code": submission.manuscript_code,
             "target_journal": target_journal,
             "reason": reason,
             "transfer_notes": transfer_notes,
@@ -2488,7 +2488,7 @@ class FinalEditorialEngine(ExtendedEditorialEngine):
             return {"status": "error", "message": "Submission not found"}
         
         exporter = JATSXMLExporter()
-        doi = submission.submission_code or submission_id
+        doi = submission.manuscript_code or submission_id
         
         if output_format == "jats":
             return {"jats_xml": exporter.export_submission(submission, doi)}

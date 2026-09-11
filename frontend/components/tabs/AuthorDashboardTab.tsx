@@ -47,7 +47,9 @@ export default function AuthorDashboardTab({
     if (!targetCode) return;
     setLoading(true);
     try {
-      const res = await fetch(`${apiBase}/api/v1/editorial/checklist/${targetCode}`);
+      const res = await fetch(`${apiBase}/api/v1/editorial/checklist/${targetCode}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       const data = await res.json();
       setChecklist(data);
     } catch {
@@ -61,7 +63,9 @@ export default function AuthorDashboardTab({
     if (!targetCode) return;
     setLoading(true);
     try {
-      const res = await fetch(`${apiBase}/api/v1/editorial/versions/${targetCode}`);
+      const res = await fetch(`${apiBase}/api/v1/editorial/versions/${targetCode}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       const data = await res.json();
       setVersions(data.versions || []);
     } catch {

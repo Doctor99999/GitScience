@@ -431,10 +431,10 @@ def get_credit_contributions(registration_code: str) -> List[Dict[str, Any]]:
             rows.append(d)
         return rows
 
-def search_manuscripts_fts(query_str: str) -> List[Dict]:
+def search_manuscripts_fts(query_str: str, limit: int = 50, offset: int = 0) -> List[Dict]:
     clean_q = query_str.strip().replace("'", "").replace('"', '')
     if not clean_q:
-        return get_all_manuscripts()
+        return get_all_manuscripts(limit=limit, offset=offset)
 
     # Экранирование LIKE-wildcards (% _) — пользовательский ввод не управляет маской поиска
     escaped_q = clean_q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
@@ -453,6 +453,8 @@ def search_manuscripts_fts(query_str: str) -> List[Dict]:
                     manuscripts.c.is_genesis_anchor == 0
                 )
             ).order_by(manuscripts.c.serial_number.desc())
+             .limit(limit)
+             .offset(offset)
         )
         # Convert created_at explicitly to string if it's a datetime to match previous sqlite behavior
         results = []
@@ -472,12 +474,14 @@ def increment_stats(registration_code: str, field: str):
             .values({field: manuscripts.c[field] + 1})
         )
 
-def get_all_manuscripts() -> List[Dict]:
+def get_all_manuscripts(limit: int = 50, offset: int = 0) -> List[Dict]:
     with engine.connect() as conn:
         res = conn.execute(
             sa.select(manuscripts)
             .where(manuscripts.c.is_genesis_anchor == 0)
             .order_by(manuscripts.c.serial_number.desc())
+            .limit(limit)
+            .offset(offset)
         )
         results = []
         for r in res:

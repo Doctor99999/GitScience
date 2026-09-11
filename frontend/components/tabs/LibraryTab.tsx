@@ -20,6 +20,9 @@ interface LibraryTabProps {
   setActiveTab: (tab: TabKey) => void;
   handleInspect: (code: string) => void;
   apiBase: string;
+  isLoading?: boolean;
+  page?: number;
+  setPage?: (p: number) => void;
 }
 
 export default function LibraryTab({
@@ -36,6 +39,9 @@ export default function LibraryTab({
   setActiveTab,
   handleInspect,
   apiBase,
+  isLoading = false,
+  page = 1,
+  setPage = () => {},
 }: LibraryTabProps) {
   return (
     <div className="space-y-6">
@@ -86,66 +92,93 @@ export default function LibraryTab({
                 {t.closePdfBtn}
               </button>
             </div>
-            <iframe src={activePdfUrl} className="w-full h-[550px] rounded-xl border border-slate-800" sandbox="allow-scripts allow-same-origin" title="PDF Manuscript Viewer" />
+            <iframe src={activePdfUrl} className="w-full h-[550px] rounded-xl border border-slate-800" title="PDF Manuscript Viewer" />
+          </div>
+        )}
+        {/* Loading State */}
+        {isLoading && (
+          <div className="flex justify-center py-10">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"></div>
           </div>
         )}
 
         {/* Library Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filteredLibrary.map((art) => (
-            <div
-              key={art.registration_code}
-              className="bg-slate-900/90 border border-slate-800 hover:border-emerald-500/50 rounded-2xl p-4 sm:p-5 space-y-3 transition flex flex-col justify-between shadow-lg min-w-0 overflow-hidden"
-            >
-              <div className="space-y-2 min-w-0">
-                <div className="flex justify-between items-center gap-2">
-                  <span className="text-xs font-mono text-cyan-400 font-bold truncate">
-                    {art.registration_code} • <span className="text-amber-400">{art.issue || "Vol 1. Issue 1 (Spring 2026)"}</span>
-                  </span>
-                  <div className="flex gap-1 shrink-0">
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-950 text-blue-300 border border-blue-500/40 shrink-0">
-                      {art.status || "Published"}
+        {!isLoading && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {filteredLibrary.map((art) => (
+              <div
+                key={art.registration_code}
+                className="bg-slate-900/90 border border-slate-800 hover:border-emerald-500/50 rounded-2xl p-4 sm:p-5 space-y-3 transition flex flex-col justify-between shadow-lg min-w-0 overflow-hidden"
+              >
+                <div className="space-y-2 min-w-0">
+                  <div className="flex justify-between items-center gap-2">
+                    <span className="text-xs font-mono text-cyan-400 font-bold truncate">
+                      {art.registration_code} • <span className="text-amber-400">{art.issue || "Vol 1. Issue 1 (Spring 2026)"}</span>
                     </span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/40 shrink-0">
-                      {art.license_type || "CC-BY-4.0"}
-                    </span>
+                    <div className="flex gap-1 shrink-0">
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-950 text-blue-300 border border-blue-500/40 shrink-0">
+                        {art.status || "Published"}
+                      </span>
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/40 shrink-0">
+                        {art.license_type || "CC-BY-4.0"}
+                      </span>
+                    </div>
+                  </div>
+                  <h3 className="font-bold text-sm sm:text-base text-slate-100 line-clamp-2 break-words">{art.title}</h3>
+                  <p className="text-xs text-slate-400 truncate">
+                    Автор: <strong className="text-slate-200">{art.author_name}</strong>
+                  </p>
+                  <div className="flex justify-between items-center text-[11px] text-slate-500 font-mono min-w-0 pt-1">
+                    <div>
+                      Дереккөз: <span className="text-amber-300 mr-3">{art.source_archive || "Sovereign Notary"}</span>
+                    </div>
+                    <div className="flex gap-3 text-slate-400 shrink-0">
+                      <span>👁️ {art.views_count || 0}</span>
+                      <span>📥 {art.downloads_count || 0}</span>
+                    </div>
                   </div>
                 </div>
-                <h3 className="font-bold text-sm sm:text-base text-slate-100 line-clamp-2 break-words">{art.title}</h3>
-                <p className="text-xs text-slate-400 truncate">
-                  Автор: <strong className="text-slate-200">{art.author_name}</strong>
-                </p>
-                <div className="flex justify-between items-center text-[11px] text-slate-500 font-mono min-w-0 pt-1">
-                  <div>
-                    Дереккөз: <span className="text-amber-300 mr-3">{art.source_archive || "Sovereign Notary"}</span>
-                  </div>
-                  <div className="flex gap-3 text-slate-400 shrink-0">
-                    <span>👁️ {art.views_count || 0}</span>
-                    <span>📥 {art.downloads_count || 0}</span>
-                  </div>
-                </div>
-              </div>
 
-              <div className="flex gap-2 pt-2 border-t border-slate-800/80">
-                <button
-                  onClick={() => {
-                    setSearchInspectCode(art.registration_code);
-                    setActiveTab("inspector");
-                    handleInspect(art.registration_code);
-                  }}
-                  className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs py-2 rounded-xl font-mono transition"
-                >
-                  {t.viewDetailsBtn}
-                </button>
-                <button
-                  onClick={() => setActivePdfUrl(`${apiBase}/certificate/pdf/${encodeURIComponent(art.registration_code)}`)}
-                  className="flex-1 bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 border border-emerald-500/40 text-xs py-2 rounded-xl font-mono transition font-bold"
-                >
-                  {t.readPdfBtn}
-                </button>
+                <div className="flex gap-2 pt-2 border-t border-slate-800/80">
+                  <button
+                    onClick={() => {
+                      setSearchInspectCode(art.registration_code);
+                      setActiveTab("inspector");
+                      handleInspect(art.registration_code);
+                    }}
+                    className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs py-2 rounded-xl font-mono transition"
+                  >
+                    {t.viewDetailsBtn}
+                  </button>
+                  <button
+                    onClick={() => setActivePdfUrl(`${apiBase}/library/view/${encodeURIComponent(art.registration_code)}`)}
+                    className="flex-1 bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 border border-emerald-500/40 text-xs py-2 rounded-xl font-mono transition font-bold"
+                  >
+                    {t.readPdfBtn}
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
+        )}
+
+        {/* Pagination Controls */}
+        <div className="flex justify-between items-center pt-4 border-t border-slate-800">
+          <button
+            onClick={() => setPage(Math.max(1, page - 1))}
+            disabled={page === 1}
+            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-sm rounded-xl"
+          >
+            ← Previous
+          </button>
+          <span className="text-xs text-slate-400 font-mono">Page {page}</span>
+          <button
+            onClick={() => setPage(page + 1)}
+            disabled={filteredLibrary.length < 20}
+            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-sm rounded-xl"
+          >
+            Next →
+          </button>
         </div>
       </div>
     </div>

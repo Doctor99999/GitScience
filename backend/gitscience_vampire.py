@@ -336,64 +336,65 @@ class VampireProtocolEngine:
 
     @staticmethod
     def _safe_download_pdf(pdf_url: str) -> Optional[bytes]:
-        """Качает PDF только из доверенных открытых репозиториев (SSRF-защита).
-
-        Разрешены только HTTPS и домены научных издательств/агрегаторов из allowlist.
-        Локальные/приватные сети и произвольные хосты ВСЕГДА отклоняются.
-        Лимит размера — 50 MiB (защита от OOM при обработке).
-        """
         MAX_PDF_BYTES = 50 * 1024 * 1024  # 50 MiB
-        try:
-            parsed = urllib.parse.urlparse(pdf_url)
-        except Exception:
+        
+        # Force HTTPS for arXiv and others
+        if pdf_url.startswith("http://"):
+            pdf_url = pdf_url.replace("http://", "https://")
+            
+        if not pdf_url.startswith("https://"):
             return None
 
+        parsed = urllib.parse.urlparse(pdf_url)
         if parsed.scheme != "https" or not parsed.hostname:
             return None
 
         host = parsed.hostname.lower().rstrip(".")
         trusted_suffixes = (
-            "arxiv.org",
-            "openalex.org",
-            "europepmc.org",
-            "ebi.ac.uk",
-            "nature.com",
-            "sciencedirect.com",
-            "springer.com",
-            "springeropen.com",
-            "wiley.com",
-            "acs.org",
-            "ieee.org",
-            "plos.org",
-            "mdpi.com",
-            "frontiersin.org",
-            "bmj.com",
-            "lancet.com",
-            "nejm.org",
-            "jamanetwork.com",
-            "ovid.com",
-            "pubmed.ncbi.nlm.nih.gov",
-            "nih.gov",
-            "researchgate.net",
-            "hal.science",
-            "core.ac.uk",
+            "arxiv.org", "openalex.org", "europepmc.org", "ebi.ac.uk", "nature.com",
+            "sciencedirect.com", "springer.com", "springeropen.com", "wiley.com",
+            "acs.org", "ieee.org", "plos.org", "mdpi.com", "frontiersin.org",
+            "bmj.com", "lancet.com", "nejm.org", "jamanetwork.com", "ovid.com",
+            "pubmed.ncbi.nlm.nih.gov", "nih.gov", "researchgate.net", "hal.science",
+            "core.ac.uk", "unpaywall.org", "doi.org"
         )
+        
         if not any(host == suffix or host.endswith("." + suffix) for suffix in trusted_suffixes):
             return None
 
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "application/pdf,application/xhtml+xml,text/html;q=0.9,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.5",
+            "Connection": "keep-alive"
+        }
+
         try:
-            headers = {"User-Agent": USER_AGENT}
+            # 1. Try requests
+            if requests:
+                resp = requests.get(pdf_url, headers=headers, timeout=15.0, stream=True)
+                if resp.status_code == 200:
+                    content = b""
+                    for chunk in resp.iter_content(chunk_size=8192):
+                        content += chunk
+                        if len(content) > MAX_PDF_BYTES:
+                            return None
+                    if content.startswith(b"%PDF"):
+                        return content
+        except Exception as e:
+            pass
+            
+        # 2. Fallback to urllib (sometimes bypasses CDNs better)
+        try:
             req = urllib.request.Request(pdf_url, headers=headers)
-            with urllib.request.urlopen(req, timeout=12.0) as resp:
-                if resp.status != 200:
-                    return None
-                content = resp.read(MAX_PDF_BYTES + 1)
-                if len(content) > MAX_PDF_BYTES:
-                    return None
-                if content.startswith(b"%PDF"):
-                    return content
+            with urllib.request.urlopen(req, timeout=15.0) as resp:
+                if resp.getcode() == 200:
+                    content = resp.read(MAX_PDF_BYTES + 1)
+                    if len(content) <= MAX_PDF_BYTES and content.startswith(b"%PDF"):
+                        return content
         except Exception:
-            return None
+            pass
+
         return None
 
     @classmethod
@@ -468,11 +469,14 @@ class VampireProtocolEngine:
                     out_buf = io.BytesIO()
                     writer.write(out_buf)
                     final_pdf_bytes = out_buf.getvalue()
-                except Exception:
+                    treatment = "COVER_PAGE_STAMPED_WITH_ORIGINAL_PDF"
+                except Exception as e:
+                    print(f"[VAMPIRE ERROR] PDF Merge failed: {e}")
                     final_pdf_bytes = cover_bytes
+                    treatment = "COVER_PAGE_ONLY_MERGE_FAILED_PERMISSIBLE_LICENSE"
             else:
                 final_pdf_bytes = cover_bytes
-            treatment = "COVER_SHEET_ATTACHED_PERMISSIBLE_LICENSE"
+                treatment = "COVER_SHEET_ATTACHED_PERMISSIBLE_LICENSE"
 
         saved = storage.save_uploaded_pdf(
             file_bytes=final_pdf_bytes,

@@ -25,43 +25,46 @@ import type {
 // =====================================================================
 // Tab 3: Library State + Filtering
 // =====================================================================
+import { useQuery } from "@tanstack/react-query";
+
 export function useLibraryTab() {
-  const [libraryList, setLibraryList] = useState<LibraryArticle[]>([]);
   const [libSearch, setLibSearch] = useState<string>("");
   const [libIpcFilter, setLibIpcFilter] = useState<string>("All");
   const [activePdfUrl, setActivePdfUrl] = useState<string | null>(null);
+  const [page, setPage] = useState<number>(1);
 
-  const refresh = useCallback(() => {
-    fetch(`${getApiBase()}/library`)
-      .then((r) => r.json())
-      .then((data) => {
-        const payload = data as { articles?: LibraryArticle[] };
-        if (payload.articles) setLibraryList(payload.articles);
-      })
-      .catch(() => {});
-  }, []);
-
+  // Debounce search value slightly for query key
+  const [debouncedSearch, setDebouncedSearch] = useState(libSearch);
   useEffect(() => {
-    refresh();
-  }, [refresh]);
+    const handler = setTimeout(() => setDebouncedSearch(libSearch), 300);
+    return () => clearTimeout(handler);
+  }, [libSearch]);
 
-  const filteredLibrary = libraryList.filter((art) => {
-    if (libIpcFilter !== "All" && art.ipc_class !== libIpcFilter) return false;
-    if (!libSearch.trim()) return true;
-    const q = libSearch.toLowerCase();
-    return (
-      art.title?.toLowerCase().includes(q) ||
-      art.author_name?.toLowerCase().includes(q) ||
-      art.registration_code?.toLowerCase().includes(q) ||
-      art.orcid?.toLowerCase().includes(q)
-    );
+  const { data, refetch, isLoading } = useQuery({
+    queryKey: ["library", debouncedSearch, libIpcFilter, page],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        page: String(page),
+        page_size: "20"
+      });
+      if (debouncedSearch) params.append("search", debouncedSearch);
+      if (libIpcFilter !== "All") params.append("ipc_class", libIpcFilter);
+
+      const res = await fetch(`${getApiBase()}/library?${params.toString()}`);
+      if (!res.ok) throw new Error("Failed to fetch library");
+      return (await res.json()) as { articles?: LibraryArticle[], page: number, page_size: number };
+    },
+    staleTime: 60000,
   });
+
+  const libraryList = data?.articles || [];
 
   return {
     libraryList, libSearch, setLibSearch,
     libIpcFilter, setLibIpcFilter,
     activePdfUrl, setActivePdfUrl,
-    filteredLibrary, refresh,
+    filteredLibrary: libraryList, refresh: refetch,
+    isLoading, page, setPage
   };
 }
 
