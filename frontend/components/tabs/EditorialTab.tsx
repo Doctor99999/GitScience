@@ -1,10 +1,16 @@
 "use client";
 
 import React, { useState } from "react";
-import type { TranslationDict } from "../../lib/translations";
+import { Panel } from "@/components/ui/Panel";
+import { SectionHeader } from "@/components/ui/SectionHeader";
+import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
+import { Input, Select, Textarea } from "@/components/ui/Field";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { SubNav } from "@/components/ui/SubNav";
 
 interface EditorialTabProps {
-  t: TranslationDict;
   apiBase: string;
   token?: string | null;
 }
@@ -19,7 +25,7 @@ interface SubmissionDraft {
   category: string;
 }
 
-export default function EditorialTab({ t, apiBase, token }: EditorialTabProps) {
+export default function EditorialTab({ apiBase, token }: EditorialTabProps) {
   const [view, setView] = useState<EditorialView>("submit");
   const [draft, setDraft] = useState<SubmissionDraft>({
     title: "",
@@ -117,266 +123,265 @@ export default function EditorialTab({ t, apiBase, token }: EditorialTabProps) {
     }
   };
 
+  const handleSubNavChange = (key: string) => {
+    const v = key as EditorialView;
+    setView(v);
+    if (v === "pipeline" && !pipeline) loadPipeline();
+    if (v === "analytics" && !analytics) loadAnalytics();
+  };
+
   return (
     <div className="space-y-6">
       {/* Sub-navigation */}
-      <div className="flex gap-2 flex-wrap">
-        {(["submit", "pipeline", "analytics", "ai-screen"] as EditorialView[]).map((v) => (
-          <button
-            key={v}
-            onClick={() => {
-              setView(v);
-              if (v === "pipeline" && !pipeline) loadPipeline();
-              if (v === "analytics" && !analytics) loadAnalytics();
-            }}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition ${
-              view === v
-                ? "bg-emerald-600 text-white"
-                : "bg-slate-800 text-slate-400 hover:bg-slate-700"
-            }`}
-          >
-            {v === "submit" && "Submit Manuscript"}
-            {v === "pipeline" && "Pipeline"}
-            {v === "analytics" && "Analytics"}
-            {v === "ai-screen" && "AI Screen"}
-          </button>
-        ))}
-      </div>
+      <SubNav
+        items={[
+          { key: "submit", label: "Submit Manuscript" },
+          { key: "pipeline", label: "Pipeline" },
+          { key: "analytics", label: "Analytics" },
+          { key: "ai-screen", label: "AI Screen" },
+        ]}
+        active={view}
+        onChange={handleSubNavChange}
+      />
 
       {/* SUBMIT VIEW */}
       {view === "submit" && (
-        <div className="bg-[#0e1726] border border-slate-800 rounded-3xl p-4 sm:p-7 shadow-xl space-y-5">
-          <div className="border-b border-slate-800 pb-4">
-            <h2 className="text-lg sm:text-2xl font-bold text-slate-100">
-              Submit Manuscript
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-400 mt-1">
-              Submit a new manuscript for peer review
-            </p>
-          </div>
+        <Panel className="p-4 sm:p-7 shadow-xl space-y-5">
+          <SectionHeader
+            icon="edit_note"
+            title={<h2 className="font-display text-lg font-extrabold uppercase tracking-tight text-[var(--foreground)]">Submit Manuscript</h2>}
+            subtitle={<p className="text-xs sm:text-sm text-[var(--text-mid)]">Submit a new manuscript for peer review</p>}
+          />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
             <div className="md:col-span-2">
-              <label className="block text-slate-400 font-semibold mb-1">Title *</label>
-              <input
-                type="text"
+              <Input
+                label="Title *"
+                placeholder="Manuscript title"
                 value={draft.title}
                 onChange={(e) => setDraft({ ...draft, title: e.target.value })}
-                placeholder="Manuscript title"
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:border-emerald-500 outline-none"
               />
             </div>
             <div className="md:col-span-2">
-              <label className="block text-slate-400 font-semibold mb-1">Abstract *</label>
-              <textarea
+              <Textarea
+                label="Abstract *"
+                hint="Structured abstract (Background, Methods, Results, Conclusions)"
                 rows={4}
                 value={draft.abstract}
                 onChange={(e) => setDraft({ ...draft, abstract: e.target.value })}
-                placeholder="Structured abstract (Background, Methods, Results, Conclusions)"
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:border-emerald-500 outline-none"
               />
             </div>
             <div>
-              <label className="block text-slate-400 font-semibold mb-1">Authors (comma-separated)</label>
-              <input
-                type="text"
+              <Input
+                label="Authors (comma-separated)"
+                placeholder="Dr. Smith, Prof. Jones"
                 value={draft.authors}
                 onChange={(e) => setDraft({ ...draft, authors: e.target.value })}
-                placeholder="Dr. Smith, Prof. Jones"
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:border-emerald-500 outline-none"
               />
             </div>
             <div>
-              <label className="block text-slate-400 font-semibold mb-1">Keywords (comma-separated)</label>
-              <input
-                type="text"
+              <Input
+                label="Keywords (comma-separated)"
+                placeholder="blockchain, peer review, open science"
                 value={draft.keywords}
                 onChange={(e) => setDraft({ ...draft, keywords: e.target.value })}
-                placeholder="blockchain, peer review, open science"
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:border-emerald-500 outline-none"
               />
             </div>
             <div>
-              <label className="block text-slate-400 font-semibold mb-1">Category</label>
-              <select
+              <Select
+                label="Category"
                 value={draft.category}
                 onChange={(e) => setDraft({ ...draft, category: e.target.value })}
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:border-emerald-500 outline-none"
               >
                 <option value="research-article">Research Article</option>
                 <option value="review">Review Article</option>
                 <option value="short-communication">Short Communication</option>
                 <option value="case-report">Case Report</option>
                 <option value="editorial">Editorial</option>
-              </select>
+              </Select>
             </div>
           </div>
 
-          <button
+          <Button
+            variant="primary"
+            size="md"
+            loading={submitting}
+            disabled={!draft.title || !draft.abstract}
             onClick={handleSubmit}
-            disabled={submitting || !draft.title || !draft.abstract}
-            className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 disabled:text-slate-500 text-white font-bold py-3 rounded-xl font-mono text-sm transition"
           >
             {submitting ? "Submitting..." : "Submit for Peer Review"}
-          </button>
+          </Button>
 
           {submitResult && (
-            <div className="p-4 bg-emerald-950/40 border border-emerald-500/40 rounded-xl font-mono text-xs text-emerald-300">
+            <Panel tone="ok" className="p-4 font-mono text-xs text-[var(--ok)]">
               {submitResult}
-            </div>
+            </Panel>
           )}
-        </div>
+        </Panel>
       )}
 
       {/* PIPELINE VIEW */}
       {view === "pipeline" && (
-        <div className="bg-[#0e1726] border border-slate-800 rounded-3xl p-4 sm:p-7 shadow-xl space-y-5">
-          <div className="border-b border-slate-800 pb-4">
-            <h2 className="text-lg sm:text-2xl font-bold text-slate-100">Editorial Pipeline</h2>
-            <p className="text-xs sm:text-sm text-slate-400 mt-1">
-              Overview of all manuscripts by status
-            </p>
-          </div>
+        <Panel className="p-4 sm:p-7 shadow-xl space-y-5">
+          <SectionHeader
+            icon="assignment"
+            title={<h2 className="font-display text-lg font-extrabold uppercase tracking-tight text-[var(--foreground)]">Editorial Pipeline</h2>}
+            subtitle={<p className="text-xs sm:text-sm text-[var(--text-mid)]">Overview of all manuscripts by status</p>}
+          />
 
           {pipelineLoading ? (
-            <div className="text-center text-slate-500 py-8">Loading pipeline...</div>
+            <div className="space-y-3 py-8">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-4 w-1/2" />
+            </div>
           ) : pipeline ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               {Object.entries(pipeline).map(([status, items]) => (
                 <div
                   key={status}
-                  className="p-4 bg-slate-900 rounded-xl border border-slate-800"
+                  className="p-4 bg-[var(--surface-hi)] border border-[var(--surface-border)]"
                 >
-                  <div className="text-xs font-bold text-slate-400 uppercase mb-2">
+                  <div className="text-xs font-bold text-[var(--text-mid)] uppercase mb-2">
                     {status.replace(/_/g, " ")}
                   </div>
-                  <div className="text-2xl font-mono font-bold text-white">
+                  <div className="text-2xl font-mono font-bold text-[var(--foreground)]">
                     {(items as unknown[]).length}
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="text-center text-slate-500 py-8">
-              Click load to view pipeline
-            </div>
+            <EmptyState
+              icon="assignment"
+              title="No pipeline data"
+              body={<p>Click refresh to load the editorial pipeline</p>}
+            />
           )}
 
-          <button
+          <Button
+            variant="secondary"
+            size="md"
+            icon={<span className="material-symbols-outlined text-[1.1em]" aria-hidden>analytics</span>}
             onClick={loadPipeline}
-            className="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2 rounded-xl text-xs transition"
           >
             Refresh Pipeline
-          </button>
-        </div>
+          </Button>
+        </Panel>
       )}
 
       {/* ANALYTICS VIEW */}
       {view === "analytics" && (
-        <div className="bg-[#0e1726] border border-slate-800 rounded-3xl p-4 sm:p-7 shadow-xl space-y-5">
-          <div className="border-b border-slate-800 pb-4">
-            <h2 className="text-lg sm:text-2xl font-bold text-slate-100">
-              Editorial Analytics
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-400 mt-1">
-              Performance metrics and statistics
-            </p>
-          </div>
+        <Panel className="p-4 sm:p-7 shadow-xl space-y-5">
+          <SectionHeader
+            icon="analytics"
+            title={<h2 className="font-display text-lg font-extrabold uppercase tracking-tight text-[var(--foreground)]">Editorial Analytics</h2>}
+            subtitle={<p className="text-xs sm:text-sm text-[var(--text-mid)]">Performance metrics and statistics</p>}
+          />
 
           {analyticsLoading ? (
-            <div className="text-center text-slate-500 py-8">Loading analytics...</div>
+            <div className="space-y-3 py-8">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-4 w-1/2" />
+            </div>
           ) : analytics ? (
             <div className="space-y-4">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="p-4 bg-slate-900 rounded-xl border border-slate-800">
-                  <div className="text-xs text-slate-400">Total Submissions</div>
-                  <div className="text-2xl font-mono font-bold text-white">
+                <div className="p-4 bg-[var(--surface-hi)] border border-[var(--surface-border)]">
+                  <div className="text-xs text-[var(--text-mid)]">Total Submissions</div>
+                  <div className="text-2xl font-mono font-bold text-[var(--foreground)]">
                     {(analytics.overview as Record<string, unknown>)?.total_submissions as number ?? 0}
                   </div>
                 </div>
-                <div className="p-4 bg-slate-900 rounded-xl border border-slate-800">
-                  <div className="text-xs text-slate-400">Published</div>
-                  <div className="text-2xl font-mono font-bold text-emerald-400">
+                <div className="p-4 bg-[var(--surface-hi)] border border-[var(--surface-border)]">
+                  <div className="text-xs text-[var(--text-mid)]">Published</div>
+                  <div className="text-2xl font-mono font-bold text-[var(--ok)]">
                     {(analytics.overview as Record<string, unknown>)?.published as number ?? 0}
                   </div>
                 </div>
-                <div className="p-4 bg-slate-900 rounded-xl border border-slate-800">
-                  <div className="text-xs text-slate-400">Acceptance Rate</div>
-                  <div className="text-2xl font-mono font-bold text-cyan-400">
+                <div className="p-4 bg-[var(--surface-hi)] border border-[var(--surface-border)]">
+                  <div className="text-xs text-[var(--text-mid)]">Acceptance Rate</div>
+                  <div className="text-2xl font-mono font-bold text-[var(--info)]">
                     {String(analytics.acceptance_rate ?? 0)}%
                   </div>
                 </div>
-                <div className="p-4 bg-slate-900 rounded-xl border border-slate-800">
-                  <div className="text-xs text-slate-400">Avg Days to Decision</div>
-                  <div className="text-2xl font-mono font-bold text-amber-400">
+                <div className="p-4 bg-[var(--surface-hi)] border border-[var(--surface-border)]">
+                  <div className="text-xs text-[var(--text-mid)]">Avg Days to Decision</div>
+                  <div className="text-2xl font-mono font-bold text-[var(--warn)]">
                     {(analytics.timing as Record<string, unknown>)?.avg_days_to_decision as number ?? 0}
                   </div>
                 </div>
               </div>
             </div>
           ) : (
-            <div className="text-center text-slate-500 py-8">
-              Click load to view analytics
-            </div>
+            <EmptyState
+              icon="analytics"
+              title="No analytics data"
+              body={<p>Click refresh to load editorial analytics</p>}
+            />
           )}
 
-          <button
+          <Button
+            variant="secondary"
+            size="md"
+            icon={<span className="material-symbols-outlined text-[1.1em]" aria-hidden>analytics</span>}
             onClick={loadAnalytics}
-            className="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2 rounded-xl text-xs transition"
           >
             Refresh Analytics
-          </button>
-        </div>
+          </Button>
+        </Panel>
       )}
 
       {/* AI SCREEN VIEW */}
       {view === "ai-screen" && (
-        <div className="bg-[#0e1726] border border-slate-800 rounded-3xl p-4 sm:p-7 shadow-xl space-y-5">
-          <div className="border-b border-slate-800 pb-4">
-            <h2 className="text-lg sm:text-2xl font-bold text-slate-100">
-              AI Manuscript Screening
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-400 mt-1">
-              Automated quality check for submissions
-            </p>
-          </div>
+        <Panel className="p-4 sm:p-7 shadow-xl space-y-5">
+          <SectionHeader
+            icon="biotech"
+            title={<h2 className="font-display text-lg font-extrabold uppercase tracking-tight text-[var(--foreground)]">AI Manuscript Screening</h2>}
+            subtitle={<p className="text-xs sm:text-sm text-[var(--text-mid)]">Automated quality check for submissions</p>}
+          />
 
           <div className="flex gap-2">
-            <input
-              type="text"
-              value={screenTarget}
-              onChange={(e) => setScreenTarget(e.target.value)}
-              placeholder="Submission code (e.g. GS-2026-00001)"
-              className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 font-mono text-cyan-300 focus:border-emerald-500 outline-none"
-            />
-            <button
+            <div className="flex-1">
+              <Input
+                label=""
+                icon="search"
+                placeholder="Submission code (e.g. GS-2026-00001)"
+                value={screenTarget}
+                onChange={(e) => setScreenTarget(e.target.value)}
+              />
+            </div>
+            <Button
+              variant="primary"
+              size="md"
+              loading={screenLoading}
+              disabled={!screenTarget}
               onClick={handleAIScreen}
-              disabled={screenLoading || !screenTarget}
-              className="px-6 bg-cyan-600 hover:bg-cyan-500 disabled:bg-slate-700 text-white font-bold py-2 rounded-xl text-xs transition"
             >
               {screenLoading ? "Screening..." : "AI Screen"}
-            </button>
+            </Button>
           </div>
 
           {screenResult && (
-            <div className="p-4 bg-slate-950/40 border border-cyan-500/30 rounded-xl font-mono text-[11px] space-y-2">
+            <div className="p-4 bg-black/40 border border-cyan-500/30 font-mono text-[11px] space-y-2">
               <div className="flex items-center gap-2">
-                <span className="text-slate-400">Score:</span>
-                <span className="text-white font-bold text-lg">
+                <span className="text-[var(--text-mid)]">Score:</span>
+                <span className="text-[var(--foreground)] font-bold text-lg">
                   {(screenResult as Record<string, unknown>).overall_score as number}
                 </span>
-                <span className="text-slate-400">/10</span>
-                <span
-                  className={`ml-2 px-2 py-0.5 rounded text-[10px] font-bold ${
+                <span className="text-[var(--text-mid)]">/10</span>
+                <Badge
+                  variant={
                     (screenResult as Record<string, unknown>).recommendation === "APPROVE_FOR_REVIEW"
-                      ? "bg-emerald-900 text-emerald-300"
+                      ? "ok"
                       : (screenResult as Record<string, unknown>).recommendation === "REVIEW_WITH_CAUTION"
-                      ? "bg-amber-900 text-amber-300"
-                      : "bg-red-900 text-red-300"
-                  }`}
+                      ? "warn"
+                      : "err"
+                  }
                 >
                   {(screenResult as Record<string, unknown>).recommendation as string}
-                </span>
+                </Badge>
               </div>
 
               {!!(screenResult as Record<string, unknown>).quality_scores && (
@@ -384,9 +389,9 @@ export default function EditorialTab({ t, apiBase, token }: EditorialTabProps) {
                   {Object.entries(
                     (screenResult as Record<string, unknown>).quality_scores as Record<string, number>
                   ).map(([k, v]) => (
-                    <div key={k} className="p-2 bg-slate-900 rounded">
-                      <div className="text-[10px] text-slate-500 capitalize">{k}</div>
-                      <div className="text-xs font-bold text-white">{Math.round(v * 100)}%</div>
+                    <div key={k} className="p-2 bg-[var(--surface-hi)] rounded">
+                      <div className="text-[10px] text-[var(--text-low)] capitalize">{k}</div>
+                      <div className="text-xs font-bold text-[var(--foreground)]">{Math.round(v * 100)}%</div>
                     </div>
                   ))}
                 </div>
@@ -394,25 +399,25 @@ export default function EditorialTab({ t, apiBase, token }: EditorialTabProps) {
 
               {!!(screenResult as Record<string, unknown>).red_flags &&
                 ((screenResult as Record<string, unknown>).red_flags as unknown[]).length > 0 && (
-                <div className="p-2 bg-red-950/40 border border-red-500/30 rounded">
-                  <div className="text-red-400 font-bold text-[10px]">
+                <Panel tone="err" className="p-2">
+                  <Badge variant="err" icon="warning">
                     Red Flags: {String((screenResult as Record<string, unknown>).red_flag_count)}
-                  </div>
-                </div>
+                  </Badge>
+                </Panel>
               )}
 
               {!!(screenResult as Record<string, unknown>).suggestions &&
                 ((screenResult as Record<string, unknown>).suggestions as string[]).length > 0 && (
                 <div className="space-y-1">
-                  <div className="text-slate-400 text-[10px] font-bold">Suggestions:</div>
+                  <div className="text-[var(--text-mid)] text-[10px] font-bold">Suggestions:</div>
                   {((screenResult as Record<string, unknown>).suggestions as string[]).map((s: string, i: number) => (
-                    <div key={i} className="text-slate-300 text-[10px]">- {s}</div>
+                    <div key={i} className="text-[var(--foreground)] text-[10px]">- {s}</div>
                   ))}
                 </div>
               )}
             </div>
           )}
-        </div>
+        </Panel>
       )}
     </div>
   );

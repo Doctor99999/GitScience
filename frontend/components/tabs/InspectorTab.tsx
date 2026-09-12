@@ -3,6 +3,11 @@
 import React from "react";
 import type { TranslationDict } from "../../lib/translations";
 import type { InspectedDoc, IpNftResult } from "../../lib/types";
+import { Panel } from "@/components/ui/Panel";
+import { SectionHeader } from "@/components/ui/SectionHeader";
+import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
+import { Input } from "@/components/ui/Field";
 
 interface InspectorTabProps {
   t: TranslationDict;
@@ -31,108 +36,158 @@ export default function InspectorTab({
 }: InspectorTabProps) {
   return (
     <div className="space-y-6">
-      <div className="bg-[#0e1726] border border-slate-800 rounded-3xl p-4 sm:p-7 shadow-xl space-y-5">
-        <div>
-          <h2 className="text-lg sm:text-2xl font-bold text-slate-100 flex items-center gap-2">
-            <span>🔍</span> {t.inspectHeader}
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-400 mt-1">{t.inspectSubheader}</p>
-        </div>
+      <Panel className="space-y-5 p-4 sm:p-7">
+        <SectionHeader
+          icon="search"
+          kicker="INSPECTOR"
+          title={
+            <h2 className="font-display text-lg font-extrabold uppercase tracking-tight text-[var(--foreground)]">
+              {t.inspectHeader}
+            </h2>
+          }
+          subtitle={<p>{t.inspectSubheader}</p>}
+        />
 
-        <div className="flex flex-col sm:flex-row gap-3">
-          <input
-            type="text"
-            value={searchInspectCode}
-            onChange={(e) => setSearchInspectCode(e.target.value)}
-            placeholder={t.inspectSearchPlaceholder}
-            className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-xs text-slate-100 focus:border-emerald-500 outline-none font-mono"
-          />
-          <button
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <div className="flex-1">
+            <Input
+              icon="search"
+              value={searchInspectCode}
+              onChange={(e) => setSearchInspectCode(e.target.value)}
+              placeholder={t.inspectSearchPlaceholder}
+              className="font-mono"
+            />
+          </div>
+          <Button
+            variant="primary"
             onClick={() => handleInspect(searchInspectCode)}
-            className="bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold text-xs px-6 py-2.5 rounded-xl transition font-mono"
+            className="w-full justify-center sm:w-auto"
+            icon={
+              <span className="material-symbols-outlined text-[1.1em]" aria-hidden>
+                search
+              </span>
+            }
           >
             {t.inspectSearchBtn}
-          </button>
+          </Button>
         </div>
 
         {inspectedDoc && (
           <div className="space-y-4 pt-2">
-            <div className="p-4 bg-slate-900/90 rounded-2xl border border-slate-800 space-y-2">
-              <span className="text-[10px] font-mono uppercase text-emerald-400 px-2 py-0.5 rounded bg-emerald-950 border border-emerald-500/40">
-                {inspectedDoc.registration_code}
-              </span>
-              <h3 className="font-bold text-base sm:text-lg text-slate-100">{inspectedDoc.title}</h3>
-              <p className="text-xs text-slate-400">
-                Автор: <strong className="text-slate-200">{inspectedDoc.author_name}</strong> (ORCID: {inspectedDoc.orcid})
+            <Panel className="space-y-2 p-4">
+              <Badge variant="ok">{inspectedDoc.registration_code}</Badge>
+              <h3 className="text-base font-bold text-[var(--foreground)] sm:text-lg">{inspectedDoc.title}</h3>
+              <p className="text-xs text-[var(--text-mid)]">
+                Автор: <strong className="text-[var(--foreground)]">{inspectedDoc.author_name}</strong> (ORCID:{" "}
+                {inspectedDoc.orcid})
               </p>
-            </div>
+            </Panel>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               {/* Layer 1 */}
-              <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 space-y-2 text-xs font-mono min-w-0 overflow-hidden">
-                <strong className="text-emerald-400 block font-bold text-xs">{t.layer1Title}</strong>
-                <div className="text-[11px] text-slate-400 space-y-1">
-                  <div>WIPO IPC: <span className="text-slate-200">{inspectedDoc.ipc_class}</span></div>
-                  <div>Лицензия: <span className="text-slate-200">{inspectedDoc.license_type}</span></div>
-                  <div>Закон: <span className="text-slate-200">35 U.S.C. § 102(a)(1)</span></div>
+              <Panel className="min-w-0 space-y-2 p-4 font-mono text-xs">
+                <strong className="block text-xs font-bold text-[var(--ok)]">{t.layer1Title}</strong>
+                <div className="space-y-1 text-[11px] text-[var(--text-mid)]">
+                  <div>
+                    WIPO IPC: <span className="text-[var(--foreground)]">{inspectedDoc.ipc_class}</span>
+                  </div>
+                  <div>
+                    Лицензия: <span className="text-[var(--foreground)]">{inspectedDoc.license_type}</span>
+                  </div>
+                  <div>
+                    Закон: <span className="text-[var(--foreground)]">35 U.S.C. § 102(a)(1)</span>
+                  </div>
                 </div>
-              </div>
+              </Panel>
 
               {/* Layer 2 */}
-              <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 space-y-2 text-xs font-mono min-w-0 overflow-hidden">
-                <strong className="text-cyan-400 block font-bold text-xs">{t.layer2Title}</strong>
-                <div className="text-[11px] text-slate-400 space-y-1">
-                  <div className="break-all">SHA-256: <span className="text-slate-200 break-all">{inspectedDoc.sha256_hash}</span></div>
-                  <div className="break-all">Git OID: <span className="text-slate-200 break-all">{inspectedDoc.git_commit_hash}</span></div>
-                  <div>Anchor: <span className="text-emerald-400">Bitcoin OTS Anchored</span></div>
+              <Panel className="min-w-0 space-y-2 p-4 font-mono text-xs">
+                <strong className="block text-xs font-bold text-[var(--info)]">{t.layer2Title}</strong>
+                <div className="space-y-1 text-[11px] text-[var(--text-mid)]">
+                  <div className="break-all">
+                    SHA-256: <span className="break-all text-[var(--foreground)]">{inspectedDoc.sha256_hash}</span>
+                  </div>
+                  <div className="break-all">
+                    Git OID: <span className="break-all text-[var(--foreground)]">{inspectedDoc.git_commit_hash}</span>
+                  </div>
+                  <div>
+                    Anchor: <span className="text-[var(--ok)]">Bitcoin OTS Anchored</span>
+                  </div>
                 </div>
-              </div>
+              </Panel>
 
               {/* Layer 3 */}
-              <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 space-y-2 text-xs font-mono min-w-0 overflow-hidden">
-                <strong className="text-purple-400 block font-bold text-xs">{t.layer3Title}</strong>
-                <div className="text-[11px] text-slate-400 space-y-1">
-                  <div className="break-all">Формула: <span className="text-cyan-300 break-all">{inspectedDoc.formula_math}</span></div>
-                  <div className="break-all">AST Merkle: <span className="text-slate-200 break-all">{inspectedDoc.ast_merkle_digest}</span></div>
-                  <div>Режим: <span className="text-amber-300">RUO Class I CDSS</span></div>
+              <Panel className="min-w-0 space-y-2 p-4 font-mono text-xs">
+                <strong className="block text-xs font-bold text-[var(--sci-red)]">{t.layer3Title}</strong>
+                <div className="space-y-1 text-[11px] text-[var(--text-mid)]">
+                  <div className="break-all">
+                    Формула: <span className="break-all text-[var(--info)]">{inspectedDoc.formula_math}</span>
+                  </div>
+                  <div className="break-all">
+                    AST Merkle: <span className="break-all text-[var(--foreground)]">{inspectedDoc.ast_merkle_digest}</span>
+                  </div>
+                  <div>
+                    Режим: <span className="text-[var(--warn)]">RUO Class I CDSS</span>
+                  </div>
                 </div>
-              </div>
+              </Panel>
             </div>
 
             <div className="flex flex-wrap gap-2 pt-2">
-              <button
+              <Button
+                variant="secondary"
                 onClick={() => handleViewLicense(inspectedDoc.registration_code)}
-                className="bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 text-xs px-4 py-2 rounded-xl font-mono transition"
+                icon={
+                  <span className="material-symbols-outlined text-[1.1em]" aria-hidden>
+                    download
+                  </span>
+                }
               >
                 {t.downloadLicenseBtn}
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="secondary"
                 onClick={() => handleMintIpNft(inspectedDoc.registration_code)}
                 disabled={ipNftMinting}
-                className="bg-purple-950/80 hover:bg-purple-900 border border-purple-500/50 text-purple-300 text-xs px-4 py-2 rounded-xl font-mono transition"
+                loading={ipNftMinting}
+                icon={
+                  <span className="material-symbols-outlined text-[1.1em]" aria-hidden>
+                    biotech
+                  </span>
+                }
               >
                 {ipNftMinting ? "Токенизация..." : t.mintIpNftBtn}
-              </button>
+              </Button>
               <a
                 href={`${apiBase}/certificate/pdf/${inspectedDoc.registration_code}`}
                 target="_blank"
                 rel="noreferrer"
-                className="bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold text-xs px-4 py-2 rounded-xl transition font-sans inline-block"
+                className="sci-btn-primary inline-block px-4 py-2 text-xs"
               >
                 {t.downloadCertPdfBtn}
               </a>
             </div>
 
             {ipNftResult && (
-              <div className="p-4 bg-purple-950/40 border border-purple-500/40 rounded-2xl text-xs font-mono space-y-1">
-                <div className="text-purple-300 font-bold">🧬 Sovereign IP-NFT Патент токенизирован:</div>
-                <div>Standard: <span className="text-slate-200">{ipNftResult.contract_standard}</span></div>
-                <div>Royalty to Founder: <span className="text-emerald-400 font-bold">{ipNftResult.founder_royalty_pct}</span></div>
-              </div>
+              <Panel tone="info" className="space-y-1 p-4 font-mono text-xs">
+                <div className="flex items-center gap-2 font-bold text-[var(--info)]">
+                  <span className="material-symbols-outlined text-[1.1em]" aria-hidden>
+                    biotech
+                  </span>
+                  Sovereign IP-NFT Патент токенизирован:
+                </div>
+                <div>
+                  Standard: <span className="text-[var(--foreground)]">{ipNftResult.contract_standard}</span>
+                </div>
+                <div>
+                  Royalty to Founder:{" "}
+                  <span className="font-bold text-[var(--ok)]">{ipNftResult.founder_royalty_pct}</span>
+                </div>
+              </Panel>
             )}
           </div>
         )}
-      </div>
+      </Panel>
     </div>
   );
 }

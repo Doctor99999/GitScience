@@ -2,13 +2,21 @@
 
 import React from "react";
 import Image from "next/image";
+import type { TranslationDict } from "../lib/translations";
 
 interface WelcomeBannerProps {
+  t: TranslationDict;
+  platformStats: {
+    total_notarized_manuscripts: number;
+    total_ledger_transactions: number;
+  };
   setShowOrcidModal: (v: boolean) => void;
   setShowGuideModal: (v: boolean) => void;
 }
 
 export default function WelcomeBanner({
+  t,
+  platformStats,
   setShowOrcidModal,
   setShowGuideModal,
 }: WelcomeBannerProps) {
@@ -32,11 +40,11 @@ export default function WelcomeBanner({
             <span className="font-mono text-[10px] text-[var(--sci-red)] uppercase tracking-widest font-bold">System Online // v 2.4</span>
           </div>
 
-          <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-display font-black uppercase tracking-tight text-white mb-4 sm:mb-6 leading-[1.1] break-words">
-            Scientific<br/>Sovereignty.<br/><span className="text-white">Engineered.</span>
+          <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-display font-black uppercase tracking-tight text-[var(--foreground)] mb-4 sm:mb-6 leading-[1.1] break-words">
+            Scientific<br/>Sovereignty.<br/><span className="text-[var(--sci-red)]">Engineered.</span>
           </h1>
           
-          <p className="text-sm md:text-base text-[#aaaaaa] max-w-lg mb-10 font-sans tracking-wide leading-relaxed">
+          <p className="text-sm md:text-base text-[var(--text-mid)] max-w-lg mb-10 font-sans tracking-wide leading-relaxed">
             GitScience provides a rigorous, high-performance cryptographic substrate for verifiable research, decentralized consensus, and immutable execution.
           </p>
 
@@ -46,7 +54,7 @@ export default function WelcomeBanner({
               className="sci-btn-primary px-8 py-4 text-[11px] w-full sm:w-auto flex items-center justify-center gap-2"
             >
               <span>Initialize Sequence</span>
-              <span className="material-symbols-outlined text-[14px]">chevron_right</span>
+              <span className="material-symbols-outlined text-[14px]" aria-hidden>chevron_right</span>
             </button>
             <button
               onClick={() => setShowGuideModal(true)}
@@ -56,15 +64,19 @@ export default function WelcomeBanner({
             </button>
           </div>
           
-          {/* Status micro-data */}
+          {/* Live Platform micro-data */}
           <div className="mt-12 flex items-center gap-12 border-t border-[var(--surface-border)] pt-6 w-full max-w-sm">
             <div>
-              <div className="text-[9px] text-[#666666] font-mono tracking-widest uppercase mb-1">Node Count</div>
-              <div className="text-white font-mono font-bold text-sm">12,453</div>
+              <div className="text-[9px] text-[var(--text-low)] font-mono tracking-widest uppercase mb-1">{t.statManuscripts}</div>
+              <div className="text-[var(--foreground)] font-mono font-bold text-sm">
+                {platformStats.total_notarized_manuscripts.toLocaleString()}
+              </div>
             </div>
             <div>
-              <div className="text-[9px] text-[#666666] font-mono tracking-widest uppercase mb-1">Verified TX</div>
-              <div className="text-white font-mono font-bold text-sm">8.4M+</div>
+              <div className="text-[9px] text-[var(--text-low)] font-mono tracking-widest uppercase mb-1">{t.statTransactions}</div>
+              <div className="text-[var(--foreground)] font-mono font-bold text-sm">
+                {platformStats.total_ledger_transactions.toLocaleString()}
+              </div>
             </div>
           </div>
         </div>
@@ -73,8 +85,8 @@ export default function WelcomeBanner({
         <div className="flex items-center justify-center lg:justify-end relative">
           {/* Crosshair lines behind logo */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20">
-            <div className="w-full h-[1px] bg-white absolute"></div>
-            <div className="h-full w-[1px] bg-white absolute"></div>
+            <div className="w-full h-[1px] bg-[var(--foreground)] absolute"></div>
+            <div className="h-full w-[1px] bg-[var(--foreground)] absolute"></div>
           </div>
           
           <Image
@@ -82,7 +94,7 @@ export default function WelcomeBanner({
             alt="GitScience Vitruvian Protocol"
             width={500}
             height={500}
-            className="w-full max-w-[500px] h-auto object-contain relative z-10 drop-shadow-[0_0_30px_rgba(0,150,255,0.2)] mix-blend-screen"
+            className="w-full max-w-[500px] h-auto object-contain relative z-10 drop-shadow-[0_0_30px_rgba(241,78,50,0.25)] mix-blend-screen"
           />
         </div>
 

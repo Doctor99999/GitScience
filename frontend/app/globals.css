@@ -1,12 +1,62 @@
 @import "tailwindcss";
 
+/* ─────────────────────────────────────────────────────
+   DESIGN TOKENS — Scuderia / Sovereign Engineering
+   ───────────────────────────────────────────────────── */
 :root {
-  --background: #0b0e14; /* surface-container-lowest */
-  --foreground: #e1e2eb; /* on-surface */
-  --sci-red: #f14e32;
+  /* Carbon elevation layers */
+  --background: #050505;
+  --surface: #0b0e14;
+  --surface-hi: #10131a;
   --carbon-gray: #181818;
-  --surface: #10131a;
-  --surface-border: rgba(255, 255, 255, 0.1);
+  --carbon-700: #1f232c;
+
+  /* Borders */
+  --surface-border: rgba(255, 255, 255, 0.09);
+  --surface-border-strong: rgba(255, 255, 255, 0.16);
+
+  /* Text ramp */
+  --foreground: #eef0f6;
+  --text-mid: #a6acbb;
+  --text-low: #7a8192;
+  --text-faint: #565b68;
+
+  /* Brand accent — single, non-negotiable */
+  --sci-red: #f14e32;
+  --sci-red-hover: #d13a20;
+  --sci-red-dim: rgba(241, 78, 50, 0.12);
+  --sci-red-glow: rgba(241, 78, 50, 0.40);
+
+  /* Semantic palette — data & status only, never buttons */
+  --ok: #34d399;
+  --ok-dim: rgba(52, 211, 153, 0.12);
+  --warn: #fbbf24;
+  --warn-dim: rgba(251, 191, 36, 0.12);
+  --err: #f87171;
+  --err-dim: rgba(248, 113, 113, 0.12);
+  --info: #22d3ee;
+  --info-dim: rgba(34, 211, 238, 0.12);
+
+  /* Radii — engineering precision */
+  --radius-sharp: 0px;
+  --radius-card: 2px;
+  --radius-chip: 3px;
+
+  /* Type scale */
+  --fs-display: clamp(2rem, 5vw, 3.5rem);
+  --fs-h1: 1.5rem;
+  --fs-h2: 1.25rem;
+  --fs-h3: 1rem;
+  --fs-body: 0.875rem;
+  --fs-sm: 0.8125rem;
+  --fs-data: 0.75rem;
+  --fs-label: 0.6875rem;
+  --fs-micro: 0.625rem;
+
+  /* Motion */
+  --dur-fast: 150ms;
+  --dur-med: 240ms;
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @theme inline {
@@ -17,6 +67,9 @@
   --font-display: "Anybody", "Inter", sans-serif;
 }
 
+/* ─────────────────────────────────────────────────────
+   BASE RESET
+   ───────────────────────────────────────────────────── */
 html, body {
   width: 100%;
   max-width: 100vw;
@@ -32,7 +85,6 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans);
   min-height: 100dvh;
-  min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
@@ -42,136 +94,145 @@ body {
   contain: layout;
 }
 
-/* Crypto hash & address truncation */
-.break-hash {
-  word-break: break-all;
-  overflow-wrap: anywhere;
-}
+* { box-sizing: border-box; }
 
-/* Prevent any horizontal overflow */
-* {
-  box-sizing: border-box;
-}
-
-/* Fixed layout: prevent main screen from floating */
-#__next,
-main {
+#__next, main {
   width: 100%;
   max-width: 100vw;
   overflow-x: hidden;
 }
 
-/* Sticky header stabilization */
-header {
-  will-change: transform;
-  backface-visibility: hidden;
+::selection { background: var(--sci-red); color: #fff; }
+
+/* ─────────────────────────────────────────────────────
+   FOCUS & ACCESSIBILITY
+   ───────────────────────────────────────────────────── */
+.sci-focus:focus-visible {
+  outline: 2px solid var(--sci-red);
+  outline-offset: 2px;
 }
 
-/* Tabs container: prevent overflow on mobile */
-nav {
-  overscroll-behavior-x: contain;
-}
+/* ─────────────────────────────────────────────────────
+   HASH BREAK & NAV OVERFLOW
+   ───────────────────────────────────────────────────── */
+.break-hash { word-break: break-all; overflow-wrap: anywhere; }
 
-/* Prevent content shift when switching tabs */
-.tab-panel {
-  min-height: 400px;
-}
+header { will-change: transform; backface-visibility: hidden; }
+nav { overscroll-behavior-x: contain; }
+.tab-panel { min-height: 400px; }
 
-/* Scrollbar Utilities */
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
+/* ─────────────────────────────────────────────────────
+   SCROLLBAR UTILITIES
+   ───────────────────────────────────────────────────── */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
+.tab-scroll::-webkit-scrollbar { height: 4px; }
+.tab-scroll::-webkit-scrollbar-track { background: transparent; }
+.tab-scroll::-webkit-scrollbar-thumb { background: rgba(241, 78, 50, 0.45); border-radius: 4px; }
+.tab-scroll::-webkit-scrollbar-thumb:hover { background: rgba(241, 78, 50, 0.75); }
+.tab-scroll { scrollbar-width: thin; scrollbar-color: rgba(241, 78, 50, 0.45) transparent; }
 
-/* Tab navigation scrollbar — thin, styled */
-.tab-scroll::-webkit-scrollbar {
-  height: 3px;
-}
-.tab-scroll::-webkit-scrollbar-track {
-  background: transparent;
-}
-.tab-scroll::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 3px;
-}
-.tab-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
-}
-.tab-scroll {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
-}
-
-/* Right fade indicator for scrollable tabs */
-.tab-fade-right {
-  position: relative;
-}
+.tab-fade-right { position: relative; }
 .tab-fade-right::after {
   content: "";
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 40px;
+  position: absolute; top: 0; right: 0; bottom: 0; width: 40px;
   background: linear-gradient(to right, transparent, var(--background));
-  pointer-events: none;
-  z-index: 1;
+  pointer-events: none; z-index: 1;
 }
 
-/* Stitch-style Panels */
+/* ─────────────────────────────────────────────────────
+   SCI-PANEL — foundation card
+   ───────────────────────────────────────────────────── */
 .ferrari-panel, .sci-panel {
-  background: var(--carbon-gray);
+  background: var(--surface-hi);
   border: 1px solid var(--surface-border);
-  border-radius: 0px; 
+  border-radius: var(--radius-sharp);
   position: relative;
   overflow: hidden;
   max-width: 100%;
 }
 
-/* Button & Link Hover Styles */
+/* ─────────────────────────────────────────────────────
+   BUTTONS & LINKS — brand language
+   ───────────────────────────────────────────────────── */
 .ferrari-btn-primary, .sci-btn-primary {
   background-color: var(--sci-red);
   color: #ffffff;
-  border-radius: 0px;
+  border: none;
+  border-radius: var(--radius-card);
   font-family: var(--font-mono);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  box-shadow: 0 0 15px rgba(241,78,50,0.4);
-  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: 0 0 18px var(--sci-red-glow);
+  transition: background-color var(--dur-fast) ease, box-shadow var(--dur-fast) ease;
+  cursor: pointer;
 }
 .ferrari-btn-primary:hover, .sci-btn-primary:hover {
-  background-color: #d13a20;
-  box-shadow: 0 0 25px rgba(241,78,50,0.6);
+  background-color: var(--sci-red-hover);
+  box-shadow: 0 0 28px var(--sci-red-glow);
 }
 
 .ferrari-btn-secondary, .sci-btn-secondary {
   background-color: transparent;
   color: var(--foreground);
   border: 1px solid var(--surface-border);
-  border-radius: 0px;
+  border-radius: var(--radius-card);
   font-family: var(--font-mono);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  transition: all 0.3s ease;
+  transition: all var(--dur-fast) ease;
+  cursor: pointer;
 }
 .ferrari-btn-secondary:hover, .sci-btn-secondary:hover {
-  background-color: rgba(255, 255, 255, 0.05);
+  background-color: rgba(255,255,255,0.05);
+  border-color: var(--surface-border-strong);
 }
 
 .ferrari-link, .sci-link {
   color: var(--sci-red);
   text-decoration: none;
   text-transform: uppercase;
-  font-size: 0.75rem;
+  font-size: var(--fs-data);
   letter-spacing: 0.05em;
   font-weight: bold;
 }
-.ferrari-link:hover, .sci-link:hover {
-  text-decoration: underline;
+.ferrari-link:hover, .sci-link:hover { text-decoration: underline; }
+
+/* ─────────────────────────────────────────────────────
+   COMPONENT UTILITY CLASSES
+   ───────────────────────────────────────────────────── */
+
+/* Mono label / kicker */
+.sci-label {
+  font-family: var(--font-mono);
+  font-size: var(--fs-label);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  line-height: 1;
 }
+
+/* Tabular mono values */
+.sci-data {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Skeleton shimmer */
+.sci-skeleton {
+  position: relative;
+  overflow: hidden;
+  background: rgba(255,255,255,0.06);
+}
+.sci-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+  animation: sci-shimmer 1.4s var(--ease-out-soft) infinite;
+}
+@keyframes sci-shimmer { 100% { transform: translateX(100%); } }

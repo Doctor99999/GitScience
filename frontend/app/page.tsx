@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Header from "../components/Header";
 import WelcomeBanner from "../components/WelcomeBanner";
 import NavigationTabs, { TabKey } from "../components/NavigationTabs";
@@ -23,7 +23,6 @@ import PreregistrationTab from "../components/tabs/PreregistrationTab";
 
 // Modals
 import OrcidModal from "../components/modals/OrcidModal";
-// WalletModal removed
 import GuideModal from "../components/modals/GuideModal";
 import LicenseModal from "../components/modals/LicenseModal";
 
@@ -47,7 +46,6 @@ import {
 } from "../hooks/useTabState";
 
 import { useAccount } from "wagmi";
-import { useModal } from "connectkit";
 
 export default function GitScienceApp() {
   const [lang, setLang] = useState<"KZ" | "RU" | "EN">("KZ");
@@ -77,14 +75,10 @@ export default function GitScienceApp() {
   const [passkeyNotice, setPasskeyNotice] = useState<string | null>(null);
   const [licenseModalContent, setLicenseModalContent] = useState<string | null>(null);
 
-  // Web3 Wallet State (Wagmi + ConnectKit)
+  // Web3 Wallet State (Wagmi + ConnectKit) — UI handled by ConnectKit
   const { address } = useAccount();
-  const { setOpen: setConnectKitOpen } = useModal();
 
   const walletAddress = address || null;
-
-  // Programmatic opening of wallet modal
-  const setShowWalletModal = (v: boolean) => setConnectKitOpen(v);
 
   // Platform Live Stats
   const [platformStats, setPlatformStats] = useState({
@@ -110,6 +104,33 @@ export default function GitScienceApp() {
   const amanat = useAmanatTab();
   const court = useCourtTab({ t, scholarToken: activeScholar?.access_token });
   const vampire = useVampireTab({ onLibraryRefresh: library.refresh, t, token: activeScholar?.access_token });
+
+  // Handlers (defined before the initial-load effect that may call them)
+  const { setAuthorName: setNotaryAuthor, setOrcid: setNotaryOrcid } = notary;
+  const handleScholarLogin = useCallback(
+    (profile: ScholarProfile) => {
+      setActiveScholar(profile);
+      setNotaryAuthor(profile.name);
+      setNotaryOrcid(profile.orcid);
+      // Персистим профиль БЕЗ access_token (токен только в React-состоянии — не в localStorage).
+      const profileWithoutToken = { ...profile };
+      delete (profileWithoutToken as unknown as Record<string, unknown>).access_token;
+      localStorage.setItem("gitscience_active_scholar", JSON.stringify(profileWithoutToken));
+      setShowOrcidModal(false);
+    },
+    [setNotaryAuthor, setNotaryOrcid],
+  );
+
+  const handleScholarLogout = () => {
+    setActiveScholar(null);
+    localStorage.removeItem("gitscience_active_scholar");
+    setShowOrcidModal(false);
+  };
+
+  const handleBiometricAuth = () => {
+    setPasskeyNotice("Touch ID / FIDO2 аутентификациясы сәтті орындалды!");
+    setTimeout(() => setPasskeyNotice(null), 3500);
+  };
 
   // Initial Load & Session Fetch
   useEffect(() => {
@@ -153,36 +174,15 @@ export default function GitScienceApp() {
       })
       .catch(err => console.error("OAuth Error:", err));
     }
-  }, []);
-
-  // Handlers
-  const handleScholarLogin = (profile: ScholarProfile) => {
-    setActiveScholar(profile);
-    notary.setAuthorName(profile.name);
-    notary.setOrcid(profile.orcid);
-    // Персистим профиль БЕЗ access_token (токен только в React-состоянии — не в localStorage).
-    const profileWithoutToken = { ...profile };
-    delete (profileWithoutToken as unknown as Record<string, unknown>).access_token;
-    localStorage.setItem("gitscience_active_scholar", JSON.stringify(profileWithoutToken));
-    setShowOrcidModal(false);
-  };
-
-  const handleScholarLogout = () => {
-    setActiveScholar(null);
-    localStorage.removeItem("gitscience_active_scholar");
-    setShowOrcidModal(false);
-  };
-
-  const handleBiometricAuth = () => {
-    setPasskeyNotice("📱 Touch ID / FIDO2 аутентификациясы сәтті орындалды!");
-    setTimeout(() => setPasskeyNotice(null), 3500);
-  };
+  }, [handleScholarLogin]);
 
   return (
-    <div className="min-h-screen w-full max-w-[100vw] overflow-x-hidden bg-[#050505] text-[#ffffff] font-sans flex flex-col selection:bg-[#da291c] selection:text-white">
+    <div className="min-h-screen w-full max-w-[100vw] overflow-x-hidden bg-[var(--background)] text-[var(--foreground)] font-sans flex flex-col selection:bg-[var(--sci-red)] selection:text-white">
       {/* Welcome Banner for guests — scrolls away */}
       {!activeScholar && (
         <WelcomeBanner
+          t={t}
+          platformStats={platformStats}
           setShowOrcidModal={setShowOrcidModal}
           setShowGuideModal={setShowGuideModal}
         />
@@ -411,7 +411,6 @@ export default function GitScienceApp() {
 
           {activeTab === "editorial" && (
             <EditorialTab
-              t={t}
               apiBase={apiBase}
               token={activeScholar?.access_token}
             />
@@ -428,7 +427,6 @@ export default function GitScienceApp() {
 
           {activeTab === "preregistration" && (
             <PreregistrationTab
-              t={t}
               apiBase={apiBase}
               token={activeScholar?.access_token}
             />
@@ -452,11 +450,12 @@ export default function GitScienceApp() {
         onLogout={handleScholarLogout}
       />
 
-      {/* WalletModal removed - ConnectKit handles the UI */}
+      {/* Wallet UI handled by ConnectKit */}
 
       <GuideModal
         show={showGuideModal}
         onClose={() => setShowGuideModal(false)}
+        t={t}
       />
 
       <LicenseModal

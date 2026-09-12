@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { getApiBase, DEFAULT_FOUNDER_PROFILE } from "../lib/constants";
+import { getApiBase } from "../lib/constants";
 import type { TranslationDict } from "../lib/translations";
 import type {
   AiAuditResult,

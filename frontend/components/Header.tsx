@@ -41,7 +41,7 @@ export default function Header({
         </div>
 
         {/* Actions & Language */}
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0 ml-auto sm:ml-0">
+        <div className="ml-auto flex max-w-full flex-wrap items-center justify-end gap-2 sm:gap-3 min-w-0">
           {/* AI Guide Button */}
           <button
             onClick={() => setShowGuideModal(true)}
@@ -50,13 +50,13 @@ export default function Header({
             {t.guideBtn}
           </button>
 
-          {/* Biometric Touch ID */}
+          {/* Biometric Passkey */}
           <button
             onClick={handleBiometricAuth}
             className="hidden md:inline-flex sci-btn-secondary px-3 py-1.5 text-[10px] items-center gap-1.5 shrink-0"
           >
-            <span className="material-symbols-outlined text-[14px]">fingerprint</span>
-            <span>Touch ID</span>
+            <span className="material-symbols-outlined text-[14px]" aria-hidden>fingerprint</span>
+            <span>{t.passkeyBtn}</span>
           </button>
 
           {/* Language Selector: KZ FIRST */}
@@ -68,7 +68,7 @@ export default function Header({
                 className={`px-2 sm:px-3 py-0.5 sm:py-1 font-mono text-[9px] sm:text-[10px] tracking-widest uppercase transition-colors ${
                   lang === l
                     ? "bg-[var(--sci-red)] text-white shadow-[0_0_10px_rgba(241,78,50,0.4)]"
-                    : "text-[#888888] hover:text-white hover:bg-[#222222]"
+                    : "text-[var(--text-low)] hover:text-[var(--foreground)] hover:bg-[var(--surface-hi)]"
                 }`}
               >
                 {l}
@@ -77,29 +77,29 @@ export default function Header({
           </div>
 
           {/* Web3 Wallet Connection Button (ConnectKit) */}
-          <div className="shrink-0 max-w-[140px] sm:max-w-none overflow-hidden">
+          <div className="shrink-0 max-w-[130px] sm:max-w-none overflow-hidden">
             <ConnectKitButton />
           </div>
 
           {/* ORCID Scholar Login/Status Button */}
           {activeScholar ? (
-            <div className="flex items-center gap-1 sm:gap-1.5 bg-emerald-950/50 border border-emerald-600/50 px-2 sm:px-3 py-1 rounded-lg text-xs shrink-0 max-w-[130px] sm:max-w-[180px]">
-              <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
-              <span className="font-mono text-emerald-300 font-semibold text-[10px] sm:text-xs truncate">
+            <div className="flex items-center gap-2 border border-[var(--ok)]/40 bg-[var(--ok-dim)] px-2 sm:px-3 py-1 shrink-0 max-w-[130px] sm:max-w-[190px]">
+              <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 shrink-0 rounded-full bg-[var(--ok)] animate-pulse"></span>
+              <span className="font-mono text-[var(--ok)] font-semibold text-[10px] sm:text-xs truncate">
                 {activeScholar.name}
               </span>
               <button
                 onClick={() => setShowOrcidModal(true)}
-                className="text-[10px] text-slate-400 hover:text-cyan-300 underline ml-0.5 sm:ml-1 font-mono shrink-0"
+                className="sci-focus ml-0.5 shrink-0 text-[var(--text-low)] hover:text-[var(--foreground)] transition-colors"
                 title={t.switchScholar}
               >
-                ⚙
+                <span className="material-symbols-outlined !text-sm" aria-hidden>settings</span>
               </button>
             </div>
           ) : (
             <button
               onClick={() => setShowOrcidModal(true)}
-              className="bg-gradient-to-r from-emerald-500 to-cyan-500 text-slate-950 font-bold text-[11px] sm:text-xs px-2.5 sm:px-3 py-1.5 rounded-lg shadow transition hover:opacity-90 font-mono shrink-0 whitespace-nowrap"
+              className="sci-btn-primary px-3 sm:px-4 py-1.5 sm:py-2 text-[10px] sm:text-[11px] whitespace-nowrap"
             >
               {t.loginOrcid}
             </button>
@@ -108,7 +108,7 @@ export default function Header({
       </div>
 
       {passkeyNotice && (
-        <div className="bg-emerald-950/90 border-b border-emerald-500/50 px-4 py-1.5 text-center text-[11px] sm:text-xs text-emerald-300 font-mono break-words">
+        <div className="bg-[var(--ok-dim)] border-b border-[var(--ok)]/40 px-4 py-1.5 text-center text-[11px] sm:text-xs text-[var(--ok)] font-mono break-words">
           {passkeyNotice}
         </div>
       )}

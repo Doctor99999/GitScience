@@ -1,10 +1,15 @@
 "use client";
 
 import React, { useState } from "react";
-import type { TranslationDict } from "../../lib/translations";
+import { Panel } from "@/components/ui/Panel";
+import { SectionHeader } from "@/components/ui/SectionHeader";
+import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
+import { Input, Textarea } from "@/components/ui/Field";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { SubNav } from "@/components/ui/SubNav";
 
 interface PreregistrationTabProps {
-  t: TranslationDict;
   apiBase: string;
   token?: string | null;
 }
@@ -12,7 +17,6 @@ interface PreregistrationTabProps {
 type PreregView = "create" | "view";
 
 export default function PreregistrationTab({
-  t,
   apiBase,
   token,
 }: PreregistrationTabProps) {
@@ -109,225 +113,210 @@ export default function PreregistrationTab({
   return (
     <div className="space-y-6">
       {/* Sub-navigation */}
-      <div className="flex gap-2">
-        {(["create", "view"] as PreregView[]).map((v) => (
-          <button
-            key={v}
-            onClick={() => setView(v)}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition ${
-              view === v
-                ? "bg-emerald-600 text-white"
-                : "bg-slate-800 text-slate-400 hover:bg-slate-700"
-            }`}
-          >
-            {v === "create" && "Create Preregistration"}
-            {v === "view" && "View / Register"}
-          </button>
-        ))}
-      </div>
+      <SubNav
+        items={[
+          { key: "create", label: "Create Preregistration" },
+          { key: "view", label: "View / Register" },
+        ]}
+        active={view}
+        onChange={(v) => setView(v as PreregView)}
+      />
 
       {/* CREATE VIEW */}
       {view === "create" && (
-        <div className="bg-[#0e1726] border border-slate-800 rounded-3xl p-4 sm:p-7 shadow-xl space-y-5">
-          <div className="border-b border-slate-800 pb-4">
-            <h2 className="text-lg sm:text-2xl font-bold text-slate-100">
-              Create Preregistration
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-400 mt-1">
-              Lock your hypothesis and methods before data collection
-            </p>
-          </div>
+        <Panel className="p-4 sm:p-7 space-y-5">
+          <SectionHeader
+            icon="biotech"
+            title={<h2 className="font-display text-lg font-extrabold uppercase tracking-tight text-[var(--foreground)]">Create Preregistration</h2>}
+            subtitle={<p className="text-xs sm:text-sm text-[var(--text-mid)]">Lock your hypothesis and methods before data collection</p>}
+          />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
             <div className="md:col-span-2">
-              <label className="block text-slate-400 font-semibold mb-1">Title *</label>
-              <input
-                type="text"
+              <Input
+                label="Title *"
+                placeholder="Study title"
                 value={form.title}
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
-                placeholder="Study title"
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:border-emerald-500 outline-none"
               />
             </div>
             <div className="md:col-span-2">
-              <label className="block text-slate-400 font-semibold mb-1">
-                Hypothesis / Research Question *
-              </label>
-              <textarea
+              <Textarea
+                label="Hypothesis / Research Question *"
+                hint="Primary hypothesis or research question"
                 rows={3}
                 value={form.hypothesis}
                 onChange={(e) => setForm({ ...form, hypothesis: e.target.value })}
-                placeholder="Primary hypothesis or research question"
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:border-emerald-500 outline-none"
               />
             </div>
             <div className="md:col-span-2">
-              <label className="block text-slate-400 font-semibold mb-1">Methods</label>
-              <textarea
+              <Textarea
+                label="Methods"
+                hint="Planned methodology"
                 rows={3}
                 value={form.methods}
                 onChange={(e) => setForm({ ...form, methods: e.target.value })}
-                placeholder="Planned methodology"
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:border-emerald-500 outline-none"
               />
             </div>
             <div className="md:col-span-2">
-              <label className="block text-slate-400 font-semibold mb-1">Analysis Plan</label>
-              <textarea
+              <Textarea
+                label="Analysis Plan"
+                hint="Statistical analysis plan"
                 rows={3}
                 value={form.analysis_plan}
                 onChange={(e) => setForm({ ...form, analysis_plan: e.target.value })}
-                placeholder="Statistical analysis plan"
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:border-emerald-500 outline-none"
               />
             </div>
             <div>
-              <label className="block text-slate-400 font-semibold mb-1">Authors</label>
-              <input
-                type="text"
+              <Input
+                label="Authors"
+                placeholder="Dr. Smith, Prof. Jones"
                 value={form.authors}
                 onChange={(e) => setForm({ ...form, authors: e.target.value })}
-                placeholder="Dr. Smith, Prof. Jones"
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:border-emerald-500 outline-none"
               />
             </div>
             <div>
-              <label className="block text-slate-400 font-semibold mb-1">ORCID</label>
-              <input
-                type="text"
+              <Input
+                label="ORCID"
+                placeholder="0000-0001-2345-6789"
                 value={form.orcid}
                 onChange={(e) => setForm({ ...form, orcid: e.target.value })}
-                placeholder="0000-0001-2345-6789"
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 font-mono text-emerald-400 focus:border-emerald-500 outline-none"
               />
             </div>
           </div>
 
-          <button
+          <Button
+            variant="primary"
+            size="md"
+            loading={creating}
+            disabled={!form.title || !form.hypothesis}
             onClick={handleCreate}
-            disabled={creating || !form.title || !form.hypothesis}
-            className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 disabled:text-slate-500 text-white font-bold py-3 rounded-xl font-mono text-sm transition"
           >
             {creating ? "Creating..." : "Create Preregistration"}
-          </button>
+          </Button>
 
           {createResult && (
-            <div className="p-4 bg-emerald-950/40 border border-emerald-500/40 rounded-xl font-mono text-xs text-emerald-300">
+            <Panel tone="ok" className="p-4 font-mono text-xs text-[var(--ok)]">
               {createResult}
-            </div>
+            </Panel>
           )}
-        </div>
+        </Panel>
       )}
 
       {/* VIEW / REGISTER VIEW */}
       {view === "view" && (
-        <div className="bg-[#0e1726] border border-slate-800 rounded-3xl p-4 sm:p-7 shadow-xl space-y-5">
-          <div className="border-b border-slate-800 pb-4">
-            <h2 className="text-lg sm:text-2xl font-bold text-slate-100">
-              View Preregistration
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-400 mt-1">
-              View and register your preregistration
-            </p>
-          </div>
+        <Panel className="p-4 sm:p-7 space-y-5">
+          <SectionHeader
+            icon="biotech"
+            title={<h2 className="font-display text-lg font-extrabold uppercase tracking-tight text-[var(--foreground)]">View Preregistration</h2>}
+            subtitle={<p className="text-xs sm:text-sm text-[var(--text-mid)]">View and register your preregistration</p>}
+          />
 
           <div className="flex gap-2">
-            <input
-              type="text"
-              value={viewTarget}
-              onChange={(e) => setViewTarget(e.target.value)}
-              placeholder="Preregistration ID"
-              className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 font-mono text-cyan-300 focus:border-emerald-500 outline-none"
-            />
-            <button
+            <div className="flex-1">
+              <Input
+                label=""
+                icon="search"
+                placeholder="Preregistration ID"
+                value={viewTarget}
+                onChange={(e) => setViewTarget(e.target.value)}
+              />
+            </div>
+            <Button
+              variant="primary"
+              size="md"
+              loading={viewLoading}
+              disabled={!viewTarget}
               onClick={handleView}
-              disabled={viewLoading || !viewTarget}
-              className="px-6 bg-cyan-600 hover:bg-cyan-500 disabled:bg-slate-700 text-white font-bold py-2 rounded-xl text-xs transition"
             >
               Load
-            </button>
+            </Button>
           </div>
 
-          {preregData && (
+          {preregData ? (
             <div className="space-y-3">
-              <div className="p-4 bg-slate-900 rounded-xl border border-slate-800 space-y-2">
-                <div className="text-sm font-bold text-white">
+              <Panel className="p-4 space-y-2">
+                <div className="text-sm font-bold text-[var(--foreground)]">
                   {preregData.title as string}
                 </div>
-                <div className="text-[10px] text-slate-400">
+                <div className="text-[10px] text-[var(--text-mid)]">
                   Status:{" "}
-                  <span
-                    className={`font-bold ${
+                  <Badge
+                    variant={
                       preregData.status === "registered"
-                        ? "text-emerald-400"
-                        : "text-amber-400"
-                    }`}
+                        ? "ok"
+                        : "warn"
+                    }
                   >
                     {preregData.status as string}
-                  </span>
+                  </Badge>
                 </div>
                 {!!preregData.registered_at && (
-                  <div className="text-[10px] text-slate-400">
+                  <div className="text-[10px] text-[var(--text-mid)]">
                     Registered: {String(preregData.registered_at)}
                   </div>
                 )}
-                <div className="text-xs text-slate-300">
+                <div className="text-xs text-[var(--foreground)]">
                   <strong>Hypothesis:</strong> {String(preregData.hypothesis)}
                 </div>
                 {!!preregData.methods && (
-                  <div className="text-xs text-slate-300">
+                  <div className="text-xs text-[var(--foreground)]">
                     <strong>Methods:</strong> {String(preregData.methods)}
                   </div>
                 )}
                 {!!preregData.analysis_plan && (
-                  <div className="text-xs text-slate-300">
+                  <div className="text-xs text-[var(--foreground)]">
                     <strong>Analysis Plan:</strong> {String(preregData.analysis_plan)}
                   </div>
                 )}
                 {!!preregData.version && (
-                  <div className="text-[10px] text-slate-400">
+                  <div className="text-[10px] text-[var(--text-mid)]">
                     Version: {String(preregData.version)}
                   </div>
                 )}
-              </div>
+              </Panel>
 
               {preregData.status !== "registered" && (
-                <button
+                <Button
+                  variant="primary"
+                  size="md"
+                  loading={viewLoading}
                   onClick={handleRegister}
-                  disabled={viewLoading}
-                  className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 text-white font-bold py-3 rounded-xl text-sm transition"
                 >
                   Register Now (Lock in Time)
-                </button>
+                </Button>
               )}
 
               {registerResult && (
-                <div className="p-3 bg-emerald-950/40 border border-emerald-500/40 rounded-xl font-mono text-xs text-emerald-300">
+                <Panel tone="ok" className="p-3 font-mono text-xs text-[var(--ok)]">
                   {registerResult}
-                </div>
+                </Panel>
               )}
 
               {(preregData.amendments as unknown[])?.length ? (
                 <div className="space-y-2">
-                  <div className="text-xs font-bold text-slate-400">Amendments:</div>
+                  <div className="text-xs font-bold text-[var(--text-mid)]">Amendments:</div>
                   {(preregData.amendments as Record<string, unknown>[]).map((a, i) => (
-                    <div
-                      key={i}
-                      className="p-3 bg-slate-900 rounded-xl border border-slate-800"
-                    >
-                      <div className="text-[10px] text-slate-400">
+                    <Panel key={i} className="p-3">
+                      <div className="text-[10px] text-[var(--text-mid)]">
                         v{a.version as number} — {a.created_at as string}
                       </div>
-                      <div className="text-xs text-slate-300 mt-1">
+                      <div className="text-xs text-[var(--foreground)] mt-1">
                         {a.description as string}
                       </div>
-                    </div>
+                    </Panel>
                   ))}
                 </div>
               ) : null}
             </div>
+          ) : (
+            <EmptyState
+              icon="biotech"
+              title="No preregistration loaded"
+              body={<p>Enter an ID above to view a preregistration</p>}
+            />
           )}
-        </div>
+        </Panel>
       )}
     </div>
   );
