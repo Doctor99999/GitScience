@@ -36,7 +36,7 @@ class IPNFTEngine:
         if not article:
             raise RuntimeError(f"Манускрипт {registration_code} не найден в реестре — минтить нечего")
 
-        from .gitscience_web3 import cfg_get
+        from gitscience_web3 import cfg_get
         contract_address = cfg_get("contracts", "sovereign_ipnft")
         if not contract_address:
             raise RuntimeError(

@@ -9,6 +9,17 @@ import { ConnectKitProvider, getDefaultConfig } from "connectkit";
 // Setup queryClient
 const queryClient = new QueryClient();
 
+// WalletConnect Project ID обязателен в production (см. .env.production.template).
+// Без него провайдер деградирует на injected-кошельки (MetaMask и т.п.) — без
+// публичного demo-константы, которая выглядела как рабочий ключ.
+const walletConnectProjectId = (process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || "").trim();
+if (!walletConnectProjectId) {
+  console.warn(
+    "[GitScience] NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID не задан: WalletConnect отключён. " +
+      "В production укажите Project ID из cloud.walletconnect.com."
+  );
+}
+
 // Create Wagmi config
 const config = createConfig(
   getDefaultConfig({
@@ -20,8 +31,8 @@ const config = createConfig(
       [mainnet.id]: http(),
     },
     
-    // Required ConnectKit Configuration
-    walletConnectProjectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || "demo_project_id",
+    // Required ConnectKit Configuration (пустая строка = нет WalletConnect relay, только injected)
+    walletConnectProjectId,
 
     // Required App Info
     appName: "GitScience Sovereign Protocol",

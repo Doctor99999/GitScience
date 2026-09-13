@@ -1100,8 +1100,12 @@ class EditorialEngine:
             "letter": submission.decision_letter,
         }
     
-    def get_submission_details(self, submission_id: str) -> Optional[Dict[str, Any]]:
-        """Получение деталей submission"""
+    def get_submission_details(self, submission_id: str, viewer_orcid: str = "", is_editor: bool = False) -> Optional[Dict[str, Any]]:
+        """Получение деталей submission с защитой конфиденциальности рецензентов.
+
+        Для не-редакторов: reviewer_orcid, detailed_comments и minor_comments
+        замаскированы (двойное слепое рецензирование — PIIPAA/HIPAA RUO).
+        """
         submission = self.submissions.get(submission_id)
         if not submission:
             return None
@@ -1110,7 +1114,13 @@ class EditorialEngine:
         details["reviews_detail"] = []
         for review_id, review in self.reviews.items():
             if review.submission_id == submission_id:
-                details["reviews_detail"].append(asdict(review))
+                review_dict = asdict(review)
+                if not is_editor:
+                    # Защита anonymity: скрываем личность рецензента и детальные комментарии
+                    review_dict["reviewer_orcid"] = "REDACTED"
+                    review_dict["detailed_comments"] = ""
+                    review_dict["minor_comments"] = ""
+                details["reviews_detail"].append(review_dict)
         
         return details
     

@@ -10,6 +10,7 @@ import os
 import json
 import time
 import base64
+import math
 import hashlib
 import threading
 import concurrent.futures
@@ -41,6 +42,16 @@ CREDIT_ROLES = [
     "Funding Acquisition"
 ]
 
+def _sanitize_weight(value: Any) -> float:
+    """Валидация веса контрибьютора: конечное реальное число в (0, 1_000_000]."""
+    try:
+        w = float(value)
+    except (TypeError, ValueError):
+        raise ValueError(f"Invalid contributor weight: {value!r}. Must be a finite number greater than 0.")
+    if not math.isfinite(w) or w <= 0 or w > 1_000_000:
+        raise ValueError(f"Invalid contributor weight: {value!r}. Must be a finite number in (0, 1000000].")
+    return w
+
 
 # =====================================================================
 # 1. 🛡️ ПЕСОЧНИЦА ВЫЧИСЛЕНИЙ С ТАЙМАУТОМ (Sandbox Engine & AST Merkle)
@@ -49,12 +60,9 @@ class SandboxedEvaluator:
     """Запуск AST-вычислений с жестким лимитом времени (0.5 сек) в изолированном потоке"""
 
     @staticmethod
-    def evaluate_safe(parsed_ast, variables: Dict[str, Any], max_time_sec: float = 0.5):
-        if not SafeASTEvaluator:
-            raise NotImplementedError("AST Evaluator не подключен")
-
+    def evaluate_safe(func, *args, max_time_sec: float = 0.5, **kwargs):
         def _worker():
-            return SafeASTEvaluator(variables).visit(parsed_ast)
+            return func(*args, **kwargs)
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
             future = executor.submit(_worker)
@@ -86,18 +94,19 @@ class CRediTContributorManager:
         if not contributors:
             return []
 
-        total_weight = sum(c.get("weight", 1.0) for c in contributors)
+        weights = [_sanitize_weight(c.get("weight", 1.0)) for c in contributors]
+        total_weight = sum(weights)
         if total_weight <= 0:
-            total_weight = 1.0
+            raise ValueError("Total contributor weight must be positive.")
 
         calculated = []
-        for c in contributors:
-            share_pct = round((c.get("weight", 1.0) / total_weight) * 100.0, 2)
+        for c, weight in zip(contributors, weights):
+            share_pct = round((weight / total_weight) * 100.0, 2)
             calculated.append({
                 "name": c.get("name", "Unknown"),
                 "orcid": c.get("orcid", ""),
                 "roles": CRediTContributorManager.validate_roles(c.get("roles", [])),
-                "weight": c.get("weight", 1.0),
+                "weight": weight,
                 "author_pool_pct": share_pct,
                 "effective_total_pct": round(share_pct * 0.55, 2)  # Доля от всего дохода с учетом 55% пула авторов
             })
@@ -510,11 +519,13 @@ class DependencyRoyaltyRouter:
             contributors = [{"name": "Lead Author", "orcid": "", "roles": ["Conceptualization", "Methodology"], "weight": 100}]
 
         author_breakdown = []
-        total_weight = sum(c.get("weight", 1.0) for c in contributors) or 1.0
+        weights = [_sanitize_weight(c.get("weight", 1.0)) for c in contributors]
+        total_weight = sum(weights)
+        if total_weight <= 0:
+            raise ValueError("Total contributor weight must be positive.")
 
         allocated = 0
-        for idx, c in enumerate(contributors):
-            weight = c.get("weight", 1.0)
+        for idx, (c, weight) in enumerate(zip(contributors, weights)):
             share_ratio = weight / total_weight
             if idx == len(contributors) - 1:
                 payout_cents = author_pool_cents - allocated  # последний получает цент-остаток

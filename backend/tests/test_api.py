@@ -3,6 +3,7 @@
 test_api.py — Integration and Route Tests for FastAPI Application
 """
 import pytest
+import json as _json
 from fastapi.testclient import TestClient
 import sys
 import os
@@ -60,25 +61,30 @@ def test_certificate_pdf_generation(client):
     assert len(res.content) > 1000
 
 def test_zk_commit_and_reveal_flow(client):
+    # ZK commit требует JWT (ORCID берётся из токена — Sybil protection) — логинимся заранее
+    login_res = client.post("/api/v1/auth/login", json={
+        "orcid": "0009-0003-3929-3605", "name": "Salauat Yeshimov"
+    })
+    assert login_res.status_code == 200
+    auth_headers = {"Authorization": f"Bearer {login_res.json()['access_token']}"}
+
     commit_payload = {
-        "author_orcid": "0009-0003-3929-3605",
+        "author_orcid": "0009-0003-3929-3605",  # игнорируется — берётся из JWT
         "author_name": "Salauat Yeshimov",
         "hypothesis_title": "Unit Test Discovery",
         "secret_salt": "pytest-secret-123",
         "hidden_payload_text": "Secret formula text for testing",
         "hidden_formula": "(Artery * 2.0) / Lymph"
     }
-    commit_res = client.post("/api/v1/zk/commit", json=commit_payload)
+    commit_res = client.post("/api/v1/zk/commit", json=commit_payload, headers=auth_headers)
     assert commit_res.status_code == 200
     commit_data = commit_res.json()
     cid = commit_data["commitment_id"]
+    assert commit_data.get("author_orcid") == "0009-0003-3929-3605"
 
-    # Получаем JWT для автора коммитмента
-    login_res = client.post("/api/v1/auth/login", json={
-        "orcid": "0009-0003-3929-3605", "name": "Salauat Yeshimov"
-    })
-    assert login_res.status_code == 200
-    auth_headers = {"Authorization": f"Bearer {login_res.json()['access_token']}"}
+    # Без JWT commit отклоняется (требование production-auth для ZK-приоритета)
+    anon_res = client.post("/api/v1/zk/commit", json=commit_payload)
+    assert anon_res.status_code == 401
 
     reveal_payload = {
         "commitment_id": cid,
@@ -285,14 +291,16 @@ def test_fiat_webhook_signature_enforced(client):
         assert res_unsigned.status_code == 401
 
         stale_ts = str(int(_time.time()) - 4000)
-        sig_stale = _hmac.new(b"unittest-webhook-secret", f"{stale_ts}.".encode() + b"{}", _hashlib.sha256).hexdigest()
+        # Подпись валидна по РЕАЛЬНОМУ телу — но timestamp вне окна 300с (анти-replay)
+        raw_body = _json.dumps(body).encode()
+        sig_stale = _hmac.new(b"unittest-webhook-secret", f"{stale_ts}.".encode() + raw_body, _hashlib.sha256).hexdigest()
         res_stale = client.post(
-            "/api/v1/billing/fiat/webhook", json=body,
-            headers={"X-GS-Timestamp": stale_ts, "X-GS-Signature": sig_stale}
+            "/api/v1/billing/fiat/webhook", content=raw_body,
+            headers={"Content-Type": "application/json", "X-GS-Timestamp": stale_ts, "X-GS-Signature": sig_stale}
         )
         assert res_stale.status_code == 401
+        assert "Replay rejected" in res_stale.json()["detail"]
 
-        import json as _json
         raw = _json.dumps(body).encode()
         ts_now = str(int(_time.time()))
         sig_ok = _hmac.new(b"unittest-webhook-secret", f"{ts_now}.".encode() + raw, _hashlib.sha256).hexdigest()
@@ -339,6 +347,41 @@ def test_stats_summary_honest_metrics(client):
     assert data["blockchain_attestation_status"].startswith(
         ("OTS_PROOFS_FILES:", "NO_LIVE_BITCOIN_ANCHOR_YET")
     )
+    # GA-style счётчики (Часть 2): персистентные посещения/онлайн в БД
+    assert "total_site_visits" in data
+    assert "active_visitors_online" in data
+
+# =====================================================================
+# GA-STYLE VISITOR COUNTERS (PERSISTENT IN DB — Part 2)
+# =====================================================================
+
+def test_stats_ping_counts_visit_once_per_session(client):
+    """Ping: новая сессия = +1 посещение; повторный ping той же сессии не дублируется."""
+    import uuid
+    sid = f"test-session-{uuid.uuid4().hex}"
+
+    res1 = client.post("/api/v1/stats/ping", json={"session_id": sid})
+    assert res1.status_code == 200
+    data1 = res1.json()
+    assert data1["status"] == "ACK"
+    assert "total_site_visits" in data1
+    assert "active_visitors_online" in data1
+    assert data1["total_site_visits"] >= 1
+    assert data1["active_visitors_online"] >= 1
+
+    # Повторный ping той же сессии не засчитывает новый визит (ON CONFLICT DO NOTHING)
+    res2 = client.post("/api/v1/stats/ping", json={"session_id": sid})
+    data2 = res2.json()
+    assert data2["total_site_visits"] == data1["total_site_visits"]
+
+    # Новая сессия строго +1 к общему счётчику
+    res3 = client.post("/api/v1/stats/ping", json={"session_id": f"{sid}-2"})
+    data3 = res3.json()
+    assert data3["total_site_visits"] == data1["total_site_visits"] + 1
+
+def test_stats_ping_requires_session_id(client):
+    res = client.post("/api/v1/stats/ping", json={})
+    assert res.status_code == 422
 
 def test_court_dispute_full_flow_and_quorum(client):
     """Полный цикл суда: подача иска + 5 голосов присяжных до кворума (на БД)."""
@@ -400,3 +443,85 @@ def test_vampire_import_requires_auth(client):
     assert res.status_code == 401
     assert "Authorization" in res.json()["detail"]
 
+# =====================================================================
+# SECURITY & ROBUSTNESS REGRESSION (Stage 3 Fixes)
+# =====================================================================
+
+def _craft_expired_jwt(orcid: str = "0009-0003-3929-3605") -> str:
+    """Создаёт криптографически подписанный JWT с exp в прошлом (для тестирования logout)."""
+    from gitscience_auth import JWT_SECRET, JWT_ISSUER, JWT_AUDIENCE
+    import base64 as _b64
+    import json as _json
+
+    header = {"alg": "HS256", "typ": "JWT"}
+    data = {
+        "orcid": orcid, "name": "Expired Test Scholar",
+        "jti": f"test-expired-{_hashlib.sha256(orcid.encode()).hexdigest()[:8]}",
+        "iat": int(_time.time()) - 86400,
+        "exp": int(_time.time()) - 1,
+        "iss": JWT_ISSUER, "aud": JWT_AUDIENCE,
+        "auth_method": "self_asserted",
+    }
+    h = _b64.urlsafe_b64encode(_json.dumps(header).encode()).decode().rstrip("=")
+    p = _b64.urlsafe_b64encode(_json.dumps(data).encode()).decode().rstrip("=")
+    sig = _hmac.new(JWT_SECRET.encode(), f"{h}.{p}".encode(), _hashlib.sha256).digest()
+    return f"{h}.{p}.{_b64.urlsafe_b64encode(sig).decode().rstrip('=')}"
+
+
+def test_logout_expired_token_returns_200(client):
+    """Logout истёкшего токена: подпись валидна → 200 (не 500 AttributeError)."""
+    expired_token = _craft_expired_jwt("0009-0003-3929-3605")
+    # Сначала убеждаемся, что verify отклоняет (token expired)
+    verify = client.post("/api/v1/auth/verify", json={"token": expired_token})
+    assert verify.status_code == 401
+    assert "Token expired" in verify.json()["detail"]
+
+    # Logout должен декодировать payload и отозвать jti, не падая
+    logout = client.post("/api/v1/auth/logout", json={"token": expired_token})
+    assert logout.status_code == 200
+    assert logout.json()["status"] == "LOGGED_OUT"
+    assert logout.json()["jti"] is not None
+
+
+def test_billing_calculate_negative_weight_returns_400(client):
+    """Валидация весов контрибьюторов: отрицательный/нулевой/слишком большой → 400."""
+    bad_weights = [-1.0, 0.0, -0.5, 1_500_000.0, -999_999.0]
+    for w in bad_weights:
+        res = client.post("/api/v1/billing/calculate", json={
+            "base_amount": 10000.0,
+            "contributors": [{"name": "A", "orcid": "0000-0000-0000-0000", "weight": w}]
+        })
+        assert res.status_code == 400, f"weight={w} should be rejected"
+
+    # Нормальные положительные веса → 200
+    ok = client.post("/api/v1/billing/calculate", json={
+        "base_amount": 10000.0,
+        "contributors": [
+            {"name": "A", "orcid": "0000-0000-0000-0001", "weight": 60},
+            {"name": "B", "orcid": "0000-0000-0000-0002", "weight": 40}
+        ]
+    })
+    assert ok.status_code == 200
+    assert abs(ok.json()["author_pool_total"] - 5500.0) < 1.0
+
+
+def test_upload_requires_jwt_in_production(client, monkeypatch):
+    """В production нотариат отклоняет анонимную загрузку (401)."""
+    import main as main_mod
+    monkeypatch.setattr(main_mod, "IS_PRODUCTION", True)
+    try:
+        res = client.post("/notary/upload-pdf",
+            files={"file": ("test.pdf", b"%PDF-1.4 fake", "application/pdf")},
+            data={
+                "title": "Prod Auth Test",
+                "author_name": "Test Scholar",
+                "orcid": "0009-0003-3929-3605",
+                "abstract": "upload in prod",
+                "formula_math": "",
+                "has_human_subjects": "false",
+            },
+        )
+        assert res.status_code == 401
+        assert "production" in res.json()["detail"].lower() or "authorization" in res.json()["detail"].lower()
+    finally:
+        monkeypatch.undo()

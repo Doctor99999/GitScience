@@ -7,9 +7,13 @@ out/
 .git/
 .gitignore
 
-# Environments
+# Environments — секреты/ключи никогда не попадают в образ
 .env
-.env.local
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
 
 # IDE
 .vscode/

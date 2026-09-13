@@ -2,6 +2,14 @@
 GitScience™ Sovereign Protocol API v3.0-ENTERPRISE
 Стандарты: WIPO Prior Art / CRediT CASRAI / DataCite 4.4 / RFC 3161 / OTS / ISO 14721
 """
+# Загрузка .env ДО импортов модулей, читающих окружение на уровне модуля
+# (gitscience_auth/gitscience_storage/gitscience_fortress). Путь привязан к файлу,
+# override=False: реальные переменные окружения имеют приоритет.
+from dotenv import load_dotenv
+from pathlib import Path
+
+load_dotenv(Path(__file__).resolve().parent / ".env")
+
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form, status, Query, Body, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
@@ -13,6 +21,7 @@ import uuid
 import os
 import re
 import json
+import base64
 import urllib.request
 import urllib.error
 try:
@@ -117,7 +126,16 @@ rate_limiter = SimpleRateLimiter(max_requests=120, window_sec=60)
 
 # Пир, за которыми мы доверяем X-Real-IP (nginx/reverse-proxy). Если запрос пришёл
 # напрямую с публичного адреса — заголовок X-Real-IP ИГНОРИРУЕТСЯ (анти-спуф лимитера).
+import ipaddress
 TRUSTED_PROXY_PEERS = {host.strip() for host in os.environ.get("TRUSTED_PROXY_PEERS", "127.0.0.1,::1").split(",") if host.strip()}
+
+def is_trusted_proxy(ip: str) -> bool:
+    if ip in TRUSTED_PROXY_PEERS:
+        return True
+    try:
+        return ipaddress.ip_address(ip).is_private
+    except ValueError:
+        return False
 
 # =====================================================================
 # ИДЕНТИФИКАЦИЯ УЧЕНЫХ (Bearer JWT helpers)
@@ -236,10 +254,14 @@ def _fetch_openalex_metrics(orcid: str) -> Dict[str, Any]:
         pass
     return {"works_count": 0, "citations_count": 0, "h_index": None, "display_name": None, "source": "openalex_unavailable"}
 
+_HIDE_DOCS = IS_PRODUCTION
 app = FastAPI(
     title="GitScience™ Sovereign Protocol API",
     description="Суверенный децентрализованный нотариат открытий, реестр манускриптов, исполняемая математика и B2B маршрутизатор Аманата",
-    version="3.2.0-ENTERPRISE"
+    version="3.2.0-ENTERPRISE",
+    docs_url=None if _HIDE_DOCS else "/docs",
+    redoc_url=None if _HIDE_DOCS else "/redoc",
+    openapi_url=None if _HIDE_DOCS else "/openapi.json",
 )
 
 # Инициализация БД и констант
@@ -267,7 +289,7 @@ async def rate_limiting_middleware(request: Request, call_next):
         # За nginx/Render реальный клиент приходит в X-Real-IP (пир в trust-списке);
         # иначе доверия заголовку НЕТ — спуфить лимитер напрямую нельзя.
         peer = request.client.host if request.client else "127.0.0.1"
-        if peer in TRUSTED_PROXY_PEERS:
+        if is_trusted_proxy(peer):
             client_ip = request.headers.get("x-real-ip") or peer
         else:
             client_ip = peer
@@ -455,6 +477,11 @@ async def upload_and_notarize_manuscript(
 
     # Опциональная JWT-привязка автора (анонимный нотариат разрешен, но лимитирован)
     bearer = _extract_bearer_payload(request)
+    if IS_PRODUCTION and bearer is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="В production нотариат требует авторизацию: передайте Authorization: Bearer <JWT> (получите на /api/v1/auth/login)"
+        )
     if bearer and bearer.get("orcid") != clean_orcid:
         raise HTTPException(status_code=403, detail="ORCID манускрипта не совпадает с аутентифицированным ученым")
     if _is_oauth_verified(bearer):
@@ -804,10 +831,13 @@ def view_pdf_file(registration_code: str):
 
 @app.post("/api/v1/billing/calculate")
 def calculate_amanat_royalty(req: BillingCalculateRequest):
-    return DependencyRoyaltyRouter.calculate_split(
-        base_b2b_fee=req.base_amount,
-        contributors=req.contributors
-    )
+    try:
+        return DependencyRoyaltyRouter.calculate_split(
+            base_b2b_fee=req.base_amount,
+            contributors=req.contributors
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 @app.post("/api/v1/billing/pay")
 def process_fair_share_payment(request: Request, req: BillingCalculateRequest):
@@ -817,10 +847,13 @@ def process_fair_share_payment(request: Request, req: BillingCalculateRequest):
     tx_hash помечается префиксом SIMULATED-OFFCHAIN и не выдаётся за блокчейн-подтверждение.
     """
     require_active_bearer(request)
-    payout_data = DependencyRoyaltyRouter.calculate_split(
-        base_b2b_fee=req.base_amount,
-        contributors=req.contributors
-    )
+    try:
+        payout_data = DependencyRoyaltyRouter.calculate_split(
+            base_b2b_fee=req.base_amount,
+            contributors=req.contributors
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     
     tx_id = f"tx_{uuid.uuid4().hex[:12]}"
     digest = hashlib.sha256(f"{tx_id}{datetime.now(timezone.utc)}".encode()).hexdigest()
@@ -962,10 +995,14 @@ doi_service = DOIMintingService()
 jats_exporter = JATSXMLExporter()
 
 @app.post("/api/v1/zk/commit")
-def create_zk_blind_commitment(req: ZKCommitRequest):
+def create_zk_blind_commitment(request: Request, req: ZKCommitRequest):
+    # Привязка личности: ORCID берётся ТОЛЬКО из подписанного токена — исключает Sybil-спуфинг
+    bearer_payload = require_active_bearer(request)
+    token_orcid = bearer_payload.get("orcid", "")
+    author_name = bearer_payload.get("name") or req.author_name or f"Scholar {token_orcid}"
     return zk_engine.create_blind_commitment(
-        author_orcid=req.author_orcid,
-        author_name=req.author_name,
+        author_orcid=token_orcid,
+        author_name=author_name,
         hypothesis_title=req.hypothesis_title,
         secret_salt=req.secret_salt,
         hidden_payload_text=req.hidden_payload_text,
@@ -1186,13 +1223,18 @@ class FHIRCalculationRequest(BaseModel):
 @app.post("/api/v1/clinical/fhir/calculate")
 def execute_clinical_fhir_calculation(req: FHIRCalculationRequest):
     try:
-        return ClinicalFHIRGateway.execute_fhir_bundle_calculation(
+        # Изолируем выполнение формулы с жёстким лимитом времени (анти-DoS для клинических вычислений)
+        return _sandbox.evaluate_safe(
+            ClinicalFHIRGateway.execute_fhir_bundle_calculation,
             patient_id=req.patient_id,
             formula_math=req.formula_math,
             artery_val=req.artery_val,
             vein_val=req.vein_val,
-            lymph_val=req.lymph_val
+            lymph_val=req.lymph_val,
+            max_time_sec=0.5
         )
+    except TimeoutError as to:
+        raise HTTPException(status_code=408, detail=str(to))
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=f"Formula variable error: {ve}")
     except Exception as e:
@@ -1359,6 +1401,21 @@ def get_global_platform_stats():
     return storage.get_platform_stats_summary()
 
 
+class SitePingRequest(BaseModel):
+    session_id: str = Field(..., description="Анонимный session_id из sessionStorage посетителя")
+
+
+@app.post("/api/v1/stats/ping")
+def ping_site_visitor(req: SitePingRequest):
+    """GA-style учёт посещений и активных посетителей.
+
+    Персистентность только в БД (SQLite / Postgres): счётчики НЕ сбрасываются
+    при рестарте или деплое. IP не сохраняется — приватность посетителя соблюдена.
+    """
+    counts = storage.ping_site_session(req.session_id)
+    return {"status": "ACK", **counts}
+
+
 # =====================================================================
 # 21. OFFICIAL LEGAL LICENSE TEXT AGREEMENT
 # =====================================================================
@@ -1505,15 +1562,52 @@ def lookup_orcid_public_profile(orcid: str):
         raise HTTPException(status_code=400, detail="Невалидный формат ORCID iD")
     return profile
 
+try:
+    import redis
+    _redis_url = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
+    _redis_client = redis.from_url(_redis_url, decode_responses=True)
+    _redis_client.ping()
+except Exception:
+    _redis_client = None
+
+class _OAuthStateStore:
+    """Хранилище OAuth CSRF-state: Redis, если доступен, иначе память процесса
+    (dev без redis-python / Render без Redis-аддона). Семантически эквивалентно:
+    setex / get / delete с TTL-прослойкой."""
+    TTL_SECONDS = 600
+
+    @classmethod
+    def setex(cls, key: str, ttl_seconds: int, value: str) -> None:
+        if _redis_client is not None:
+            _redis_client.setex(key, ttl_seconds, value)
+        else:
+            _oauth_states[key] = time.time() + ttl_seconds
+
+    @classmethod
+    def get(cls, key: str) -> Optional[str]:
+        if _redis_client is not None:
+            return _redis_client.get(key)
+        expiry = _oauth_states.get(key)
+        if expiry is None:
+            return None
+        if time.time() > expiry:
+            _oauth_states.pop(key, None)
+            return None
+        return "1"
+
+    @classmethod
+    def delete(cls, key: str) -> None:
+        if _redis_client is not None:
+            _redis_client.delete(key)
+        else:
+            _oauth_states.pop(key, None)
+
+redis_client = _OAuthStateStore
+
 @app.get("/api/v1/auth/orcid/state")
 def generate_oauth_state():
     state = secrets.token_urlsafe(32)
-    _oauth_states[state] = time.time()
-    # Prune old states
-    cutoff = time.time() - 600
-    for k in list(_oauth_states):
-        if _oauth_states[k] < cutoff:
-            del _oauth_states[k]
+    redis_client.setex(f"oauth_state:{state}", 600, "1")
     from gitscience_auth import ORCID_CLIENT_ID
     return {"state": state, "client_id": ORCID_CLIENT_ID}
 
@@ -1528,9 +1622,10 @@ def handle_orcid_oauth_callback(req: OAuthCallbackRequest):
 
     ТОЛЬКО этот путь выдаёт токен с auth_method="orcid_oauth" (подтверждённое владение iD).
     """
-    stored_ts = _oauth_states.pop(req.state, None)
-    if stored_ts is None or (time.time() - stored_ts) > 600:
+    stored = redis_client.get(f"oauth_state:{req.state}")
+    if not stored:
         raise HTTPException(status_code=403, detail="Invalid or expired OAuth state")
+    redis_client.delete(f"oauth_state:{req.state}")
 
     ok, token_data, err = ScholarAuthService.exchange_code_for_orcid_token(req.code, req.redirect_uri)
     if not ok or not token_data:
@@ -1607,12 +1702,32 @@ def verify_scholar_jwt_token(req: VerifyTokenRequest):
         raise HTTPException(status_code=401, detail=error or "Unauthorized")
     return {"status": "TOKEN_VALID", "payload": payload}
 
+def _decode_jwt_token_unverified(token: str) -> Optional[Dict[str, Any]]:
+    """Декодирует claims JWT без проверки подписи — ТОЛЬКО для отзыва истёкшего токена."""
+    try:
+        parts = token.split(".")
+        if len(parts) != 3:
+            return None
+        p_b64 = parts[1]
+        rem = len(p_b64) % 4
+        padded_p_b64 = p_b64 + ("=" * (4 - rem) if rem else "")
+        return json.loads(base64.urlsafe_b64decode(padded_p_b64).decode())
+    except Exception:
+        return None
+
 @app.post("/api/v1/auth/logout", status_code=status.HTTP_200_OK)
 def logout_scholar(req: VerifyTokenRequest):
     """Отзывает JWT токен (jti попадает в persistent blacklist — работает между воркерами)"""
     is_valid, payload, error = ScholarAuthService.verify_jwt_token(req.token)
     if not is_valid and error != "Token expired":
         raise HTTPException(status_code=401, detail=error or "Unauthorized")
+
+    # Истёкший токен подтверждён по подписи, но payload не возвращается (gitscience_auth).
+    # Декодируем claims БЕЗ верификации только для извлечения jti на отзыв: содержимое
+    # не используется как данные сессии, подпись уже проверена вызывающим кодом.
+    if payload is None:
+        payload = _decode_jwt_token_unverified(req.token) or {}
+
     storage.revoke_jti(payload.get("jti", ""), payload.get("orcid", ""), payload.get("exp", 0))
     return {"status": "LOGGED_OUT", "jti": payload.get("jti")}
 
@@ -1820,9 +1935,11 @@ def make_editorial_decision(request: Request, submission_id: str, req: MakeDecis
 
 @app.get("/api/v1/editorial/submission/{submission_id}")
 def get_submission_details(request: Request, submission_id: str):
-    """Детали submission"""
-    require_active_bearer(request)
-    details = editorial_engine.get_submission_details(submission_id)
+    """Детали submission (reviewer_orcid/detailed_comments скрыты от не-редакторов)"""
+    payload = require_active_bearer(request)
+    viewer_orcid = payload.get("orcid", "")
+    is_editor = any(u.orcid == viewer_orcid and u.is_active for u in editorial_engine.users.values())
+    details = editorial_engine.get_submission_details(submission_id, viewer_orcid=viewer_orcid, is_editor=is_editor)
     if not details:
         raise HTTPException(status_code=404, detail="Submission not found")
     return details

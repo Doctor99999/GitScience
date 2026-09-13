@@ -65,6 +65,42 @@ if [ ! -f ".env" ]; then
     exit 1
 fi
 
+# 6.1 Fail-closed: никаких плейсхолдеров и пустых значений секретов
+echo "Validating .env secrets..."
+HAS_PLACEHOLDER=0
+while IFS= read -r line || [ -n "$line" ]; do
+    case "$line" in
+        \#*|"") continue ;;
+        *"="*)
+            var="${line%%=*}"
+            val="${line#*=}"
+            case "$val" in
+                ""|\$\(*|"\$"*)
+                    echo "❌ $var: пустое/ссылочное значение — заполните .env" >&2
+                    HAS_PLACEHOLDER=1
+                    ;;
+                "__SET_ME_"*|"Enter_A_"*|"CHANGE_ME"*|"APP-XXXX"*)
+                    echo "❌ $var: оставлен плейсхолдер — заполните .env" >&2
+                    HAS_PLACEHOLDER=1
+                    ;;
+            esac
+            ;;
+    esac
+done < .env
+
+if [ "$HAS_PLACEHOLDER" -ne 0 ]; then
+    echo "❌ PLEASE EDIT .env WITH YOUR SECRETS, THEN RUN THIS SCRIPT AGAIN." >&2
+    exit 1
+fi
+echo "OK: .env looks complete."
+
+if sudo docker-compose config --quiet 2>/dev/null; then
+    echo "OK: docker-compose configuration is valid."
+else
+    echo "❌ docker-compose configuration is INVALID (missing env var?)." >&2
+    exit 1
+fi
+
 sudo docker-compose up -d --build
 
 echo "===================================================="

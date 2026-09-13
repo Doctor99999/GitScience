@@ -9,6 +9,13 @@ RUN npm ci
 # Копирование исходного кода
 COPY . .
 
+# Build-time переменные (обязательны в production — задаются в docker-compose / CI
+# из .env, не прописываются в образе секреты)
+ARG NEXT_PUBLIC_API_BASE
+ARG NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID
+ENV NEXT_PUBLIC_API_BASE=${NEXT_PUBLIC_API_BASE:-}
+ENV NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=${NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID:-}
+
 # Сборка Next.js приложения (standalone output)
 RUN npm run build
 

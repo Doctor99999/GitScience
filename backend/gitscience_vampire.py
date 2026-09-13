@@ -335,20 +335,17 @@ class VampireProtocolEngine:
         return buffer.getvalue()
 
     @staticmethod
-    def _safe_download_pdf(pdf_url: str) -> Optional[bytes]:
-        MAX_PDF_BYTES = 50 * 1024 * 1024  # 50 MiB
-        
-        # Force HTTPS for arXiv and others
-        if pdf_url.startswith("http://"):
-            pdf_url = pdf_url.replace("http://", "https://")
-            
-        if not pdf_url.startswith("https://"):
+    def _is_allowed_pdf_url(url: Any) -> Optional[str]:
+        """Возвращает нормализованный https URL, если хост в доверенном allowlist, иначе None."""
+        if not isinstance(url, str):
             return None
-
-        parsed = urllib.parse.urlparse(pdf_url)
+        if url.startswith("http://"):
+            url = "https://" + url[len("http://"):]
+        if not url.startswith("https://"):
+            return None
+        parsed = urllib.parse.urlparse(url)
         if parsed.scheme != "https" or not parsed.hostname:
             return None
-
         host = parsed.hostname.lower().rstrip(".")
         trusted_suffixes = (
             "arxiv.org", "openalex.org", "europepmc.org", "ebi.ac.uk", "nature.com",
@@ -358,8 +355,17 @@ class VampireProtocolEngine:
             "pubmed.ncbi.nlm.nih.gov", "nih.gov", "researchgate.net", "hal.science",
             "core.ac.uk", "unpaywall.org", "doi.org"
         )
-        
         if not any(host == suffix or host.endswith("." + suffix) for suffix in trusted_suffixes):
+            return None
+        return url
+
+    @staticmethod
+    def _safe_download_pdf(pdf_url: str) -> Optional[bytes]:
+        MAX_PDF_BYTES = 50 * 1024 * 1024  # 50 MiB
+
+        # Анти-SSRF: начальный URL должен быть https и попадать в allowlist
+        current = VampireProtocolEngine._is_allowed_pdf_url(pdf_url)
+        if not current:
             return None
 
         headers = {
@@ -368,26 +374,55 @@ class VampireProtocolEngine:
             "Accept-Language": "en-US,en;q=0.5",
             "Connection": "keep-alive"
         }
+        _REDIRECT_CODES = {301, 302, 303, 307, 308}
 
-        try:
-            # 1. Try requests
-            if requests:
-                resp = requests.get(pdf_url, headers=headers, timeout=15.0, stream=True)
-                if resp.status_code == 200:
-                    content = b""
-                    for chunk in resp.iter_content(chunk_size=8192):
-                        content += chunk
-                        if len(content) > MAX_PDF_BYTES:
+        # 1. Try requests — редиректы разворачиваем ВРУЧНУЮ (≤3 хопа), каждый хоп
+        #    перепроверяется по allowlist, чтобы доверенный домен не стал шлюзом SSRF.
+        if requests:
+            for _hop in range(3):
+                try:
+                    with requests.get(
+                        current, headers=headers, timeout=15.0, stream=True, allow_redirects=False
+                    ) as resp:
+                        if resp.status_code in _REDIRECT_CODES:
+                            location = resp.headers.get("Location")
+                            if not location:
+                                return None
+                            candidate = urllib.parse.urljoin(current, location)
+                            next_url = VampireProtocolEngine._is_allowed_pdf_url(candidate)
+                            if not next_url:
+                                return None
+                            current = next_url
+                            continue
+                        if resp.status_code != 200:
                             return None
-                    if content.startswith(b"%PDF"):
-                        return content
-        except Exception as e:
-            pass
-            
-        # 2. Fallback to urllib (sometimes bypasses CDNs better)
+                        content = b""
+                        for chunk in resp.iter_content(chunk_size=8192):
+                            content += chunk
+                            if len(content) > MAX_PDF_BYTES:
+                                return None
+                        if content.startswith(b"%PDF"):
+                            return content
+                        return None
+                except Exception:
+                    return None
+            return None
+
+        # 2. Fallback to urllib (sometimes bypasses CDNs better) — редиректы через
+        #    защищённый handler, отклоняющий переходы вне allowlist (анти-SSRF).
+
+        class _PDFRedirectHandler(urllib.request.HTTPRedirectHandler):
+            def redirect_request(self, req, fp, code, msg, headers, newurl):
+                if not VampireProtocolEngine._is_allowed_pdf_url(newurl):
+                    raise urllib.error.HTTPError(
+                        req.full_url, 999, "Redirect target not in PDF allowlist", None, None
+                    )
+                return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+        opener = urllib.request.build_opener(_PDFRedirectHandler())
         try:
-            req = urllib.request.Request(pdf_url, headers=headers)
-            with urllib.request.urlopen(req, timeout=15.0) as resp:
+            req = urllib.request.Request(current, headers=headers)
+            with opener.open(req, timeout=15.0) as resp:
                 if resp.getcode() == 200:
                     content = resp.read(MAX_PDF_BYTES + 1)
                     if len(content) <= MAX_PDF_BYTES and content.startswith(b"%PDF"):

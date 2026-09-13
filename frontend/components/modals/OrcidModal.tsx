@@ -38,6 +38,10 @@ export default function OrcidModal({
       const res = await fetch(`${getApiBase()}/api/v1/auth/orcid/state`);
       const data = await res.json();
       if (data.state && data.client_id) {
+        // Double-submit CSRF binding: состояние фиксируем в sessionStorage текущей вкладки.
+        try {
+          sessionStorage.setItem("orcid_oauth_state", data.state);
+        } catch {}
         const redirectUri = window.location.origin;
         const authUrl = `https://orcid.org/oauth/authorize?client_id=${data.client_id}&response_type=code&scope=/authenticate&redirect_uri=${encodeURIComponent(redirectUri)}&state=${data.state}`;
         window.location.href = authUrl;

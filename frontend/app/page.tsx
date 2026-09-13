@@ -28,6 +28,7 @@ import LicenseModal from "../components/modals/LicenseModal";
 
 // Libs
 import { getApiBase } from "../lib/constants";
+import { startVisitPing } from "../lib/analytics";
 import { TRANSLATIONS } from "../lib/translations";
 import type { PlatformStats, ScholarProfile } from "../lib/types";
 
@@ -81,7 +82,7 @@ export default function GitScienceApp() {
   const walletAddress = address || null;
 
   // Platform Live Stats
-  const [platformStats, setPlatformStats] = useState({
+  const [platformStats, setPlatformStats] = useState<PlatformStats>({
     total_notarized_manuscripts: 0,
     total_ledger_transactions: 0,
     total_secured_scientific_value_usdt: 0.0,
@@ -154,6 +155,22 @@ export default function GitScienceApp() {
     if (code && state) {
       // Show loading or just clear the URL immediately to avoid replay
       window.history.replaceState({}, document.title, window.location.pathname);
+      // Double-submit CSRF: state обязан совпадать с тем, что мы записали в sessionStorage
+      const expectedState = (() => {
+        try {
+          return sessionStorage.getItem("orcid_oauth_state");
+        } catch {
+          return null;
+        }
+      })();
+      try {
+        sessionStorage.removeItem("orcid_oauth_state");
+      } catch {}
+      if (!expectedState || state !== expectedState) {
+        console.error("[GitScience] ORCID OAuth state mismatch — callback отклонён.");
+        alert("ORCID OAuth state mismatch — authentication cancelled.");
+        return;
+      }
       fetch(`${base}/api/v1/auth/orcid/callback`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -174,6 +191,20 @@ export default function GitScienceApp() {
       })
       .catch(err => console.error("OAuth Error:", err));
     }
+
+    // 4. GA-style счётчики: посещения/онлайн персистентно в БД (не сбрасываются).
+    //    Ping раз в 60с; при скрытой вкладке fetch не выполняется (см. analytics.ts).
+    const stopPing = startVisitPing((counts) => {
+      setPlatformStats((prev) => ({
+        ...prev,
+        total_site_visits: counts.total_site_visits ?? prev.total_site_visits,
+        active_visitors_online: counts.active_visitors_online ?? prev.active_visitors_online,
+      }));
+    });
+
+    return () => {
+      stopPing();
+    };
   }, [handleScholarLogin]);
 
   return (
@@ -438,6 +469,7 @@ export default function GitScienceApp() {
         t={t}
         platformStats={platformStats}
         apiBase={apiBase}
+        onNavigateTab={setActiveTab}
       />
 
       {/* 5. Modals */}

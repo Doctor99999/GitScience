@@ -214,6 +214,13 @@ export function useInspectorTab(opts: { walletAddress?: string | null; onLicense
   };
 
   const handleMintIpNft = async (code: string) => {
+    if (!opts.walletAddress) {
+      console.error(
+        "[GitScience] Mint IP-NFT требует подключённый кошелёк (кошелёк основателя как fallback убран)."
+      );
+      alert("Connect your wallet to mint the IP-NFT certificate.");
+      return;
+    }
     setIpNftMinting(true);
     try {
       const res = await fetch(`${getApiBase()}/api/v1/ipnft/mint`, {
@@ -221,7 +228,7 @@ export function useInspectorTab(opts: { walletAddress?: string | null; onLicense
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           registration_code: code,
-          wallet_address: opts.walletAddress || "0x71C2B09934D3E08A52e52d7da7DAbFAc484EFE37",
+          wallet_address: opts.walletAddress,
         }),
       });
       const data = (await res.json()) as IpNftResult;
@@ -246,7 +253,13 @@ export function useInspectorTab(opts: { walletAddress?: string | null; onLicense
 // =====================================================================
 export function useZkDiscoveryTab(opts: { orcid?: string; authorName?: string } = {}) {
   const [zkTitle, setZkTitle] = useState<string>("Novel Oncology Target Equation");
-  const [zkSecret, setZkSecret] = useState<string>("amanat-secret-salt-2026");
+  const [zkSecret, setZkSecret] = useState<string>(() => {
+    const b = new Uint8Array(16);
+    if (typeof crypto !== "undefined" && typeof crypto.getRandomValues === "function") {
+      crypto.getRandomValues(b);
+    }
+    return Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("");
+  });
   const [zkPayload, setZkPayload] = useState<string>("Confidential clinical methodology on neuro-immuno oncology.");
   const [zkFormula, setZkFormula] = useState<string>("(Artery * 1.5) / (Vein + Lymph)");
   const [zkCommitResult, setZkCommitResult] = useState<ZkCommitResult | null>(null);

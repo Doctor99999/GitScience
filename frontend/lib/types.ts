@@ -21,6 +21,8 @@ export interface PlatformStats {
   total_secured_scientific_value_usdt: number;
   total_court_arbitrations: number;
   blockchain_attestation_status: string;
+  total_site_visits?: number;
+  active_visitors_online?: number;
 }
 
 export interface AstVerificationResult {

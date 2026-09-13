@@ -7,8 +7,9 @@ GitScience Sovereign Storage Engine v4.0-ENTERPRISE
 import os
 import json
 import time
+import random
 import hashlib
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import List, Dict, Optional, Any
 import sqlalchemy as sa
@@ -161,6 +162,19 @@ revoked_tokens = sa.Table(
     sa.Column('orcid', sa.String),
     sa.Column('exp', sa.Integer, nullable=False),
     sa.Column('revoked_at', sa.DateTime, server_default=sa.func.now())
+)
+
+site_visits = sa.Table(
+    'site_visits', metadata,
+    sa.Column('id', sa.Integer, primary_key=True, autoincrement=True),
+    sa.Column('session_id', sa.String, unique=True, nullable=False),
+    sa.Column('visited_at', sa.DateTime, server_default=sa.func.now())
+)
+
+active_sessions = sa.Table(
+    'active_sessions', metadata,
+    sa.Column('session_id', sa.String, primary_key=True),
+    sa.Column('last_seen_at', sa.DateTime, server_default=sa.func.now())
 )
 
 def compute_ipfs_cid(data: bytes) -> str:
@@ -636,6 +650,54 @@ def generate_schema_org_jsonld(registration_code: str) -> Optional[Dict[str, Any
         "url": f"https://gitscience.org/library/view/{m['registration_code']}"
     }
 
+def ping_site_session(session_id: str) -> Dict[str, int]:
+    """Учитывает визит сайта (однократно на session_id — GA-style counter) и
+    обновляет heartbeat активной сессии. Персистентно только в БД:
+    счётчик НЕ сбрасывается при рестарте/deploy (в отличие от Redis-счётчиков).
+    IP-адреса не записываются — приватность посетителя соблюдена."""
+    if not session_id or len(session_id) > 128:
+        return {"total_site_visits": 0, "active_visitors_online": 0}
+    now = datetime.now(timezone.utc)
+    cutoff = now - timedelta(minutes=3)
+    with engine.begin() as conn:
+        conn.execute(
+            sa.text(
+                "INSERT INTO site_visits (session_id, visited_at) "
+                "VALUES (:sid, :now) ON CONFLICT (session_id) DO NOTHING"
+            ),
+            {"sid": session_id, "now": now},
+        )
+        conn.execute(
+            sa.text(
+                "INSERT INTO active_sessions (session_id, last_seen_at) "
+                "VALUES (:sid, :now) ON CONFLICT (session_id) "
+                "DO UPDATE SET last_seen_at = excluded.last_seen_at"
+            ),
+            {"sid": session_id, "now": now},
+        )
+        # Амортизированная зачистка устаревших сессий (1 из ~20 пингов)
+        if random.random() < 0.05:
+            conn.execute(
+                sa.text("DELETE FROM active_sessions WHERE last_seen_at < :cutoff"),
+                {"cutoff": cutoff},
+            )
+    return update_site_stats_counts()
+
+def update_site_stats_counts() -> Dict[str, int]:
+    with engine.connect() as conn:
+        total_site_visits = conn.execute(
+            sa.select(sa.func.count()).select_from(site_visits)
+        ).scalar() or 0
+        active_visitors_online = conn.execute(
+            sa.select(sa.func.count())
+            .select_from(active_sessions)
+            .where(active_sessions.c.last_seen_at >= datetime.now(timezone.utc) - timedelta(minutes=3))
+        ).scalar() or 0
+    return {
+        "total_site_visits": int(total_site_visits),
+        "active_visitors_online": int(active_visitors_online),
+    }
+
 def get_platform_stats_summary() -> Dict[str, Any]:
     """Возвращает живую агрегированную статистику сети.
 
@@ -661,6 +723,8 @@ def get_platform_stats_summary() -> Dict[str, Any]:
         else "NO_LIVE_BITCOIN_ANCHOR_YET"
     )
 
+    visitors = update_site_stats_counts()
+
     return {
         "status": "LIVE_SYNCHRONIZED",
         "total_notarized_manuscripts": total_manuscripts,
@@ -669,6 +733,8 @@ def get_platform_stats_summary() -> Dict[str, Any]:
         "total_unique_authors": unique_authors,
         "total_court_arbitrations": total_disputes,
         "blockchain_attestation_status": blockchain_status,
+        "total_site_visits": visitors["total_site_visits"],
+        "active_visitors_online": visitors["active_visitors_online"],
         "timestamp_utc": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
     }
 

@@ -1,20 +1,24 @@
-const PRODUCTION_API = "https://gitscience-api.onrender.com";
-
 export const getApiBase = (): string => {
   if (typeof window !== "undefined") {
-    if (process.env.NEXT_PUBLIC_API_BASE) {
-      let base = process.env.NEXT_PUBLIC_API_BASE.trim();
-      if (!base.startsWith("http://") && !base.startsWith("https://")) {
-        base = `https://${base}`;
+    const env = process.env.NEXT_PUBLIC_API_BASE?.trim();
+    if (env) {
+      if (
+        env.startsWith("http://") ||
+        env.startsWith("https://") ||
+        env.startsWith("/")
+      ) {
+        return env;
       }
-      return base;
+      return `https://${env}`;
     }
     if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
       return "http://127.0.0.1:8000";
     }
-    return PRODUCTION_API;
+    // Fail-closed: без явного NEXT_PUBLIC_API_BASE в production идём на относительный
+    // /api (nginx reverse-proxy / Vercel Rewrite). Тихий fallback на боевой API убран.
+    return "/api";
   }
-  return PRODUCTION_API;
+  return "/api";
 };
 
 export const CREDIT_14_ROLES = [
@@ -51,3 +55,24 @@ export const DEFAULT_FOUNDER_PROFILE = {
   git_impact_score: 184.0,
   platform_tier: "Protocol Architect & Surgical Oncologist",
 };
+
+// Контакты для фидбэка (низ футера, Apple-стиль)
+export const CONTACTS = [
+  {
+    label: "Protocol & Feedback",
+    email: "protocol@gitscience.org",
+    icon: "forum",
+  },
+  {
+    label: "Deposit & Finance",
+    email: "deposit@gitscience.org",
+    icon: "account_balance",
+  },
+  {
+    label: "Founder",
+    email: "s.yeshimov@gitscience.org",
+    icon: "psychology",
+  },
+];
+
+export const GITHUB_REPO_URL = "https://github.com/Doctor99999/GitScience";

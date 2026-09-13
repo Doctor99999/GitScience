@@ -2,12 +2,14 @@
 pragma solidity ^0.8.20;
 
 /**
- * @title GitScience™ SovereignIPNFT (ERC-721 + EIP-2981) - Hardened v3.4
+ * @title GitScience™ SovereignIPNFT (ERC-721 + EIP-2981) - Hardened v4.1
  * @notice Децентрализованная токенизация научных открытий, патентов и математических моделей.
  * @dev Включает EIP-2981 стандарт роялти с привязкой к смарт-контракту AmanatSplitter (55/15/30).
  *      Защищен модификатором onlyMinterOrFounder для исключения несанкционированного минтинга.
  *      safeTransferFrom корректно вызывает onERC721Received у контрактов-получателей,
  *      исключая безвозвратную блокировку токенов на несовместимых адресах.
+ *      [ОБНОВЛЕНИЕ v4.1]: mint/transfer в адрес самого контракта запрещены
+ *      (ownership-инвариант: контракт не может владеть собственным токеном).
  */
 
 interface IERC165 {
@@ -139,6 +141,7 @@ contract SovereignIPNFT is IERC721, IERC2981 {
         string calldata uri
     ) external onlyMinterOrFounder returns (uint256) {
         require(to != address(0), "Cannot mint to zero address");
+        require(to != address(this), "GS: cannot mint to the contract itself");
         
         bytes32 hashKey = keccak256(bytes(sha256Hash));
         require(!registeredHashes[hashKey], "GS: duplicate prior art hash");
@@ -205,6 +208,7 @@ contract SovereignIPNFT is IERC721, IERC2981 {
     function transferFrom(address from, address to, uint256 tokenId) public override {
         require(ownerOf(tokenId) == from, "Incorrect owner");
         require(to != address(0), "Transfer to zero address");
+        require(to != address(this), "GS: cannot transfer to the contract itself");
         require(msg.sender == from || getApproved(tokenId) == msg.sender || isApprovedForAll(from, msg.sender), "Not authorized");
 
         _balances[from] -= 1;
@@ -235,8 +239,13 @@ contract SovereignIPNFT is IERC721, IERC2981 {
      */
     function _checkOnERC721Received(address from, address to, uint256 tokenId, bytes memory data) private {
         if (to.code.length > 0) {
-            bytes4 retval = IERC721Receiver(to).onERC721Received(msg.sender, from, tokenId, data);
-            require(retval == 0x150b7a02, "GS: receiver rejected ERC721 transfer");
+            (bool success, bytes memory retdata) = to.call(
+                abi.encodeWithSelector(IERC721Receiver.onERC721Received.selector, msg.sender, from, tokenId, data)
+            );
+            require(
+                success && retdata.length >= 4 && abi.decode(retdata, (bytes4)) == IERC721Receiver.onERC721Received.selector,
+                "GS: receiver rejected ERC721 transfer"
+            );
         }
     }
 }
