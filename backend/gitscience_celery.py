@@ -1,4 +1,5 @@
 import os
+from typing import Optional
 from celery import Celery
 
 # Configure Celery
@@ -48,3 +49,21 @@ def task_harvest_batch(query: str = "clinical oncology", source: str = "all", li
         "newly_harvested_count": len(imported_records),
         "sample": imported_records[:3]
     }
+
+@celery_app.task(name="gitscience.tasks.sync_prior_art_index")
+def task_sync_prior_art_index(limit: int = 5_000, from_year: Optional[int] = None):
+    """Инкрементальная синхронизация Мирового индекса науки (OpenAlex → FTS5 каталог).
+    Еженедельный график cron/beat; вежливый rate-limit внутри индексера."""
+    import time as _t
+    t0 = _t.time()
+    try:
+        from gitscience_indexer import ingest_openalex, index_status
+        inserted = ingest_openalex(limit=limit, from_year=from_year)
+        return {
+            "status": "INDEX_SYNC_COMPLETED",
+            "inserted": inserted,
+            "elapsed_sec": round(_t.time() - t0, 2),
+            "index": index_status(),
+        }
+    except Exception as e:  # pragma: no cover - worker-only path
+        return {"status": "ERROR", "message": str(e)}

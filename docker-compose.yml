@@ -49,6 +49,7 @@ services:
       - AWS_ENDPOINT_URL=${AWS_ENDPOINT_URL:-}
       - AWS_REGION=${AWS_REGION:-auto}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:?Set ALLOWED_ORIGINS in .env}
+      - TRUSTED_PROXY_PEERS=${TRUSTED_PROXY_PEERS:-10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,127.0.0.1,::1}
     depends_on:
       db:
         condition: service_healthy

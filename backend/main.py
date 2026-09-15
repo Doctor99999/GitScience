@@ -47,9 +47,10 @@ from gitscience_fortress import (
     SandboxedEvaluator
 )
 
-_oauth_states: dict[str, float] = {}
 _sandbox = SandboxedEvaluator()
 from gitscience_vampire import VampireProtocolEngine, AutoHarvesterWorker, AutonomousIngestionDaemon
+import gitscience_indexer as world_index
+from gitscience_ai_review import SovereignAIAuditor
 from gitscience_zk import ZKDiscoveryEngine
 from gitscience_iot import GitscienceIoTGateway
 from gitscience_passport import SoulboundPassportEngine
@@ -124,18 +125,24 @@ class SimpleRateLimiter:
 
 rate_limiter = SimpleRateLimiter(max_requests=120, window_sec=60)
 
-# Пир, за которыми мы доверяем X-Real-IP (nginx/reverse-proxy). Если запрос пришёл
-# напрямую с публичного адреса — заголовок X-Real-IP ИГНОРИРУЕТСЯ (анти-спуф лимитера).
+# Пир, за которыми мы доверяем X-Real-IP (nginx/reverse-proxy). ЯВНЫЙ CIDR-allowlist —
+# тот же, что у gunicorn --forwarded-allow-ips. Blanket-доверие к ЛЮБОМУ private-IP
+# запрещено: приватная подсеть не обязана быть нашим прокси. Если запрос пришёл
+# напрямую и peer вне allowlist — заголовок X-Real-IP ИГНОРИРУЕТСЯ (анти-спуф лимитера).
 import ipaddress
-TRUSTED_PROXY_PEERS = {host.strip() for host in os.environ.get("TRUSTED_PROXY_PEERS", "127.0.0.1,::1").split(",") if host.strip()}
+DEFAULT_TRUSTED_PROXY_CIDRS = "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,127.0.0.1,::1"
+_TRUSTED_PROXY_CIDRS = [
+    ipaddress.ip_network(cidr, strict=False)
+    for cidr in os.environ.get("TRUSTED_PROXY_PEERS", DEFAULT_TRUSTED_PROXY_CIDRS).split(",")
+    if cidr.strip()
+]
 
 def is_trusted_proxy(ip: str) -> bool:
-    if ip in TRUSTED_PROXY_PEERS:
-        return True
     try:
-        return ipaddress.ip_address(ip).is_private
+        addr = ipaddress.ip_address(ip)
     except ValueError:
         return False
+    return any(addr in net for net in _TRUSTED_PROXY_CIDRS)
 
 # =====================================================================
 # ИДЕНТИФИКАЦИЯ УЧЕНЫХ (Bearer JWT helpers)
@@ -1454,6 +1461,46 @@ def search_multisource_scientific_works(req: MultiSourceSearchRequest):
         "results": results
     }
 
+class PriorArtRequest(BaseModel):
+    title: str = Field(..., min_length=1, description="Заголовок/идея для проверки первичности")
+    abstract: Optional[str] = Field(default=None)
+    formula_math: Optional[str] = Field(default=None)
+    k: int = Field(default=10, ge=1, le=50)
+
+@app.post("/api/v1/prior-art")
+def run_prior_art_check(req: PriorArtRequest):
+    """Проверка первичности по МИРОВОМУ индексу открытой науки (BM25, НЕ эвристика).
+
+    Когда индекс пуст — честный fallback на локальную эвристику с явной меткой
+    HEURISTIC_FALLBACK. Результат НЕ является юридическим заключением.
+    """
+    index_available = world_index.index_status()["total_indexed_works"] > 0
+    if index_available:
+        results = world_index.query_prior_art(title=req.title, abstract=req.abstract or "", k=req.k)
+        return {
+            "status": "PRIOR_ART_READY",
+            "index_available": True,
+            "method": "INDEX_BM25",
+            "total_hits": len(results),
+            "query": {"title": req.title, "abstract": req.abstract or ""},
+            "results": results,
+            "disclaimer": world_index.PRIOR_ART_DISCLAIMER,
+        }
+    heuristic = SovereignAIAuditor.scan_prior_art_overlap(req.title, req.abstract or "", req.formula_math or "")
+    return {
+        "status": "PRIOR_ART_HEURISTIC",
+        "index_available": False,
+        "method": "HEURISTIC_FALLBACK",
+        "total_hits": 0,
+        "heuristic": heuristic,
+        "disclaimer": world_index.PRIOR_ART_DISCLAIMER,
+    }
+
+@app.get("/api/v1/prior-art/status")
+def prior_art_index_status():
+    """Статус мирового индекса: размер, последняя инжест, топ-журналы."""
+    return world_index.index_status()
+
 class BatchHarvestRequest(BaseModel):
     query: Optional[str] = Field(default=None)
     source: str = Field(default="all")
@@ -1571,9 +1618,9 @@ except Exception:
     _redis_client = None
 
 class _OAuthStateStore:
-    """Хранилище OAuth CSRF-state: Redis, если доступен, иначе память процесса
-    (dev без redis-python / Render без Redis-аддона). Семантически эквивалентно:
-    setex / get / delete с TTL-прослойкой."""
+    """Хранилище OAuth CSRF-state: Redis, если доступен; иначе — персистентная БД
+    (SQLite/Postgres). В отличие от памяти процесса, переживает рестарты и
+    распределяется между gunicorn-воркерами (Procfile: -w 2)."""
     TTL_SECONDS = 600
 
     @classmethod
@@ -1581,26 +1628,20 @@ class _OAuthStateStore:
         if _redis_client is not None:
             _redis_client.setex(key, ttl_seconds, value)
         else:
-            _oauth_states[key] = time.time() + ttl_seconds
+            storage.oauth_state_set(key, ttl_seconds)
 
     @classmethod
     def get(cls, key: str) -> Optional[str]:
         if _redis_client is not None:
             return _redis_client.get(key)
-        expiry = _oauth_states.get(key)
-        if expiry is None:
-            return None
-        if time.time() > expiry:
-            _oauth_states.pop(key, None)
-            return None
-        return "1"
+        return storage.oauth_state_get(key)
 
     @classmethod
     def delete(cls, key: str) -> None:
         if _redis_client is not None:
             _redis_client.delete(key)
         else:
-            _oauth_states.pop(key, None)
+            storage.oauth_state_delete(key)
 
 redis_client = _OAuthStateStore
 

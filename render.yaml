@@ -32,6 +32,13 @@ services:
         sync: false
       - key: ORCID_CLIENT_SECRET
         sync: false
+      # CORS: фронт статики (GitHub Pages/кастомный домен) + dev. ОБЯЗАТЕЛЬНО добавить
+      # реальный origin боевого сайта, иначе счётчики/API будут падать с CORS-ошибкой.
+      - key: ALLOWED_ORIGINS
+        value: https://gitscience.org,https://www.gitscience.org,https://salau.github.io
+      # Явный CIDR-allowlist прокси (должен совпадать с gunicorn --forwarded-allow-ips)
+      - key: TRUSTED_PROXY_PEERS
+        value: 10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,127.0.0.1,::1
 
   # 2. Next.js Frontend Service
   - type: web

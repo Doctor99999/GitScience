@@ -177,6 +177,15 @@ active_sessions = sa.Table(
     sa.Column('last_seen_at', sa.DateTime, server_default=sa.func.now())
 )
 
+oauth_states = sa.Table(
+    'oauth_states', metadata,
+    sa.Column('state', sa.String, primary_key=True),
+    sa.Column('expires_at', sa.DateTime, nullable=False)
+)
+
+OAUTH_STATE_TTL_SECONDS = 600
+OAUTH_STATE_MAX_ROWS = 100_000
+
 def compute_ipfs_cid(data: bytes) -> str:
     import base64
     sha256_hash = hashlib.sha256(data).digest()
@@ -211,6 +220,58 @@ def is_jti_revoked(jti: str) -> bool:
     with engine.connect() as conn:
         res = conn.execute(sa.select(revoked_tokens.c.jti).where(revoked_tokens.c.jti == jti))
         return res.first() is not None
+
+# =====================================================================
+# OAuth CSRF-state: персистентное хранилище (переживает рестарт и живёт
+# между gunicorn-воркерами — в отличие от памяти одного процесса).
+# Используется только когда Redis недоступен (dev/Render без аддона).
+# =====================================================================
+
+def oauth_state_set(state: str, ttl_seconds: int = OAUTH_STATE_TTL_SECONDS, value: str = "1") -> None:
+    """Сохраняет OAuth state с TTL. Также чистит протухшие записи и
+    жёстко ограничивает таблицу (защита от DoS-наполнения)."""
+    now = datetime.now(timezone.utc)
+    expires_at = now + timedelta(seconds=max(1, ttl_seconds))
+    with engine.begin() as conn:
+        conn.execute(
+            sa.text(
+                "INSERT INTO oauth_states (state, expires_at) VALUES (:s, :exp) "
+                "ON CONFLICT (state) DO UPDATE SET expires_at = excluded.expires_at"
+            ),
+            {"s": state, "exp": expires_at},
+        )
+        # Протухшие записи обязательно убираем при каждой записи
+        conn.execute(
+            sa.text("DELETE FROM oauth_states WHERE expires_at < :now"),
+            {"now": now},
+        )
+        # Жёсткий потолок: при превышении удаляем самые старые (по expires_at ASC)
+        total = conn.execute(sa.select(sa.func.count()).select_from(oauth_states)).scalar() or 0
+        excess = total - OAUTH_STATE_MAX_ROWS
+        if excess > 0:
+            conn.execute(
+                sa.text(
+                    "DELETE FROM oauth_states WHERE state IN ("
+                    "SELECT state FROM oauth_states ORDER BY expires_at ASC LIMIT :n)"
+                ),
+                {"n": excess},
+            )
+
+def oauth_state_get(state: str) -> Optional[str]:
+    """Возвращает "1", если state валиден и не истёк; иначе None (и удаляет истёкший)."""
+    with engine.begin() as conn:
+        conn.execute(
+            sa.text("DELETE FROM oauth_states WHERE state = :s AND expires_at < :now"),
+            {"s": state, "now": datetime.now(timezone.utc)},
+        )
+        row = conn.execute(
+            sa.select(sa.text("1")).select_from(oauth_states).where(oauth_states.c.state == state)
+        ).first()
+        return "1" if row is not None else None
+
+def oauth_state_delete(state: str) -> None:
+    with engine.begin() as conn:
+        conn.execute(oauth_states.delete().where(oauth_states.c.state == state))
 
 def load_protocol_constants() -> dict:
     if CONSTANTS_PATH.exists():
@@ -675,11 +736,19 @@ def ping_site_session(session_id: str) -> Dict[str, int]:
             ),
             {"sid": session_id, "now": now},
         )
-        # Амортизированная зачистка устаревших сессий (1 из ~20 пингов)
+        # Амортизированная зачистка устаревших сессий и старых визитов (1 из ~20 пингов).
+        # Ретенция посещений настраивается (SITE_VISITS_RETENTION_DAYS, по умолч. 365 дней),
+        # чтобы COUNT(*) в summary не деградировал на неограниченно растущей таблице.
         if random.random() < 0.05:
             conn.execute(
                 sa.text("DELETE FROM active_sessions WHERE last_seen_at < :cutoff"),
                 {"cutoff": cutoff},
+            )
+            retention_days = int(os.environ.get("SITE_VISITS_RETENTION_DAYS", "365") or 365)
+            horizon = now - timedelta(days=max(1, retention_days))
+            conn.execute(
+                sa.text("DELETE FROM site_visits WHERE visited_at < :horizon"),
+                {"horizon": horizon},
             )
     return update_site_stats_counts()
 

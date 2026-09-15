@@ -1,7 +1,9 @@
 import type { NextConfig } from "next";
 
 // Security-заголовки для server-режима (next start / standalone за nginx).
-// ВАЖНО: при STATIC_EXPORT (GitHub Pages) заголовки задаёт CDN через public/_headers.
+// ВАЖНО: при STATIC_EXPORT (GitHub Pages) Next эти заголовки не отдаёт, а GitHub Pages
+// игнорирует public/_headers (Netlify-формат). На GH Pages живём без кастомных
+// заголовков — риски задокументированы; _headers применяется только на Netlify/CF Pages.
 const securityHeaders = [
   {
     key: "X-Content-Type-Options",

@@ -1,11 +1,12 @@
-# Deploy-time security headers (Netlify/Cloudflare Pages).
-# Note: при статическом export (output: "export") Next не может задавать заголовки сам —
-# их подхватывает Netlify / Cloudflare Pages из этого файла на границе CDN.
+# Netlify / Cloudflare Pages ONLY. GitHub Pages ИГНОРИРУЕТ этот файл —
+# для GH Pages деploy.yml кастомные заголовки не применяются (ограничение платформы).
+# В других контейнерах (nginx/docker) заголовки задаёт next.config.ts / ngf.
 # sw.js (PWA) должен оставаться без 'unsafe-inline' требований — локальный кэш.
 
 /*
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
   Referrer-Policy: strict-origin-when-cross-origin
-  Permissions-Policy: camera=(), microphone=(), geolocation=(), interest-cohort=()
+  Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), interest-cohort=(), browsing-topics=()
   Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https://orcid.org; font-src 'self' data: https://fonts.googleapis.com https://fonts.gstatic.com; connect-src 'self' https://pub.orcid.org https://api.openalex.org https://export.arxiv.org https://europepmc.org https://www.ebi.ac.uk https://polygon-rpc.com https://mainnet.base.org https://gitscience-api.onrender.com http://127.0.0.1:8000 wss://relay.walletconnect.com https://*.walletconnect.com; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'

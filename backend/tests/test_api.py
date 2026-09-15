@@ -4,6 +4,8 @@ test_api.py — Integration and Route Tests for FastAPI Application
 """
 import pytest
 import json as _json
+import uuid
+import sqlalchemy as sa
 from fastapi.testclient import TestClient
 import sys
 import os
@@ -383,6 +385,48 @@ def test_stats_ping_requires_session_id(client):
     res = client.post("/api/v1/stats/ping", json={})
     assert res.status_code == 422
 
+def test_site_visits_retention_prunes_old_rows(monkeypatch):
+    """Пробабилистическая чистка удаляет визиты старше ретенции, свежие сохраняет."""
+    import gitscience_storage as storage
+    from datetime import datetime, timedelta, timezone
+    import os as _os
+
+    monkeypatch.setattr(storage.random, "random", lambda: 0.01)  # заставить попасть в 5%
+    _os.environ["SITE_VISITS_RETENTION_DAYS"] = "365"
+
+    old_sid = f"retention-old-{uuid.uuid4().hex}"
+    fresh_sid = f"retention-fresh-{uuid.uuid4().hex}"
+    now = datetime.now(timezone.utc)
+
+    with storage.engine.begin() as conn:
+        conn.execute(
+            storage.site_visits.insert().values(
+                session_id=old_sid, visited_at=now - timedelta(days=400)
+            )
+        )
+        conn.execute(
+            storage.site_visits.insert().values(
+                session_id=fresh_sid, visited_at=now
+            )
+        )
+
+    storage.ping_site_session(f"retention-ping-{uuid.uuid4().hex}")  # триггер cleanup
+
+    with storage.engine.connect() as conn:
+        old_left = conn.execute(
+            sa.select(sa.func.count()).select_from(storage.site_visits)
+            .where(storage.site_visits.c.session_id == old_sid)
+        ).scalar()
+        fresh_left = conn.execute(
+            sa.select(sa.func.count()).select_from(storage.site_visits)
+            .where(storage.site_visits.c.session_id == fresh_sid)
+        ).scalar()
+
+    assert old_left == 0, "визит старше ретенции должен быть удалён"
+    assert fresh_left == 1, "свежий визит должен остаться"
+    monkeypatch.undo()
+    _os.environ.pop("SITE_VISITS_RETENTION_DAYS", None)
+
 def test_court_dispute_full_flow_and_quorum(client):
     """Полный цикл суда: подача иска + 5 голосов присяжных до кворума (на БД)."""
     claimant = _auth_header_for(client, "0009-0003-3929-3605", "Claimant Scholar")
@@ -525,3 +569,212 @@ def test_upload_requires_jwt_in_production(client, monkeypatch):
         assert "production" in res.json()["detail"].lower() or "authorization" in res.json()["detail"].lower()
     finally:
         monkeypatch.undo()
+
+
+# =====================================================================
+# OAUTH CSRF-STATE: ПЕРСИСТЕНТНОЕ ХРАНИЛИЩЕ (переживает рестарт/воркеры)
+# =====================================================================
+
+def test_oauth_state_database_backend(client):
+    """State пишется в БД и читается «другим воркером» (отдельные вызовы functions)."""
+    import main as main_mod
+    import gitscience_storage as storage
+
+    # Гарантируем отсутствие Redis в тестовом окружении
+    assert main_mod._redis_client is None, "тест требует fallback на БД"
+
+    state = f"oauth_state:test-{uuid.uuid4().hex}"
+    try:
+        # Пишет один «воркер»
+        storage.oauth_state_set(state, 600)
+        assert storage.oauth_state_get(state) == "1"
+
+        # «Другой воркер/рестарт» видит то же самое через API endpoint
+        res = client.post("/api/v1/auth/orcid/callback", json={
+            "code": "invalid-code-roundtrip",
+            "redirect_uri": "https://gitscience.org/oauth",
+            "state": state.split("oauth_state:", 1)[1],
+        })
+        # Состояние валидно → не 403 state-ошибка (обмен кода упадёт позже/либо 403 из-за невалидного state TTL)
+        assert res.status_code != 403 or "Invalid or expired OAuth state" not in res.json().get("detail", "")
+        assert storage.oauth_state_get(state) is None, "state должен быть потреблён delete() при callback"
+    finally:
+        storage.oauth_state_delete(state)
+
+
+def test_oauth_state_expires(client):
+    """Истёкший state недоступен через get и удаляется (prune в get-пути)."""
+    import gitscience_storage as storage
+    from datetime import datetime, timedelta, timezone
+    key = f"oauth_state:expired-{uuid.uuid4().hex}"
+    # Прямая вставка протухшей записи в обход setex — цель get-путь
+    with storage.engine.begin() as conn:
+        conn.execute(
+            storage.oauth_states.insert().values(
+                state=key,
+                expires_at=datetime.now(timezone.utc) - timedelta(seconds=30),
+            )
+        )
+    try:
+        assert storage.oauth_state_get(key) is None
+        assert storage.oauth_state_get(key) is None
+    finally:
+        storage.oauth_state_delete(key)
+
+
+# =====================================================================
+# TRUSTED PROXY: ЯВНЫЙ CIDR-ALLOWLIST (анти-спуф rate-limiter)
+# =====================================================================
+
+def test_is_trusted_proxy_explicit_cidr(client):
+    """Публичные и произвольные peer'ы не считаются ЧДНОВЕРЕННЫМИ прокси."""
+    import main as main_mod
+    # Доменные подсети — доверенные
+    assert main_mod.is_trusted_proxy("127.0.0.1") is True
+    assert main_mod.is_trusted_proxy("::1") is True
+    assert main_mod.is_trusted_proxy("172.17.0.1") is True      # docker bridge
+    assert main_mod.is_trusted_proxy("10.45.1.8") is True       # Render internal
+    assert main_mod.is_trusted_proxy("192.168.1.7") is True     # локальная сеть
+    # Публичные адреса и мусор — НЕ доверенные (спуф невозможен)
+    assert main_mod.is_trusted_proxy("8.8.8.8") is False
+    assert main_mod.is_trusted_proxy("203.0.113.1") is False
+    assert main_mod.is_trusted_proxy("2001:db8::1") is False
+    assert main_mod.is_trusted_proxy("not-an-ip") is False
+
+
+def test_spoofed_x_real_ip_not_trusted(client, monkeypatch):
+    """Ключ лимитера: публичный peer → реальный IP (спуф невозможен); прокси → X-Real-IP."""
+    import asyncio
+    import main as main_mod
+
+    class FakeRequest:
+        def __init__(self, peer_host):
+            self.client = type("Cli", (), {"host": peer_host})()
+            self.headers = {"x-real-ip": "10.0.0.99"}  # попытка представиться внутренним адресом
+            self.url = type("U", (), {"path": "/api/v1/stats/ping"})()
+
+    observed = {}
+
+    def fake_is_allowed(key):
+        observed["key"] = key
+        return True
+
+    monkeypatch.setattr(main_mod.rate_limiter, "is_allowed", fake_is_allowed)
+
+    async def fake_next(request):
+        from fastapi.responses import JSONResponse
+        return JSONResponse({})
+
+    # Публичный атакующий peer → спуф отклонён, ключ = реальный 8.8.8.8
+    asyncio.run(main_mod.rate_limiting_middleware(FakeRequest("8.8.8.8"), fake_next))
+    assert observed["key"] == "8.8.8.8"
+
+    # Доверенный прокси → используется X-Real-IP
+    asyncio.run(main_mod.rate_limiting_middleware(FakeRequest("127.0.0.1"), fake_next))
+    assert observed["key"] == "10.0.0.99"
+
+
+# =====================================================================
+# PHASE I: WORLD SCIENCE INDEX + REAL PRIOR-ART (FTS5 BM25)
+# =====================================================================
+
+@pytest.fixture
+def world_catalog(tmp_path, monkeypatch):
+    """Изолированный каталог индекса + пустой main_mod.index (fold in tests)."""
+    import gitscience_indexer as ix
+    path = os.path.join(str(tmp_path), "catalog.db")
+    monkeypatch.setenv("GITSCIENCE_LIBRARY_PATH", path)
+    yield path
+    try:
+        os.remove(path)
+        os.remove(path + "-wal")
+        os.remove(path + "-shm")
+    except OSError:
+        pass
+
+
+def _seed_works(rows):
+    import gitscience_indexer as ix
+    conn = ix.get_catalog_db()
+    try:
+        for r in rows:
+            rec = ix.normalize_openalex_work({
+                "title": r["title"],
+                "authorships": [],
+                "doi": r.get("doi"),
+                "open_access": {"oa_status": r.get("oa_status", "gold")},
+                "publication_year": r.get("year", 2023),
+                "abstract_inverted_index": None,
+                "cited_by_count": r.get("cited_by", 0),
+                "concepts": [],
+            })
+            rec.update({"abstract": r.get("abstract", ""), "venue": r.get("venue", "")})
+            ix._upsert_work(conn, rec)
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def test_prior_art_endpoint_empty_index_falls_back(client, world_catalog):
+    """Пустой индекс → честный HEURISTIC_FALLBACK с disclaimer."""
+    res = client.post("/api/v1/prior-art", json={
+        "title": "Novel CRISPR delivery",
+        "abstract": "method in bacteria",
+    })
+    assert res.status_code == 200
+    data = res.json()
+    assert data["index_available"] is False
+    assert data["method"] == "HEURISTIC_FALLBACK"
+    assert data["total_hits"] == 0
+    assert "heuristic" in data and "novelty_score" in data["heuristic"]
+    assert "disclaimer" in data
+
+
+def test_prior_art_endpoint_indexed_bm25(client, world_catalog):
+    """Наполненный индекс → реальные находки INDEX_BM25 с доказательным контекстом."""
+    _seed_works([
+        {"title": "CRISPR delivery system for bacteria", "doi": "10.1000/a",
+         "abstract": "A method delivering genetic material into bacterial cells",
+         "venue": "Nature Biotechnology", "year": 2023, "cited_by": 120},
+        {"title": "Quantum computing photonics", "doi": "10.1000/b",
+         "abstract": "photonic qubits and gates", "venue": "PRX Quantum", "year": 2022},
+    ])
+    res = client.post("/api/v1/prior-art", json={
+        "title": "CRISPR delivery bacteria method",
+        "k": 5,
+    })
+    assert res.status_code == 200
+    data = res.json()
+    assert data["index_available"] is True
+    assert data["method"] == "INDEX_BM25"
+    assert data["total_hits"] >= 1
+    top = data["results"][0]
+    assert top["title"].startswith("CRISPR delivery")
+    assert top["doi"] == "10.1000/a"
+    assert {"rank", "title", "authors", "year", "venue", "license", "oa_status", "pdf_url", "landing_url", "cited_by", "doi", "overlap_pct"} <= set(top.keys())
+    assert data["disclaimer"]
+    # Валидация k (1..50)
+    bad = client.post("/api/v1/prior-art", json={"title": "x" * 2, "k": 0})
+    assert bad.status_code == 422
+
+
+def test_prior_art_status_endpoint(client, world_catalog):
+    res = client.get("/api/v1/prior-art/status")
+    assert res.status_code == 200
+    data = res.json()
+    assert "total_indexed_works" in data
+    assert "catalog_path" in data
+    _seed_works([{"title": "X artifact", "doi": "10.1000/c", "venue": "Nature"}])
+    data2 = client.get("/api/v1/prior-art/status").json()
+    assert data2["total_indexed_works"] == 1
+
+
+def test_prior_art_bad_fields(client, world_catalog):
+    empty = client.post("/api/v1/prior-art", json={"title": ""})
+    assert empty.status_code == 422
+    too_many = client.post("/api/v1/prior-art", json={"title": "abc", "k": 999})
+    assert too_many.status_code == 422
+    whitespace = client.post("/api/v1/prior-art", json={"title": "   "})
+    # Пробельный title не падает: пустой индекс → честный fallback
+    assert whitespace.status_code == 200
+    assert whitespace.json()["index_available"] is False
