@@ -85,8 +85,8 @@ export default function VampireTab({
           </div>
           {daemonStats && (
             <div className="text-[11px] text-[var(--text-mid)] flex gap-3">
-              <span>Harvested: <strong className="text-[var(--info)]">{daemonStats.total_lifetime_harvested || 0}</strong></span>
-              <span>Topic: <strong className="text-[var(--info)] text-[10px]">{daemonStats.current_active_topic || "—"}</strong></span>
+              <span>{t.vampHarvested} <strong className="text-[var(--info)]">{daemonStats.total_lifetime_harvested || 0}</strong></span>
+              <span>{t.vampTopic} <strong className="text-[var(--info)] text-[10px]">{daemonStats.current_active_topic || "—"}</strong></span>
             </div>
           )}
         </div>
@@ -127,7 +127,7 @@ export default function VampireTab({
             loading={vampireSearching}
             onClick={handleMultiSourceSearch}
           >
-            {vampireSearching ? "Ізделуде..." : t.vampireSearchBtn}
+            {vampireSearching ? t.vampSearching : t.vampireSearchBtn}
           </Button>
           <Button
             variant="primary"
@@ -135,7 +135,7 @@ export default function VampireTab({
             loading={batchHarvesting}
             onClick={handleTriggerBatchHarvest}
           >
-            {batchHarvesting ? "Жинақталуда..." : t.vampireHarvestBtn}
+            {batchHarvesting ? t.vampBatchHarvesting : t.vampireHarvestBtn}
           </Button>
         </div>
 
@@ -146,7 +146,7 @@ export default function VampireTab({
         {/* Search Results */}
         {vampireResults.length > 0 && (
           <div className="space-y-3 pt-2">
-            <h3 className="font-bold text-sm text-[var(--foreground)]">Табылған манускрипттер ({vampireResults.length}):</h3>
+            <h3 className="font-bold text-sm text-[var(--foreground)]">{t.vampFound} ({vampireResults.length}):</h3>
             <div className="space-y-3">
               {vampireResults.map((work, idx) => (
                 <div
@@ -156,15 +156,15 @@ export default function VampireTab({
                   <div className="space-y-1 max-w-2xl">
                     <div className="flex items-center gap-2">
                       <Badge variant="brand" icon="hub">
-                        {work.source || "Archive"}
+                        {work.source || t.vampArchive}
                       </Badge>
                       <Badge variant="ok">
-                        {work.license || "Open Access"}
+                        {work.license || t.vampOpenAccess}
                       </Badge>
                     </div>
                     <h4 className="font-bold text-sm text-[var(--foreground)]">{work.title}</h4>
                     <p className="text-[var(--text-mid)] text-[11px]">
-                      Авторлар: {work.authors || work.author_name || "Independent Researchers"}
+                      {t.vampAuthors} {work.authors || work.author_name || t.vampIndependent}
                     </p>
                     {work.doi && (
                       <span className="text-[10px] font-mono text-[var(--info)] block">DOI: {work.doi}</span>
@@ -178,7 +178,7 @@ export default function VampireTab({
                     loading={vampireImporting}
                     onClick={() => handleImportWork(work)}
                   >
-                    {vampireImporting ? "Импорт..." : t.vampireImportBtn}
+                    {vampireImporting ? t.vampImporting : t.vampireImportBtn}
                   </Button>
                 </div>
               ))}

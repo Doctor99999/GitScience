@@ -25,6 +25,31 @@ export interface PlatformStats {
   active_visitors_online?: number;
 }
 
+export interface PriorArtHit {
+  rank: number;
+  title: string;
+  authors?: string;
+  year?: number | null;
+  venue?: string;
+  license: string;
+  oa_status?: string;
+  doi?: string | null;
+  pdf_url?: string;
+  landing_url?: string;
+  cited_by?: number;
+  overlap_pct: number;
+}
+
+export interface PriorArtResult {
+  status: string;
+  index_available: boolean;
+  method: "INDEX_BM25" | "HEURISTIC_FALLBACK";
+  total_hits: number;
+  results: PriorArtHit[];
+  heuristic?: { novelty_score?: number; risk_level?: string };
+  disclaimer?: string;
+}
+
 export interface AstVerificationResult {
   status?: string;
   ast_merkle_digest?: string;

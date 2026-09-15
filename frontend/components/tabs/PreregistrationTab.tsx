@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import type { TranslationDict } from "../../lib/translations";
 import { Panel } from "@/components/ui/Panel";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { Button } from "@/components/ui/Button";
@@ -10,6 +11,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { SubNav } from "@/components/ui/SubNav";
 
 interface PreregistrationTabProps {
+  t: TranslationDict;
   apiBase: string;
   token?: string | null;
 }
@@ -17,6 +19,7 @@ interface PreregistrationTabProps {
 type PreregView = "create" | "view";
 
 export default function PreregistrationTab({
+  t,
   apiBase,
   token,
 }: PreregistrationTabProps) {
@@ -62,11 +65,11 @@ export default function PreregistrationTab({
       const data = await res.json();
       setCreateResult(
         data.prereg_id
-          ? `Created: ${data.prereg_id}`
-          : `Error: ${data.detail || "Unknown error"}`
+          ? `${t.preCreated}: ${data.prereg_id}`
+          : `${t.edError}: ${data.detail || t.edUnknownError}`
       );
     } catch {
-      setCreateResult("Network error");
+      setCreateResult(t.edNetworkError);
     } finally {
       setCreating(false);
     }
@@ -101,10 +104,10 @@ export default function PreregistrationTab({
         }
       );
       const data = await res.json();
-      setRegisterResult(data.registered_at ? "Registered!" : "Error");
+      setRegisterResult(data.registered_at ? t.preRegistered : t.edError);
       if (data.registered_at) handleView();
     } catch {
-      setRegisterResult("Network error");
+      setRegisterResult(t.edNetworkError);
     } finally {
       setViewLoading(false);
     }
@@ -115,8 +118,8 @@ export default function PreregistrationTab({
       {/* Sub-navigation */}
       <SubNav
         items={[
-          { key: "create", label: "Create Preregistration" },
-          { key: "view", label: "View / Register" },
+          { key: "create", label: t.preSubCreate },
+          { key: "view", label: t.preSubView },
         ]}
         active={view}
         onChange={(v) => setView(v as PreregView)}
@@ -127,23 +130,23 @@ export default function PreregistrationTab({
         <Panel className="p-4 sm:p-7 space-y-5">
           <SectionHeader
             icon="biotech"
-            title={<h2 className="font-display text-lg font-extrabold uppercase tracking-tight text-[var(--foreground)]">Create Preregistration</h2>}
-            subtitle={<p className="text-xs sm:text-sm text-[var(--text-mid)]">Lock your hypothesis and methods before data collection</p>}
+            title={<h2 className="font-display text-lg font-extrabold uppercase tracking-tight text-[var(--foreground)]">{t.preSubCreate}</h2>}
+            subtitle={<p className="text-xs sm:text-sm text-[var(--text-mid)]">{t.preSubCreateSub}</p>}
           />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
             <div className="md:col-span-2">
               <Input
-                label="Title *"
-                placeholder="Study title"
+                label={t.edTitleLabel}
+                placeholder={t.preTitlePlaceholder}
                 value={form.title}
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
               />
             </div>
             <div className="md:col-span-2">
               <Textarea
-                label="Hypothesis / Research Question *"
-                hint="Primary hypothesis or research question"
+                label={t.preHypothesisLabel}
+                hint={t.preHypothesisHint}
                 rows={3}
                 value={form.hypothesis}
                 onChange={(e) => setForm({ ...form, hypothesis: e.target.value })}
@@ -151,8 +154,8 @@ export default function PreregistrationTab({
             </div>
             <div className="md:col-span-2">
               <Textarea
-                label="Methods"
-                hint="Planned methodology"
+                label={t.preMethodsLabel}
+                hint={t.preMethodsHint}
                 rows={3}
                 value={form.methods}
                 onChange={(e) => setForm({ ...form, methods: e.target.value })}
@@ -160,8 +163,8 @@ export default function PreregistrationTab({
             </div>
             <div className="md:col-span-2">
               <Textarea
-                label="Analysis Plan"
-                hint="Statistical analysis plan"
+                label={t.preAnalysisLabel}
+                hint={t.preAnalysisHint}
                 rows={3}
                 value={form.analysis_plan}
                 onChange={(e) => setForm({ ...form, analysis_plan: e.target.value })}
@@ -169,7 +172,7 @@ export default function PreregistrationTab({
             </div>
             <div>
               <Input
-                label="Authors"
+                label={t.edAuthorsLabel}
                 placeholder="Dr. Smith, Prof. Jones"
                 value={form.authors}
                 onChange={(e) => setForm({ ...form, authors: e.target.value })}
@@ -192,7 +195,7 @@ export default function PreregistrationTab({
             disabled={!form.title || !form.hypothesis}
             onClick={handleCreate}
           >
-            {creating ? "Creating..." : "Create Preregistration"}
+            {creating ? t.preCreating : t.preSubCreate}
           </Button>
 
           {createResult && (
@@ -208,8 +211,8 @@ export default function PreregistrationTab({
         <Panel className="p-4 sm:p-7 space-y-5">
           <SectionHeader
             icon="biotech"
-            title={<h2 className="font-display text-lg font-extrabold uppercase tracking-tight text-[var(--foreground)]">View Preregistration</h2>}
-            subtitle={<p className="text-xs sm:text-sm text-[var(--text-mid)]">View and register your preregistration</p>}
+            title={<h2 className="font-display text-lg font-extrabold uppercase tracking-tight text-[var(--foreground)]">{t.preViewTitle}</h2>}
+            subtitle={<p className="text-xs sm:text-sm text-[var(--text-mid)]">{t.preSubViewSub}</p>}
           />
 
           <div className="flex gap-2">
@@ -217,7 +220,7 @@ export default function PreregistrationTab({
               <Input
                 label=""
                 icon="search"
-                placeholder="Preregistration ID"
+                placeholder={t.preViewPlaceholder}
                 value={viewTarget}
                 onChange={(e) => setViewTarget(e.target.value)}
               />
@@ -229,7 +232,7 @@ export default function PreregistrationTab({
               disabled={!viewTarget}
               onClick={handleView}
             >
-              Load
+              {t.preLoadBtn}
             </Button>
           </div>
 
@@ -240,7 +243,7 @@ export default function PreregistrationTab({
                   {preregData.title as string}
                 </div>
                 <div className="text-[10px] text-[var(--text-mid)]">
-                  Status:{" "}
+                  {t.preStatusLabel}{" "}
                   <Badge
                     variant={
                       preregData.status === "registered"
@@ -253,25 +256,25 @@ export default function PreregistrationTab({
                 </div>
                 {!!preregData.registered_at && (
                   <div className="text-[10px] text-[var(--text-mid)]">
-                    Registered: {String(preregData.registered_at)}
+                    {t.preRegisteredAt} {String(preregData.registered_at)}
                   </div>
                 )}
                 <div className="text-xs text-[var(--foreground)]">
-                  <strong>Hypothesis:</strong> {String(preregData.hypothesis)}
+                  <strong>{t.preHypothesisField}</strong> {String(preregData.hypothesis)}
                 </div>
                 {!!preregData.methods && (
                   <div className="text-xs text-[var(--foreground)]">
-                    <strong>Methods:</strong> {String(preregData.methods)}
+                    <strong>{t.preMethodsField}</strong> {String(preregData.methods)}
                   </div>
                 )}
                 {!!preregData.analysis_plan && (
                   <div className="text-xs text-[var(--foreground)]">
-                    <strong>Analysis Plan:</strong> {String(preregData.analysis_plan)}
+                    <strong>{t.preAnalysisField}</strong> {String(preregData.analysis_plan)}
                   </div>
                 )}
                 {!!preregData.version && (
                   <div className="text-[10px] text-[var(--text-mid)]">
-                    Version: {String(preregData.version)}
+                    {t.preVersion} {String(preregData.version)}
                   </div>
                 )}
               </Panel>
@@ -283,7 +286,7 @@ export default function PreregistrationTab({
                   loading={viewLoading}
                   onClick={handleRegister}
                 >
-                  Register Now (Lock in Time)
+                  {t.preRegisterBtn}
                 </Button>
               )}
 
@@ -295,7 +298,7 @@ export default function PreregistrationTab({
 
               {(preregData.amendments as unknown[])?.length ? (
                 <div className="space-y-2">
-                  <div className="text-xs font-bold text-[var(--text-mid)]">Amendments:</div>
+                  <div className="text-xs font-bold text-[var(--text-mid)]">{t.preAmendments}</div>
                   {(preregData.amendments as Record<string, unknown>[]).map((a, i) => (
                     <Panel key={i} className="p-3">
                       <div className="text-[10px] text-[var(--text-mid)]">
@@ -312,8 +315,8 @@ export default function PreregistrationTab({
           ) : (
             <EmptyState
               icon="biotech"
-              title="No preregistration loaded"
-              body={<p>Enter an ID above to view a preregistration</p>}
+              title={t.preNoDataTitle}
+              body={<p>{t.preNoDataBody}</p>}
             />
           )}
         </Panel>

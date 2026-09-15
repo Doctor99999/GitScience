@@ -118,10 +118,10 @@ export default function CourtTab({
                 <span className="material-symbols-outlined text-[1.1em]" aria-hidden>
                   balance
                 </span>{" "}
-                Дау ісі тіркелді:
+                {t.courtFiled}
               </div>
-              <div>Case ID: <strong className="text-[var(--info)]">{courtDisputeResult.case_id}</strong></div>
-              <div>Status: <span className="font-bold text-[var(--ok)]">{courtDisputeResult.status}</span></div>
+              <div>{t.courtCaseId} <strong className="text-[var(--info)]">{courtDisputeResult.case_id}</strong></div>
+              <div>{t.courtStatus} <span className="font-bold text-[var(--ok)]">{courtDisputeResult.status}</span></div>
             </Panel>
           )}
         </Panel>
@@ -146,8 +146,8 @@ export default function CourtTab({
                 </div>
 
                 <div>
-                  <div className="font-semibold text-[var(--text-mid)]">Оспариваемый манускрипт: {c.target_code}</div>
-                  <div className="text-[11px] text-[var(--text-low)] mt-0.5">Шағымданушы: {c.claimant_name} ({c.claimant_orcid})</div>
+                  <div className="font-semibold text-[var(--text-mid)]">{t.courtDisputed} {c.target_code}</div>
+                  <div className="text-[11px] text-[var(--text-low)] mt-0.5">{t.courtClaimant} {c.claimant_name} ({c.claimant_orcid})</div>
                   <p className="text-xs text-[var(--text-mid)] mt-1 bg-black/40 p-2.5 border border-[var(--surface-border)]">
                     {c.reason}
                   </p>
@@ -155,9 +155,9 @@ export default function CourtTab({
 
                 <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[var(--surface-border)] font-mono text-[11px]">
                   <div className="flex gap-3 text-[var(--text-mid)]">
-                    <span>Valid: <strong className="text-[var(--ok)]">{c.votes_valid}</strong></span>
-                    <span>Invalid: <strong className="text-[var(--err)]">{c.votes_invalid}</strong></span>
-                    <span>Abstain: <strong className="text-[var(--text-mid)]">{c.votes_abstain}</strong></span>
+                    <span>{t.courtValid} <strong className="text-[var(--ok)]">{c.votes_valid}</strong></span>
+                    <span>{t.courtInvalid} <strong className="text-[var(--err)]">{c.votes_invalid}</strong></span>
+                    <span>{t.courtAbstain} <strong className="text-[var(--text-mid)]">{c.votes_abstain}</strong></span>
                   </div>
 
                   <div className="flex gap-1.5">

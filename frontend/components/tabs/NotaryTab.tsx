@@ -3,7 +3,7 @@
 import React from "react";
 import { IPC_CLASSES } from "../../lib/constants";
 import type { TranslationDict } from "../../lib/translations";
-import type { AiAuditResult, AstVerificationResult, NotarySuccessResult } from "../../lib/types";
+import type { AiAuditResult, AstVerificationResult, NotarySuccessResult, PriorArtResult } from "../../lib/types";
 import { Panel } from "@/components/ui/Panel";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { Button } from "@/components/ui/Button";
@@ -73,6 +73,29 @@ export default function NotaryTab({
   notarySuccess,
   apiBase,
 }: NotaryTabProps) {
+  const [priorArtLoading, setPriorArtLoading] = React.useState(false);
+  const [priorArtResult, setPriorArtResult] = React.useState<PriorArtResult | null>(null);
+  const [priorArtError, setPriorArtError] = React.useState<string | null>(null);
+
+  const handleRunPriorArtCheck = async () => {
+    if (!title.trim()) return;
+    setPriorArtLoading(true);
+    setPriorArtError(null);
+    try {
+      const res = await fetch(`${apiBase}/api/v1/prior-art`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, abstract, formula_math: formulaMath || "", k: 10 }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setPriorArtResult((await res.json()) as PriorArtResult);
+    } catch (e) {
+      setPriorArtError(e instanceof Error ? e.message : t.ntPaFailed);
+    } finally {
+      setPriorArtLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Panel className="space-y-6 p-4 sm:p-7">
@@ -107,7 +130,7 @@ export default function NotaryTab({
             description
           </span>
           <p className="text-xs font-medium text-[var(--text-mid)] sm:text-sm">
-            {file ? `Таңдалған файл: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)` : t.dropzoneText}
+            {file ? `${t.ntFileSelected} ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)` : t.dropzoneText}
           </p>
           <span className="font-mono text-[11px] text-[var(--text-low)]">
             ISO 14721 OAIS • SHA-256 CAS Vault • WIPO Legal Proof
@@ -132,10 +155,10 @@ export default function NotaryTab({
             className="font-mono"
           />
           <Select label={t.categoryLabel} value={category} onChange={(e) => setCategory(e.target.value)}>
-            <option value="Clinical Oncology & Surgery">Clinical Oncology & Surgery</option>
-            <option value="Molecular Biology & Genetics">Molecular Biology & Genetics</option>
-            <option value="Healthcare Informatics & AI">Healthcare Informatics & AI</option>
-            <option value="Computational Systems & Algorithms">Computational Systems & Algorithms</option>
+            <option value="Clinical Oncology & Surgery">{t.ntCategoryOnco}</option>
+            <option value="Molecular Biology & Genetics">{t.ntCategoryMolBio}</option>
+            <option value="Healthcare Informatics & AI">{t.ntCategoryHcAi}</option>
+            <option value="Computational Systems & Algorithms">{t.ntCategoryComp}</option>
           </Select>
           <Select label={t.ipcLabel} value={ipcClass} onChange={(e) => setIpcClass(e.target.value)}>
             {IPC_CLASSES.map((c) => (
@@ -186,10 +209,10 @@ export default function NotaryTab({
           {astVerification && (
             <Panel tone="ok" className="space-y-1 p-3 font-mono text-[11px]">
               <Badge variant="ok" icon="check_circle">
-                Safe AST Компиляция: {astVerification.status}
+                {t.ntAstCompiled} {astVerification.status}
               </Badge>
               <div className="truncate text-[var(--text-mid)]">
-                AST Merkle Digest: <strong className="text-[var(--info)]">{astVerification.ast_merkle_digest}</strong>
+                {t.ntAstMerkle} <strong className="text-[var(--info)]">{astVerification.ast_merkle_digest}</strong>
               </div>
             </Panel>
           )}
@@ -209,7 +232,22 @@ export default function NotaryTab({
               </span>
             }
           >
-            {aiAuditLoading ? "ИИ-Аудит жүріп жатыр..." : t.aiAuditBtn}
+            {aiAuditLoading ? t.ntAiAuditRunning : t.aiAuditBtn}
+          </Button>
+
+          <Button
+            variant="secondary"
+            onClick={handleRunPriorArtCheck}
+            disabled={priorArtLoading}
+            loading={priorArtLoading}
+            className="flex-1"
+            icon={
+              <span className="material-symbols-outlined text-[1.1em]" aria-hidden>
+                travel_explore
+              </span>
+            }
+          >
+            {priorArtLoading ? t.ntPriorArtRunning : t.priorArtBtn}
           </Button>
 
           <Button
@@ -224,7 +262,7 @@ export default function NotaryTab({
               </span>
             }
           >
-            {notarySubmitting ? "Тізілімге бекітілуде..." : t.notarizeBtn}
+            {notarySubmitting ? t.ntNotarizeRunning : t.notarizeBtn}
           </Button>
         </div>
 
@@ -232,30 +270,98 @@ export default function NotaryTab({
         {aiAuditResult && (
           <Panel tone="info" className="space-y-3 p-4 font-mono text-xs">
             <div className="flex flex-wrap items-center justify-between gap-2 font-bold text-[var(--info)]">
-              <span className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-[1.1em]" aria-hidden>
-                  smart_toy
-                </span>
-                AI Audit Dossier: {aiAuditResult.dossier_id}
+<span className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[1.1em]" aria-hidden>
+                    smart_toy
+                  </span>
+                {t.ntAiDossier}: {aiAuditResult.dossier_id}
               </span>
               <span className="text-[var(--ok)]">
-                Score: {aiAuditResult.ai_composite_scores?.composite_quality_index}/10
+                {t.edScore} {aiAuditResult.ai_composite_scores?.composite_quality_index}/10
               </span>
             </div>
             <div className="grid grid-cols-2 gap-2 text-[11px] sm:grid-cols-4">
               <div className="rounded-[var(--radius-card)] bg-black/40 p-2">
-                Math: {aiAuditResult.ai_composite_scores?.math_rigor_score}/10
+                {t.ntMath} {aiAuditResult.ai_composite_scores?.math_rigor_score}/10
               </div>
               <div className="rounded-[var(--radius-card)] bg-black/40 p-2">
-                Methodology: {aiAuditResult.ai_composite_scores?.methodology_score}/10
+                {t.ntMethodology} {aiAuditResult.ai_composite_scores?.methodology_score}/10
               </div>
               <div className="rounded-[var(--radius-card)] bg-black/40 p-2">
-                Novelty: {aiAuditResult.ai_composite_scores?.novelty_score}/10
+                {t.ntNovelty} {aiAuditResult.ai_composite_scores?.novelty_score}/10
               </div>
               <div className="rounded-[var(--radius-card)] bg-black/40 p-2">
-                Bioethics: {aiAuditResult.ai_composite_scores?.bioethics_score}/10
+                {t.ntBioethics} {aiAuditResult.ai_composite_scores?.bioethics_score}/10
               </div>
             </div>
+          </Panel>
+        )}
+
+        {/* Prior-Art Check Result (World Science Index) */}
+        {priorArtError && (
+          <Panel tone="err" className="p-4 font-mono text-xs">
+            {t.ntPaFailed} {priorArtError}
+          </Panel>
+        )}
+        {priorArtResult && !priorArtError && (
+          <Panel tone={priorArtResult.index_available ? "info" : "warn"} className="space-y-3 p-4 font-mono text-xs">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="font-bold text-[var(--info)]">
+                <span className="material-symbols-outlined text-[1.1em]" aria-hidden>
+                  travel_explore
+                </span>{" "}
+                {t.ntPaTitle}{" "}
+                <Badge variant={priorArtResult.index_available ? "ok" : "warn"}>
+                  {priorArtResult.method}
+                </Badge>
+              </span>
+              <span className="text-[var(--text-mid)]">{t.ntPaHits} {priorArtResult.total_hits}</span>
+            </div>
+            {priorArtResult.results.length === 0 && (
+              <div className="text-[var(--text-mid)]">
+                {priorArtResult.heuristic
+                  ? `${t.ntNovelty} ${priorArtResult.heuristic.novelty_score}/10 · ${t.ntPaRisk} ${
+                      priorArtResult.heuristic.risk_level ?? "—"
+                    }`
+                  : t.ntPaNoMatches}
+              </div>
+            )}
+            {priorArtResult.results.length > 0 && (
+              <ul className="space-y-2">
+                {priorArtResult.results.map((h) => (
+                  <li key={h.rank} className="space-y-1 rounded-[var(--radius-card)] bg-black/40 p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="truncate text-[var(--foreground)]">#{h.rank} {h.title}</span>
+                      <Badge variant={h.overlap_pct >= 25 ? "warn" : "info"}>
+                        {h.overlap_pct}% {t.ntPaOverlapLabel}
+                      </Badge>
+                    </div>
+                    <div className="text-[11px] text-[var(--text-mid)]">
+                      {[h.authors, h.venue, h.year].filter(Boolean).join(" · ")}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 text-[11px]">
+                      <Badge variant="info">{h.license}</Badge>
+                      {h.cited_by ? <span>{t.ntPaCitedLabel} {h.cited_by}</span> : null}
+                      {h.doi ? (
+                        <a className="sci-focus text-[var(--info)] underline underline-offset-2" href={`https://doi.org/${h.doi}`} target="_blank" rel="noreferrer">
+                          doi:{h.doi}
+                        </a>
+                      ) : null}
+                      {h.pdf_url ? (
+                        <a className="sci-focus text-[var(--ok)] underline underline-offset-2" href={h.pdf_url} target="_blank" rel="noreferrer">
+                          {t.ntPaPdf}
+                        </a>
+                      ) : null}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {priorArtResult.disclaimer && (
+              <div className="text-[10px] leading-relaxed text-[var(--text-mid)]/80">
+                {priorArtResult.disclaimer}
+              </div>
+            )}
           </Panel>
         )}
 

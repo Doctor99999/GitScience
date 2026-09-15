@@ -133,10 +133,10 @@ export default function OrcidModal({
             value={inputDiscipline}
             onChange={(e) => setInputDiscipline(e.target.value)}
           >
-            <option value="Clinical Oncology & Surgery">Clinical Oncology & Surgery</option>
-            <option value="Molecular Biology & Genetics">Molecular Biology & Genetics</option>
-            <option value="Healthcare Informatics & AI">Healthcare Informatics & AI</option>
-            <option value="Computational Systems & Algorithms">Computational Systems & Algorithms</option>
+            <option value="Clinical Oncology & Surgery">{t.ntCategoryOnco}</option>
+            <option value="Molecular Biology & Genetics">{t.ntCategoryMolBio}</option>
+            <option value="Healthcare Informatics & AI">{t.ntCategoryHcAi}</option>
+            <option value="Computational Systems & Algorithms">{t.ntCategoryComp}</option>
           </Select>
         </div>
 

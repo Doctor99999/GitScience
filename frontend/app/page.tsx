@@ -442,6 +442,7 @@ export default function GitScienceApp() {
 
           {activeTab === "editorial" && (
             <EditorialTab
+              t={t}
               apiBase={apiBase}
               token={activeScholar?.access_token}
             />
@@ -458,6 +459,7 @@ export default function GitScienceApp() {
 
           {activeTab === "preregistration" && (
             <PreregistrationTab
+              t={t}
               apiBase={apiBase}
               token={activeScholar?.access_token}
             />

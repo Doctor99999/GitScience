@@ -78,7 +78,7 @@ export default function InspectorTab({
               <Badge variant="ok">{inspectedDoc.registration_code}</Badge>
               <h3 className="text-base font-bold text-[var(--foreground)] sm:text-lg">{inspectedDoc.title}</h3>
               <p className="text-xs text-[var(--text-mid)]">
-                Автор: <strong className="text-[var(--foreground)]">{inspectedDoc.author_name}</strong> (ORCID:{" "}
+                {t.inspAuthor} <strong className="text-[var(--foreground)]">{inspectedDoc.author_name}</strong> (ORCID:{" "}
                 {inspectedDoc.orcid})
               </p>
             </Panel>
@@ -89,13 +89,13 @@ export default function InspectorTab({
                 <strong className="block text-xs font-bold text-[var(--ok)]">{t.layer1Title}</strong>
                 <div className="space-y-1 text-[11px] text-[var(--text-mid)]">
                   <div>
-                    WIPO IPC: <span className="text-[var(--foreground)]">{inspectedDoc.ipc_class}</span>
+                    {t.inspIpc} <span className="text-[var(--foreground)]">{inspectedDoc.ipc_class}</span>
                   </div>
                   <div>
-                    Лицензия: <span className="text-[var(--foreground)]">{inspectedDoc.license_type}</span>
+                    {t.inspLicense} <span className="text-[var(--foreground)]">{inspectedDoc.license_type}</span>
                   </div>
                   <div>
-                    Закон: <span className="text-[var(--foreground)]">35 U.S.C. § 102(a)(1)</span>
+                    {t.inspLaw} <span className="text-[var(--foreground)]">35 U.S.C. § 102(a)(1)</span>
                   </div>
                 </div>
               </Panel>
@@ -105,13 +105,13 @@ export default function InspectorTab({
                 <strong className="block text-xs font-bold text-[var(--info)]">{t.layer2Title}</strong>
                 <div className="space-y-1 text-[11px] text-[var(--text-mid)]">
                   <div className="break-all">
-                    SHA-256: <span className="break-all text-[var(--foreground)]">{inspectedDoc.sha256_hash}</span>
+                    {t.inspSha} <span className="break-all text-[var(--foreground)]">{inspectedDoc.sha256_hash}</span>
                   </div>
                   <div className="break-all">
-                    Git OID: <span className="break-all text-[var(--foreground)]">{inspectedDoc.git_commit_hash}</span>
+                    {t.inspGitOid} <span className="break-all text-[var(--foreground)]">{inspectedDoc.git_commit_hash}</span>
                   </div>
                   <div>
-                    Anchor: <span className="text-[var(--ok)]">Bitcoin OTS Anchored</span>
+                    {t.inspAnchor} <span className="text-[var(--ok)]">{t.inspAnchoredValue}</span>
                   </div>
                 </div>
               </Panel>
@@ -121,13 +121,13 @@ export default function InspectorTab({
                 <strong className="block text-xs font-bold text-[var(--sci-red)]">{t.layer3Title}</strong>
                 <div className="space-y-1 text-[11px] text-[var(--text-mid)]">
                   <div className="break-all">
-                    Формула: <span className="break-all text-[var(--info)]">{inspectedDoc.formula_math}</span>
+                    {t.inspFormula} <span className="break-all text-[var(--info)]">{inspectedDoc.formula_math}</span>
                   </div>
                   <div className="break-all">
-                    AST Merkle: <span className="break-all text-[var(--foreground)]">{inspectedDoc.ast_merkle_digest}</span>
+                    {t.inspAstMerkle} <span className="break-all text-[var(--foreground)]">{inspectedDoc.ast_merkle_digest}</span>
                   </div>
                   <div>
-                    Режим: <span className="text-[var(--warn)]">RUO Class I CDSS</span>
+                    {t.inspMode} <span className="text-[var(--warn)]">RUO Class I CDSS</span>
                   </div>
                 </div>
               </Panel>
@@ -156,7 +156,7 @@ export default function InspectorTab({
                   </span>
                 }
               >
-                {ipNftMinting ? "Токенизация..." : t.mintIpNftBtn}
+                {ipNftMinting ? t.inspTokenizing : t.mintIpNftBtn}
               </Button>
               <a
                 href={`${apiBase}/certificate/pdf/${inspectedDoc.registration_code}`}
@@ -174,13 +174,13 @@ export default function InspectorTab({
                   <span className="material-symbols-outlined text-[1.1em]" aria-hidden>
                     biotech
                   </span>
-                  Sovereign IP-NFT Патент токенизирован:
+                  {t.inspNftTitle}
                 </div>
                 <div>
-                  Standard: <span className="text-[var(--foreground)]">{ipNftResult.contract_standard}</span>
+                  {t.inspStandard} <span className="text-[var(--foreground)]">{ipNftResult.contract_standard}</span>
                 </div>
                 <div>
-                  Royalty to Founder:{" "}
+                  {t.inspRoyalty}{" "}
                   <span className="font-bold text-[var(--ok)]">{ipNftResult.founder_royalty_pct}</span>
                 </div>
               </Panel>

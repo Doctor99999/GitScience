@@ -165,16 +165,16 @@ export default function ReviewTab({
         {reviewResult && (
           <Panel tone="ok" className="font-mono text-[11px] space-y-1">
             <div className="flex items-center gap-2">
-              <Badge variant="ok" icon="check_circle">Рецензия бекітілді:</Badge>
+              <Badge variant="ok" icon="check_circle">{t.revConfirmed}</Badge>
             </div>
-            <div>Review ID: <span className="text-[var(--info)]">{reviewResult.review_id}</span></div>
+            <div>{t.revReviewId} <span className="text-[var(--info)]">{reviewResult.review_id}</span></div>
             <div>
-              Reviewer Payout:{" "}
+              {t.revReviewerPayout}{" "}
               <span className="text-[var(--ok)] font-bold">
                 {(reviewResult as { reviewer_payout?: string }).reviewer_payout || "$0.00 USDT"}
               </span>
             </div>
-            <div>Consensus: <span className="text-[var(--info)]">{(reviewResult as { consensus_status?: string }).consensus_status}</span></div>
+            <div>{t.revConsensus} <span className="text-[var(--info)]">{(reviewResult as { consensus_status?: string }).consensus_status}</span></div>
 
             {reviewId && (
               <Button
@@ -184,16 +184,16 @@ export default function ReviewTab({
                 onClick={handleClaimAttestation}
               >
                 <span className="material-symbols-outlined text-[1.1em]" aria-hidden>verified_user</span>
-                Привязать рецензию к профилю (claim attestation)
+                {t.revClaimBtn}
               </Button>
             )}
 
             {claim && (
               <Panel tone="info" className="font-mono text-[10px] space-y-1">
-                <div>Status: <span className="text-[var(--info)]">{claim.status}</span></div>
+                <div>{t.courtStatus} <span className="text-[var(--info)]">{claim.status}</span></div>
                 {claim.attestation && (
                   <div className="break-all">
-                    Attestation SHA-256:{" "}
+                    {t.revAttestationSha}{" "}
                     <span className="text-[var(--ok)]">{claim.attestation.attestation_sha256}</span>
                   </div>
                 )}
@@ -206,17 +206,17 @@ export default function ReviewTab({
           <Panel tone="info" className="font-mono text-[11px] space-y-1">
             <div className="text-[var(--info)] font-bold flex items-center gap-2">
               <span className="material-symbols-outlined text-[1.1em]" aria-hidden>science</span>
-              Репутация рецензента
-              {rep.reviewer_verified && <Badge variant="ok" icon="check_circle">Verified</Badge>}
+              {t.revRepTitle}
+              {rep.reviewer_verified && <Badge variant="ok" icon="check_circle">{t.revVerified}</Badge>}
             </div>
             <div className="grid grid-cols-2 gap-1">
-              <span>Reviews: <b className="text-[var(--foreground)]">{rep.reviews_submitted}</b></span>
-              <span>Avg grade: <b className="text-[var(--foreground)]">{rep.mean_composite_score ?? "—"}</b></span>
-              <span>Accepted: <b className="text-[var(--foreground)]">{rep.accepted_recommendations}</b></span>
-              <span>Attestations: <b className="text-[var(--foreground)]">{rep.claimed_attestations_count}</b></span>
+              <span>{t.revReviews} <b className="text-[var(--foreground)]">{rep.reviews_submitted}</b></span>
+              <span>{t.revAvgGrade} <b className="text-[var(--foreground)]">{rep.mean_composite_score ?? "—"}</b></span>
+              <span>{t.revAccepted} <b className="text-[var(--foreground)]">{rep.accepted_recommendations}</b></span>
+              <span>{t.revAttestations} <b className="text-[var(--foreground)]">{rep.claimed_attestations_count}</b></span>
             </div>
             <span>
-              Заработано: <b className="text-[var(--ok)]">{rep.total_reward_disbursed_usdt} USDT</b>
+              {t.revEarned} <b className="text-[var(--ok)]">{rep.total_reward_disbursed_usdt} USDT</b>
             </span>
           </Panel>
         )}

@@ -57,19 +57,19 @@ export default function AmanatTab({
           <Panel className="space-y-1 p-4">
             <span className="text-[var(--text-mid)] block text-[11px]">{t.amanatAuthorPool}</span>
             <strong className="text-2xl font-bold text-[var(--ok)]">${authorPool.toLocaleString()}</strong>
-            <p className="text-[10px] text-[var(--text-low)]">14 CRediT CASRAI рөлдері бойынша бөлінеді</p>
+            <p className="text-[10px] text-[var(--text-low)]">{t.amAuthorPoolDesc}</p>
           </Panel>
 
           <Panel className="space-y-1 p-4">
             <span className="text-[var(--text-mid)] block text-[11px]">{t.amanatInfraPool}</span>
             <strong className="text-2xl font-bold text-[var(--info)]">${infraPool.toLocaleString()}</strong>
-            <p className="text-[10px] text-[var(--text-low)]">Тәуелсіз рецензенттер мен валидаторлар қоры</p>
+            <p className="text-[10px] text-[var(--text-low)]">{t.amInfraPoolDesc}</p>
           </Panel>
 
           <Panel className="space-y-1 p-4">
             <span className="text-[var(--text-mid)] block text-[11px]">{t.amanatFounderPool}</span>
             <strong className="text-2xl font-bold text-[var(--sci-red)]">${founderPool.toLocaleString()}</strong>
-            <p className="text-[10px] text-[var(--text-low)]">Протокол Создатель пулы (Salauat Yeshimov)</p>
+            <p className="text-[10px] text-[var(--text-low)]">{t.amFounderPoolDesc}</p>
           </Panel>
         </div>
 
@@ -79,20 +79,20 @@ export default function AmanatTab({
             <span className="material-symbols-outlined text-[1.1em]" aria-hidden>
               description
             </span>{" "}
-            Институционалдық B2B Фиат Инвойс жасау (Клиникалар мен Госпитальдар үшін)
+            {t.amB2bHeader}
           </h3>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
               <Input
-                label="Клиниканың ресми атауы"
+                label={t.amClinicLabel}
                 value={hospitalName}
                 onChange={(e) => setHospitalName(e.target.value)}
               />
             </div>
             <div>
               <Input
-                label="БИН / Салық төлеуші коды"
+                label={t.amTaxBinLabel}
                 value={taxBin}
                 onChange={(e) => setTaxBin(e.target.value)}
                 className="font-mono text-[var(--info)]"
@@ -113,7 +113,7 @@ export default function AmanatTab({
           <Panel className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 p-4 text-xs font-mono bg-black/40">
             <div>
               <span className="text-[var(--text-mid)] block">{t.amanatInvoiceTotal}</span>
-              <span className="text-[11px] text-[var(--text-low)]">Базалық сома (${baseLicenseFee}) + 20% B2B Gross-Up (${grossUpTax})</span>
+              <span className="text-[11px] text-[var(--text-low)]">{t.amBaseAmtLabel} (${baseLicenseFee}) + {t.amB2bGrossUpTerm} (${grossUpTax})</span>
             </div>
             <strong className="text-2xl sm:text-3xl font-bold text-[var(--warn)]">${totalB2bBill.toLocaleString()} USD</strong>
           </Panel>
@@ -131,7 +131,7 @@ export default function AmanatTab({
               </span>
             }
           >
-            {fiatLoading ? "Инвойс жасалуда..." : t.genFiatInvoiceBtn}
+            {fiatLoading ? t.amInvoiceGenerating : t.genFiatInvoiceBtn}
           </Button>
 
           {fiatInvoiceResult && (
@@ -140,11 +140,11 @@ export default function AmanatTab({
                 <span className="material-symbols-outlined text-[1.1em]" aria-hidden>
                   check_circle
                 </span>{" "}
-                B2B Инвойс ресми шығарылды:
+                {t.amInvoiceIssued}
               </div>
-              <div>Invoice №: <strong className="text-[var(--info)]">{fiatInvoiceResult.invoice_id}</strong></div>
-              <div>Hospital: <span className="text-[var(--foreground)]">{fiatInvoiceResult.hospital_name}</span></div>
-              <div>Gross Total: <strong className="font-bold text-[var(--warn)]">${fiatInvoiceResult.total_gross_invoice_fiat} USD</strong></div>
+              <div>{t.amInvoiceNo} <strong className="text-[var(--info)]">{fiatInvoiceResult.invoice_id}</strong></div>
+              <div>{t.amHospital} <span className="text-[var(--foreground)]">{fiatInvoiceResult.hospital_name}</span></div>
+              <div>{t.amGrossTotal} <strong className="font-bold text-[var(--warn)]">${fiatInvoiceResult.total_gross_invoice_fiat} USD</strong></div>
             </Panel>
           )}
         </Panel>

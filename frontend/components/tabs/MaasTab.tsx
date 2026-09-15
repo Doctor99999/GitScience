@@ -65,7 +65,7 @@ export default function MaasTab({
                 </span>
               }
             >
-              {maasLoading ? "Есептелуде..." : t.maasRunBtn}
+              {maasLoading ? t.maasRunning : t.maasRunBtn}
             </Button>
             <Button
               variant="secondary"
@@ -92,7 +92,7 @@ export default function MaasTab({
               </span>{" "}
               {t.maasVisualCurveTitle}
             </strong>
-            <Badge variant="info">Deterministic WASM Runtime</Badge>
+            <Badge variant="info">{t.maasDeterministic}</Badge>
           </div>
 
           <div className="h-40 sm:h-48 w-full bg-black/40 border border-[var(--surface-border)] flex items-end justify-between p-4 gap-1 sm:gap-2">
@@ -115,7 +115,7 @@ export default function MaasTab({
               <span className="material-symbols-outlined text-[1.1em]" aria-hidden>
                 local_hospital
               </span>{" "}
-              HL7 / FHIR R4 Bundle Observation:
+              {t.maasFhirTitle}
             </div>
             <pre className="bg-black/40 p-3 overflow-x-auto text-[11px] text-[var(--text-mid)]">
               {JSON.stringify(fhirResult, null, 2)}
@@ -130,7 +130,7 @@ export default function MaasTab({
               <span className="material-symbols-outlined text-[1.1em]" aria-hidden>
                 bolt
               </span>{" "}
-              WASM Stream Output:
+              {t.maasWasmOutput}
             </div>
             <pre className="bg-black/40 p-3 overflow-x-auto text-[11px] text-[var(--text-mid)]">
               {JSON.stringify(maasResult, null, 2)}

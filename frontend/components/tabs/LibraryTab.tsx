@@ -61,7 +61,7 @@ export default function LibraryTab({
             </h2>
           }
           subtitle={<p>{t.libSubheader}</p>}
-          right={<Badge variant="ok">Total: {filteredLibrary.length} works</Badge>}
+          right={<Badge variant="ok">{t.libTotalLabel} {filteredLibrary.length} {t.libWorksLabel}</Badge>}
         />
 
         {/* Search and Filters */}
@@ -91,7 +91,7 @@ export default function LibraryTab({
                 <span className="material-symbols-outlined text-[1.1em]" aria-hidden>
                   description
                 </span>
-                PDF Viewer (ISO 14721 CAS Stream)
+                {t.libPdfViewer}
               </span>
               <Button variant="ghost" size="sm" onClick={() => setActivePdfUrl(null)}>
                 {t.closePdfBtn}
@@ -140,11 +140,11 @@ export default function LibraryTab({
                     {art.title}
                   </h3>
                   <p className="truncate text-xs text-[var(--text-mid)]">
-                    Автор: <strong className="text-[var(--foreground)]">{art.author_name}</strong>
+                    {t.inspAuthor} <strong className="text-[var(--foreground)]">{art.author_name}</strong>
                   </p>
                   <div className="flex items-center justify-between pt-1 font-mono text-[11px] text-[var(--text-low)] min-w-0">
                     <div>
-                      Дереккөз: <span className="mr-3 text-[var(--warn)]">{art.source_archive || "Sovereign Notary"}</span>
+                      {t.libSource} <span className="mr-3 text-[var(--warn)]">{art.source_archive || t.libSovereignNotary}</span>
                     </div>
                     <div className="flex shrink-0 gap-3 text-[var(--text-mid)]">
                       <span className="flex items-center gap-1">
@@ -203,9 +203,9 @@ export default function LibraryTab({
               </span>
             }
           >
-            Previous
+            {t.libPrevious}
           </Button>
-          <span className="font-mono text-xs text-[var(--text-mid)]">Page {page}</span>
+          <span className="font-mono text-xs text-[var(--text-mid)]">{t.libPage} {page}</span>
           <Button
             variant="secondary"
             size="sm"
@@ -217,7 +217,7 @@ export default function LibraryTab({
               </span>
             }
           >
-            Next
+            {t.libNext}
           </Button>
         </div>
       </Panel>

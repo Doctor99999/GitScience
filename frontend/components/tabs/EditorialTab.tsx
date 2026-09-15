@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import type { TranslationDict } from "../../lib/translations";
 import { Panel } from "@/components/ui/Panel";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { Button } from "@/components/ui/Button";
@@ -11,6 +12,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { SubNav } from "@/components/ui/SubNav";
 
 interface EditorialTabProps {
+  t: TranslationDict;
   apiBase: string;
   token?: string | null;
 }
@@ -25,7 +27,7 @@ interface SubmissionDraft {
   category: string;
 }
 
-export default function EditorialTab({ apiBase, token }: EditorialTabProps) {
+export default function EditorialTab({ t, apiBase, token }: EditorialTabProps) {
   const [view, setView] = useState<EditorialView>("submit");
   const [draft, setDraft] = useState<SubmissionDraft>({
     title: "",
@@ -66,11 +68,11 @@ export default function EditorialTab({ apiBase, token }: EditorialTabProps) {
       const data = await res.json();
       setSubmitResult(
         data.submission_code
-          ? `Manuscript submitted: ${data.submission_code}`
-          : `Error: ${data.detail || "Unknown error"}`
+          ? `${t.edSubmitted}: ${data.submission_code}`
+          : `${t.edError}: ${data.detail || t.edUnknownError}`
       );
     } catch {
-      setSubmitResult("Network error");
+      setSubmitResult(t.edNetworkError);
     } finally {
       setSubmitting(false);
     }
@@ -117,7 +119,7 @@ export default function EditorialTab({ apiBase, token }: EditorialTabProps) {
       const data = await res.json();
       setScreenResult(data);
     } catch {
-      setScreenResult({ error: "Network error" });
+      setScreenResult({ error: t.edNetworkError });
     } finally {
       setScreenLoading(false);
     }
@@ -135,10 +137,10 @@ export default function EditorialTab({ apiBase, token }: EditorialTabProps) {
       {/* Sub-navigation */}
       <SubNav
         items={[
-          { key: "submit", label: "Submit Manuscript" },
-          { key: "pipeline", label: "Pipeline" },
-          { key: "analytics", label: "Analytics" },
-          { key: "ai-screen", label: "AI Screen" },
+          { key: "submit", label: t.edSubSubmit },
+          { key: "pipeline", label: t.edSubPipeline },
+          { key: "analytics", label: t.edSubAnalytics },
+          { key: "ai-screen", label: t.edSubAiScreen },
         ]}
         active={view}
         onChange={handleSubNavChange}
@@ -149,23 +151,23 @@ export default function EditorialTab({ apiBase, token }: EditorialTabProps) {
         <Panel className="p-4 sm:p-7 shadow-xl space-y-5">
           <SectionHeader
             icon="edit_note"
-            title={<h2 className="font-display text-lg font-extrabold uppercase tracking-tight text-[var(--foreground)]">Submit Manuscript</h2>}
-            subtitle={<p className="text-xs sm:text-sm text-[var(--text-mid)]">Submit a new manuscript for peer review</p>}
+            title={<h2 className="font-display text-lg font-extrabold uppercase tracking-tight text-[var(--foreground)]">{t.edSubSubmit}</h2>}
+            subtitle={<p className="text-xs sm:text-sm text-[var(--text-mid)]">{t.edSubSubmitSub}</p>}
           />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
             <div className="md:col-span-2">
               <Input
-                label="Title *"
-                placeholder="Manuscript title"
+                label={t.edTitleLabel}
+                placeholder={t.edTitlePlaceholder}
                 value={draft.title}
                 onChange={(e) => setDraft({ ...draft, title: e.target.value })}
               />
             </div>
             <div className="md:col-span-2">
               <Textarea
-                label="Abstract *"
-                hint="Structured abstract (Background, Methods, Results, Conclusions)"
+                label={t.edAbstractLabel}
+                hint={t.edAbstractHint}
                 rows={4}
                 value={draft.abstract}
                 onChange={(e) => setDraft({ ...draft, abstract: e.target.value })}
@@ -173,7 +175,7 @@ export default function EditorialTab({ apiBase, token }: EditorialTabProps) {
             </div>
             <div>
               <Input
-                label="Authors (comma-separated)"
+                label={t.edAuthorsLabel}
                 placeholder="Dr. Smith, Prof. Jones"
                 value={draft.authors}
                 onChange={(e) => setDraft({ ...draft, authors: e.target.value })}
@@ -181,7 +183,7 @@ export default function EditorialTab({ apiBase, token }: EditorialTabProps) {
             </div>
             <div>
               <Input
-                label="Keywords (comma-separated)"
+                label={t.edKeywordsLabel}
                 placeholder="blockchain, peer review, open science"
                 value={draft.keywords}
                 onChange={(e) => setDraft({ ...draft, keywords: e.target.value })}
@@ -189,15 +191,15 @@ export default function EditorialTab({ apiBase, token }: EditorialTabProps) {
             </div>
             <div>
               <Select
-                label="Category"
+                label={t.edCategoryLabel}
                 value={draft.category}
                 onChange={(e) => setDraft({ ...draft, category: e.target.value })}
               >
-                <option value="research-article">Research Article</option>
-                <option value="review">Review Article</option>
-                <option value="short-communication">Short Communication</option>
-                <option value="case-report">Case Report</option>
-                <option value="editorial">Editorial</option>
+                <option value="research-article">{t.edCategoryResearch}</option>
+                <option value="review">{t.edCategoryReview}</option>
+                <option value="short-communication">{t.edCategoryShort}</option>
+                <option value="case-report">{t.edCategoryCase}</option>
+                <option value="editorial">{t.edCategoryEditorial}</option>
               </Select>
             </div>
           </div>
@@ -209,7 +211,7 @@ export default function EditorialTab({ apiBase, token }: EditorialTabProps) {
             disabled={!draft.title || !draft.abstract}
             onClick={handleSubmit}
           >
-            {submitting ? "Submitting..." : "Submit for Peer Review"}
+            {submitting ? t.edSubmitting : t.edSubmitBtn}
           </Button>
 
           {submitResult && (
@@ -225,8 +227,8 @@ export default function EditorialTab({ apiBase, token }: EditorialTabProps) {
         <Panel className="p-4 sm:p-7 shadow-xl space-y-5">
           <SectionHeader
             icon="assignment"
-            title={<h2 className="font-display text-lg font-extrabold uppercase tracking-tight text-[var(--foreground)]">Editorial Pipeline</h2>}
-            subtitle={<p className="text-xs sm:text-sm text-[var(--text-mid)]">Overview of all manuscripts by status</p>}
+            title={<h2 className="font-display text-lg font-extrabold uppercase tracking-tight text-[var(--foreground)]">{t.edPipelineTitle}</h2>}
+            subtitle={<p className="text-xs sm:text-sm text-[var(--text-mid)]">{t.edPipelineSub}</p>}
           />
 
           {pipelineLoading ? (
@@ -254,8 +256,8 @@ export default function EditorialTab({ apiBase, token }: EditorialTabProps) {
           ) : (
             <EmptyState
               icon="assignment"
-              title="No pipeline data"
-              body={<p>Click refresh to load the editorial pipeline</p>}
+              title={t.edNoPipelineTitle}
+              body={<p>{t.edNoPipelineBody}</p>}
             />
           )}
 
@@ -265,7 +267,7 @@ export default function EditorialTab({ apiBase, token }: EditorialTabProps) {
             icon={<span className="material-symbols-outlined text-[1.1em]" aria-hidden>analytics</span>}
             onClick={loadPipeline}
           >
-            Refresh Pipeline
+            {t.edRefreshPipeline}
           </Button>
         </Panel>
       )}
@@ -275,8 +277,8 @@ export default function EditorialTab({ apiBase, token }: EditorialTabProps) {
         <Panel className="p-4 sm:p-7 shadow-xl space-y-5">
           <SectionHeader
             icon="analytics"
-            title={<h2 className="font-display text-lg font-extrabold uppercase tracking-tight text-[var(--foreground)]">Editorial Analytics</h2>}
-            subtitle={<p className="text-xs sm:text-sm text-[var(--text-mid)]">Performance metrics and statistics</p>}
+            title={<h2 className="font-display text-lg font-extrabold uppercase tracking-tight text-[var(--foreground)]">{t.edAnalyticsTitle}</h2>}
+            subtitle={<p className="text-xs sm:text-sm text-[var(--text-mid)]">{t.edAnalyticsSub}</p>}
           />
 
           {analyticsLoading ? (
@@ -289,25 +291,25 @@ export default function EditorialTab({ apiBase, token }: EditorialTabProps) {
             <div className="space-y-4">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div className="p-4 bg-[var(--surface-hi)] border border-[var(--surface-border)]">
-                  <div className="text-xs text-[var(--text-mid)]">Total Submissions</div>
+                  <div className="text-xs text-[var(--text-mid)]">{t.edTotalSubmissions}</div>
                   <div className="text-2xl font-mono font-bold text-[var(--foreground)]">
                     {(analytics.overview as Record<string, unknown>)?.total_submissions as number ?? 0}
                   </div>
                 </div>
                 <div className="p-4 bg-[var(--surface-hi)] border border-[var(--surface-border)]">
-                  <div className="text-xs text-[var(--text-mid)]">Published</div>
+                  <div className="text-xs text-[var(--text-mid)]">{t.edPublished}</div>
                   <div className="text-2xl font-mono font-bold text-[var(--ok)]">
                     {(analytics.overview as Record<string, unknown>)?.published as number ?? 0}
                   </div>
                 </div>
                 <div className="p-4 bg-[var(--surface-hi)] border border-[var(--surface-border)]">
-                  <div className="text-xs text-[var(--text-mid)]">Acceptance Rate</div>
+                  <div className="text-xs text-[var(--text-mid)]">{t.edAcceptanceRate}</div>
                   <div className="text-2xl font-mono font-bold text-[var(--info)]">
                     {String(analytics.acceptance_rate ?? 0)}%
                   </div>
                 </div>
                 <div className="p-4 bg-[var(--surface-hi)] border border-[var(--surface-border)]">
-                  <div className="text-xs text-[var(--text-mid)]">Avg Days to Decision</div>
+                  <div className="text-xs text-[var(--text-mid)]">{t.edAvgDays}</div>
                   <div className="text-2xl font-mono font-bold text-[var(--warn)]">
                     {(analytics.timing as Record<string, unknown>)?.avg_days_to_decision as number ?? 0}
                   </div>
@@ -317,8 +319,8 @@ export default function EditorialTab({ apiBase, token }: EditorialTabProps) {
           ) : (
             <EmptyState
               icon="analytics"
-              title="No analytics data"
-              body={<p>Click refresh to load editorial analytics</p>}
+              title={t.edNoAnalyticsTitle}
+              body={<p>{t.edNoAnalyticsBody}</p>}
             />
           )}
 
@@ -328,7 +330,7 @@ export default function EditorialTab({ apiBase, token }: EditorialTabProps) {
             icon={<span className="material-symbols-outlined text-[1.1em]" aria-hidden>analytics</span>}
             onClick={loadAnalytics}
           >
-            Refresh Analytics
+            {t.edRefreshAnalytics}
           </Button>
         </Panel>
       )}
@@ -338,8 +340,8 @@ export default function EditorialTab({ apiBase, token }: EditorialTabProps) {
         <Panel className="p-4 sm:p-7 shadow-xl space-y-5">
           <SectionHeader
             icon="biotech"
-            title={<h2 className="font-display text-lg font-extrabold uppercase tracking-tight text-[var(--foreground)]">AI Manuscript Screening</h2>}
-            subtitle={<p className="text-xs sm:text-sm text-[var(--text-mid)]">Automated quality check for submissions</p>}
+            title={<h2 className="font-display text-lg font-extrabold uppercase tracking-tight text-[var(--foreground)]">{t.edAiScreenTitle}</h2>}
+            subtitle={<p className="text-xs sm:text-sm text-[var(--text-mid)]">{t.edAiScreenSub}</p>}
           />
 
           <div className="flex gap-2">
@@ -347,7 +349,7 @@ export default function EditorialTab({ apiBase, token }: EditorialTabProps) {
               <Input
                 label=""
                 icon="search"
-                placeholder="Submission code (e.g. GS-2026-00001)"
+                placeholder={t.edAiScreenPlaceholder}
                 value={screenTarget}
                 onChange={(e) => setScreenTarget(e.target.value)}
               />
@@ -359,14 +361,14 @@ export default function EditorialTab({ apiBase, token }: EditorialTabProps) {
               disabled={!screenTarget}
               onClick={handleAIScreen}
             >
-              {screenLoading ? "Screening..." : "AI Screen"}
+              {screenLoading ? t.edAiScreening : t.edAiScreenBtn}
             </Button>
           </div>
 
           {screenResult && (
             <div className="p-4 bg-black/40 border border-cyan-500/30 font-mono text-[11px] space-y-2">
               <div className="flex items-center gap-2">
-                <span className="text-[var(--text-mid)]">Score:</span>
+                <span className="text-[var(--text-mid)]">{t.edScore}</span>
                 <span className="text-[var(--foreground)] font-bold text-lg">
                   {(screenResult as Record<string, unknown>).overall_score as number}
                 </span>
@@ -401,7 +403,7 @@ export default function EditorialTab({ apiBase, token }: EditorialTabProps) {
                 ((screenResult as Record<string, unknown>).red_flags as unknown[]).length > 0 && (
                 <Panel tone="err" className="p-2">
                   <Badge variant="err" icon="warning">
-                    Red Flags: {String((screenResult as Record<string, unknown>).red_flag_count)}
+                    {t.edRedFlags}: {String((screenResult as Record<string, unknown>).red_flag_count)}
                   </Badge>
                 </Panel>
               )}
@@ -409,7 +411,7 @@ export default function EditorialTab({ apiBase, token }: EditorialTabProps) {
               {!!(screenResult as Record<string, unknown>).suggestions &&
                 ((screenResult as Record<string, unknown>).suggestions as string[]).length > 0 && (
                 <div className="space-y-1">
-                  <div className="text-[var(--text-mid)] text-[10px] font-bold">Suggestions:</div>
+                  <div className="text-[var(--text-mid)] text-[10px] font-bold">{t.edSuggestions}</div>
                   {((screenResult as Record<string, unknown>).suggestions as string[]).map((s: string, i: number) => (
                     <div key={i} className="text-[var(--foreground)] text-[10px]">- {s}</div>
                   ))}
