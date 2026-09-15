@@ -810,12 +810,20 @@ class EditorialEngine:
         self._ensure_storage_dir()
         self._load_state()
     
+    def _get_redis_client(self):
+        if not hasattr(self, '_redis'):
+            import redis
+            import os
+            redis_url = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
+            self._redis = redis.from_url(redis_url, decode_responses=True)
+        return self._redis
+
     def _ensure_storage_dir(self):
-        """Создание директории для хранения"""
+        """Создание директории для хранения (оставлено для совместимости)"""
         os.makedirs(self._storage_dir, exist_ok=True)
     
     def _save_state(self):
-        """Сохранение состояния в JSON файл"""
+        """Сохранение состояния в Redis для синхронизации между воркерами Gunicorn"""
         state = {
             "submissions": {
                 k: asdict(v) for k, v in self.submissions.items()
@@ -841,20 +849,36 @@ class EditorialEngine:
             "saved_at": datetime.now(timezone.utc).isoformat(),
         }
         try:
+            r = self._get_redis_client()
+            r.set("editorial_state", json.dumps(state, ensure_ascii=False))
+            # Для бэкапа пишем и в файл
             with open(self._storage_file, "w", encoding="utf-8") as f:
                 json.dump(state, f, ensure_ascii=False, indent=2)
         except Exception as e:
-            print(f"[EditorialEngine] Warning: failed to save state: {e}")
+            print(f"[EditorialEngine] Warning: failed to save state to Redis: {e}")
     
     def _load_state(self):
-        """Загрузка состояния из JSON файла"""
-        if not os.path.exists(self._storage_file):
-            return
-        
+        """Загрузка состояния из Redis (основной) или JSON файла (фоллбэк)"""
+        state = None
         try:
-            with open(self._storage_file, "r", encoding="utf-8") as f:
-                state = json.load(f)
+            r = self._get_redis_client()
+            data = r.get("editorial_state")
+            if data:
+                state = json.loads(data)
+        except Exception:
+            pass
             
+        if not state and os.path.exists(self._storage_file):
+            try:
+                with open(self._storage_file, "r", encoding="utf-8") as f:
+                    state = json.load(f)
+            except Exception:
+                pass
+                
+        if not state:
+            return
+            
+        try:
             for k, v in state.get("submissions", {}).items():
                 self.submissions[k] = Submission(**v)
             

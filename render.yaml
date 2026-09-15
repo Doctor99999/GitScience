@@ -1,9 +1,22 @@
 services:
-  # 1. FastAPI Python Backend Service
+  # 1. PostgreSQL Database
+  - type: psql
+    name: gitscience-db
+    plan: starter
+    ipAllowList: [] # Allow internal access only
+
+  # 2. Redis Cache & Broker
+  - type: redis
+    name: gitscience-redis
+    plan: free
+    ipAllowList: [] # Allow internal access only
+
+  # 3. FastAPI Python Backend Service
   - type: web
     name: gitscience-api
     runtime: python
     rootDir: backend
+    plan: starter
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn -w 2 -k uvicorn.workers.UvicornWorker --timeout 120 --keep-alive 5 --forwarded-allow-ips='10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,127.0.0.1,::1' main:app --bind 0.0.0.0:$PORT
     envVars:
@@ -11,46 +24,62 @@ services:
         value: 3.11.9
       - key: PYTHONUNBUFFERED
         value: "1"
-      # Среда: production — включает строгий auth, отключает /docs, OTP-проверку OAuth
       - key: ENVIRONMENT
         value: production
-      # JWT подписи: обязателен в проде — впишите длинный случайный секрет
-      # в дашборде Render (переменная создастся автоматически).
+      - key: DATABASE_URL
+        fromDatabase:
+          name: gitscience-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: gitscience-redis
+          property: connectionString
+      - key: ALLOWED_ORIGINS
+        value: https://gitscience.org,https://www.gitscience.org,https://gitscience-frontend.onrender.com
       - key: JWT_SECRET
         sync: false
-      # HMAC-подпись fiat-вебхуков: обязателен в проде.
-      - key: FIAT_WEBHOOK_SECRET
-        sync: false
-      # 1 = включить живое якорение в Bitcoin-календари OpenTimestamps
-      - key: GITSCIENCE_OTS_LIVE
-        sync: false
-      # Секрет регистрации IoT-устройств
-      - key: IOT_DEVICE_SECRET
-        sync: false
-      # ORCID OAuth
       - key: ORCID_CLIENT_ID
         sync: false
       - key: ORCID_CLIENT_SECRET
         sync: false
-      # CORS: фронт статики (GitHub Pages/кастомный домен) + dev. ОБЯЗАТЕЛЬНО добавить
-      # реальный origin боевого сайта, иначе счётчики/API будут падать с CORS-ошибкой.
-      - key: ALLOWED_ORIGINS
-        value: https://gitscience.org,https://www.gitscience.org,https://salau.github.io
-      # Явный CIDR-allowlist прокси (должен совпадать с gunicorn --forwarded-allow-ips)
-      - key: TRUSTED_PROXY_PEERS
-        value: 10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,127.0.0.1,::1
 
-  # 2. Next.js Frontend Service
+  # 4. Celery Background Worker
+  - type: worker
+    name: gitscience-celery-worker
+    runtime: python
+    rootDir: backend
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: celery -A gitscience_celery.celery_app worker --loglevel=info
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: DATABASE_URL
+        fromDatabase:
+          name: gitscience-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: gitscience-redis
+          property: connectionString
+
+  # 5. Next.js Frontend Service
   - type: web
     name: gitscience-frontend
     runtime: node
     rootDir: frontend
-    buildCommand: npm install && NEXT_PUBLIC_API_BASE=/api npm run build
+    plan: starter
+    buildCommand: npm install && npm run build
     startCommand: npm run start
     envVars:
       - key: NODE_VERSION
         value: 20.x
       - key: NEXT_PUBLIC_API_BASE
-        value: /api
+        fromService:
+          type: web
+          name: gitscience-api
+          property: url
       - key: NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID
         sync: false

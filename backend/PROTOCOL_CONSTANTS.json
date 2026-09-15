@@ -29,5 +29,28 @@
     "regulatory_class": "RUO (Research Use Only) / CDSS Class I",
     "attestation_required": true,
     "physician_in_the_loop": true
+  },
+  "prior_art_report_tiers": {
+    "auto": {
+      "label_en": "Auto",
+      "label_ru": "Авто",
+      "price_usd": 199,
+      "price_kzt": 190000,
+      "includes": "BM25 report: top-N matches, overlap %, source links, disclaimer"
+    },
+    "verified": {
+      "label_en": "Verified",
+      "label_ru": "Верифицированный",
+      "price_usd": 999,
+      "price_kzt": 950000,
+      "includes": "Auto + human verification pass, signed PDF, ready for grant filings"
+    },
+    "full": {
+      "label_en": "Full (legal context)",
+      "label_ru": "Полный (юр. контекст)",
+      "price_usd": 2500,
+      "price_kzt": 2400000,
+      "includes": "Verified + attorney liaison, 35 U.S.C. §102 / EPC 54(2) mapping, filing recommendation"
+    }
   }
 }

@@ -3,17 +3,24 @@
 routes/editorial.py — Editorial workflow, peer review management, DOI minting, JATS export.
 Moved from main.py via mechanical extraction; logic unchanged.
 """
-from typing import Optional, List, Dict, Any, Tuple
-
-from fastapi import APIRouter, HTTPException, status, Query, Body, Request, Response
-from pydantic import BaseModel, Field
+import hmac
+import os
 import uuid
-from datetime import datetime, timezone
+from typing import Dict, List, Optional
+
+from fastapi import APIRouter, HTTPException, Request, Response
+from pydantic import BaseModel
 
 from routes.deps import (
-    storage, editorial_engine, doi_service, jats_exporter,
-    require_active_bearer, require_verified_orcid, require_editor_role,
-    EditorialUser, Submission, PeerReview, EditorialDecision,
+    EditorialUser,
+    PeerReview,
+    Submission,
+    doi_service,
+    editorial_engine,
+    jats_exporter,
+    require_active_bearer,
+    require_editor_role,
+    require_verified_orcid,
 )
 
 router = APIRouter()

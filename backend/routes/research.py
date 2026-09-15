@@ -5,7 +5,7 @@ Moved from main.py via mechanical extraction; logic unchanged.
 """
 from typing import Optional, List, Dict, Any
 
-from fastapi import APIRouter, HTTPException, status, Query, Body, Request
+from fastapi import APIRouter, HTTPException, status, Query, Body, Request, Response
 from pydantic import BaseModel, Field
 import hashlib
 import hmac
@@ -41,6 +41,16 @@ try:
     from gitscience_ai_review import SovereignAIAuditor
 except Exception:
     SovereignAIAuditor = None
+
+try:
+    from gitscience_priorart_report import (
+        PriorArtReportProduct, get_tier,
+        PRIOR_ART_DISCLAIMER as REPORT_DISCLAIMER,
+    )
+except Exception:
+    PriorArtReportProduct = None
+    get_tier = None
+    REPORT_DISCLAIMER = None
 
 router = APIRouter()
 
@@ -266,6 +276,107 @@ def run_prior_art_check(req: PriorArtRequest):
 def prior_art_index_status():
     """Статус мирового индекса: размер, последняя инжест, топ-журналы."""
     return world_index.index_status()
+
+class PriorArtReportRequest(BaseModel):
+    title: str = Field(..., min_length=1, description="Заголовок/идея для проверки первичности")
+    abstract: Optional[str] = Field(default=None)
+    formula_math: Optional[str] = Field(default=None)
+    tier: str = Field(default="auto", description="auto | verified | full — тарифная лестница")
+    currency: str = Field(default="USD", description="USD или KZT")
+    k: int = Field(default=10, ge=1, le=50)
+
+@router.post("/api/v1/prior-art/report")
+def generate_prior_art_report_product(req: PriorArtReportRequest):
+    """Продуктовый пакет «Verified Prior-Art Report» (Layer B).
+
+    Возвращает метаданные тарифа + JSON-LD для юристов. PDF скачивается отдельно:
+    GET /api/v1/prior-art/report/{report_id}/pdf. Результат НЕ юридическое заключение.
+    """
+    if PriorArtReportProduct is None or get_tier is None:
+        raise HTTPException(status_code=503, detail="PriorArt report product module unavailable")
+
+    try:
+        tier = get_tier(req.tier)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+    currency = (req.currency or "USD").upper()
+    if currency not in ("USD", "KZT"):
+        raise HTTPException(status_code=422, detail="currency must be USD or KZT")
+    price = tier.get("price_usd" if currency == "USD" else "price_kzt", tier.get("price_usd"))
+
+    index_available = bool(world_index) and world_index.index_status()["total_indexed_works"] > 0
+    if index_available:
+        results = world_index.query_prior_art(title=req.title, abstract=req.abstract or "", k=req.k)
+        method = "INDEX_BM25"
+    else:
+        results = []
+        method = "HEURISTIC_FALLBACK"
+
+    report_id = PriorArtReportProduct.generate_report_id(
+        {"title": req.title, "abstract": req.abstract or ""}, req.tier
+    )
+    jsonld = PriorArtReportProduct.build_jsonld(
+        report_id=report_id,
+        query={"title": req.title, "abstract": req.abstract or ""},
+        tier=req.tier,
+        results=results,
+        method=method,
+    )
+
+    return {
+        "status": "PRIOR_ART_REPORT_READY",
+        "report_id": report_id,
+        "tier": req.tier,
+        "tier_label_en": tier.get("label_en"),
+        "tier_label_ru": tier.get("label_ru"),
+        "price": price,
+        "currency": currency,
+        "method": method,
+        "total_hits": len(results),
+        "top_overlap_pct": PriorArtReportProduct._top_overlap(results),
+        "result": {
+            **({"results": results} if index_available or results else {}),
+            "disclaimer": REPORT_DISCLAIMER or PRIOR_ART_DISCLAIMER,
+        },
+        "jsonld": jsonld,
+        "pdf_url": f"/api/v1/prior-art/report/{report_id}/pdf?tier={req.tier}&currency={currency}",
+    }
+
+@router.get("/api/v1/prior-art/report/{report_id}/pdf")
+def download_prior_art_report_pdf(
+    report_id: str,
+    title: str = Query(default="Untitled"),
+    abstract: str = Query(default=""),
+    tier: str = Query(default="auto"),
+    currency: str = Query(default="USD"),
+    k: int = Query(default=10, ge=1, le=50),
+):
+    """Печатный PDF-пакет отчёта (скачивается после генерации)."""
+    if PriorArtReportProduct is None:
+        raise HTTPException(status_code=503, detail="PriorArt report product module unavailable")
+    try:
+        get_tier(tier)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+    index_available = bool(world_index) and world_index.index_status()["total_indexed_works"] > 0
+    results = world_index.query_prior_art(title=title, abstract=abstract, k=k) if index_available else []
+    method = "INDEX_BM25" if index_available else "HEURISTIC_FALLBACK"
+
+    pdf_bytes = PriorArtReportProduct.generate_pdf(
+        report_id=report_id,
+        query={"title": title, "abstract": abstract},
+        tier=tier,
+        results=results,
+        method=method,
+        currency=(currency or "USD").upper(),
+    )
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'inline; filename="PriorArtReport_{report_id}.pdf"'}
+    )
 
 class BatchHarvestRequest(BaseModel):
     query: Optional[str] = Field(default=None)
