@@ -125,11 +125,11 @@ export default function LibraryTab({
                   <div className="flex items-center justify-between gap-2">
                     <span className="truncate font-mono text-xs font-bold text-[var(--info)]">
                       {art.registration_code} •{" "}
-                      <span className="text-[var(--warn)]">{art.issue || "Vol 1. Issue 1 (Spring 2026)"}</span>
+                      <span className="text-[var(--warn)]">{art.issue || t.edCategoryResearch || "Vol 1. Issue 1"}</span>
                     </span>
                     <div className="flex gap-1">
                       <Badge variant="info" className="shrink-0">
-                        {art.status || "Published"}
+                        {art.status === "Published" ? t.edPublished : (art.status || t.edPublished)}
                       </Badge>
                       <Badge variant="ok" className="shrink-0">
                         {art.license_type || "CC-BY-4.0"}

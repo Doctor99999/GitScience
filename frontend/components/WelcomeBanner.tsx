@@ -2,6 +2,7 @@
 
 import React from "react";
 import Image from "next/image";
+import logoImg from "../public/vitruvian-logo.jpg";
 import type { TranslationDict } from "../lib/translations";
 
 interface WelcomeBannerProps {
@@ -90,7 +91,7 @@ export default function WelcomeBanner({
           </div>
           
           <Image
-            src="/vitruvian-logo.jpg"
+            src={logoImg}
             alt="GitScience Vitruvian Protocol"
             width={500}
             height={500}
