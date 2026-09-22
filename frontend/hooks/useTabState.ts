@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { getApiBase } from "../lib/constants";
+import { authFetch, sha256Hex } from "../lib/auth";
 import type { TranslationDict } from "../lib/translations";
 import type {
   AiAuditResult,
@@ -146,9 +147,8 @@ export function useNotaryTab(opts: { onLibraryRefresh?: () => void; token?: stri
       formData.append("formula_math", formulaMath);
       formData.append("has_human_subjects", String(hasHumanSubjects));
 
-      const res = await fetch(`${getApiBase()}/notary/upload-pdf`, {
+      const res = await authFetch(`${getApiBase()}/notary/upload-pdf`, {
         method: "POST",
-        headers: opts.token ? { Authorization: `Bearer ${opts.token}` } : undefined,
         body: formData,
       });
       const data = (await res.json()) as NotarySuccessResult;
@@ -339,9 +339,6 @@ export function usePassportTab() {
 // Tab 6: Peer Review State
 // =====================================================================
 export function useReviewTab(opts: { token?: string | null } = {}) {
-  const authHeaders: Record<string, string> = opts.token
-    ? { "Content-Type": "application/json", Authorization: `Bearer ${opts.token}` }
-    : { "Content-Type": "application/json" };
   const [revCode, setRevCode] = useState<string>("GS-2026-00001");
   const [revOrcid, setRevOrcid] = useState<string>("0009-0001-2234-5678");
   const [revMath, setRevMath] = useState<number>(9);
@@ -369,9 +366,9 @@ export function useReviewTab(opts: { token?: string | null } = {}) {
 
   const handleSubmitReview = async () => {
     try {
-      const res = await fetch(`${getApiBase()}/api/v1/review/submit`, {
+      const res = await authFetch(`${getApiBase()}/api/v1/review/submit`, {
         method: "POST",
-        headers: authHeaders,
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           target_code: revCode,
           reviewer_orcid: revOrcid,
@@ -396,9 +393,9 @@ export function useReviewTab(opts: { token?: string | null } = {}) {
     const reviewId = (reviewResult as { review_id?: string } | null)?.review_id;
     if (!reviewId || !opts.token) return;
     try {
-      const res = await fetch(`${getApiBase()}/api/v1/review/claim`, {
+      const res = await authFetch(`${getApiBase()}/api/v1/review/claim`, {
         method: "POST",
-        headers: authHeaders,
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ review_id: reviewId }),
       });
       const data = (await res.json()) as Record<string, unknown>;
@@ -516,9 +513,6 @@ export function useAmanatTab() {
 // =====================================================================
 export function useCourtTab(opts: { t?: TranslationDict; scholarToken?: string | null } = {}) {
   const t = opts.t;
-  const authHeaders: Record<string, string> = opts.scholarToken
-    ? { "Content-Type": "application/json", Authorization: `Bearer ${opts.scholarToken}` }
-    : { "Content-Type": "application/json" };
   const authRequired = () => alert(t?.alertAuthRequired || "Кіру қажет (ORCID JWT) / Требуется вход / Sign-in required");
   const [courtCases, setCourtCases] = useState<CourtCase[]>([
     {
@@ -527,7 +521,7 @@ export function useCourtTab(opts: { t?: TranslationDict; scholarToken?: string |
       claimant_orcid: "0009-0002-1111-2222",
       target_code: "GS-2026-00001",
       reason: "Claim of omitted co-authorship in CRediT formal analysis matrix.",
-      evidence_hash: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      evidence_hash: "bdf197c5b4ae9c87aca73bee3bc87f35046018184f76bc542c0597c9de53ef30",
       status: "OPEN_ARBITRATION",
       votes_valid: 14,
       votes_invalid: 3,
@@ -550,15 +544,20 @@ export function useCourtTab(opts: { t?: TranslationDict; scholarToken?: string |
       return;
     }
     try {
-      const res = await fetch(`${getApiBase()}/api/v1/court/dispute`, {
+      // Evidence hash криптографически привязан к содержанию иска (не заглушка):
+      // SHA-256 по канонической строке целевого кода + истца + причине.
+      const evidenceHash = await sha256Hex(
+        `${courtTargetCode}|${courtClaimantOrcid}|${courtReason}`
+      );
+      const res = await authFetch(`${getApiBase()}/api/v1/court/dispute`, {
         method: "POST",
-        headers: authHeaders,
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           claimant_name: courtClaimantName,
           claimant_orcid: courtClaimantOrcid,
           target_code: courtTargetCode,
           reason: courtReason,
-          evidence_hash: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          evidence_hash: evidenceHash,
         }),
       });
       if (res.ok) {
@@ -581,9 +580,9 @@ export function useCourtTab(opts: { t?: TranslationDict; scholarToken?: string |
         (typeof window !== "undefined"
           ? JSON.parse(localStorage.getItem("gitscience_active_scholar") || "{}")?.orcid
           : "") || "";
-      fetch(`${getApiBase()}/api/v1/court/vote`, {
+      authFetch(`${getApiBase()}/api/v1/court/vote`, {
         method: "POST",
-        headers: authHeaders,
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ case_id: caseId, juror_orcid: activeScholarOrcid, vote }),
       }).catch(() => {});
     }
@@ -664,12 +663,9 @@ export function useVampireTab(opts: { onLibraryRefresh?: () => void; t?: Transla
   const handleImportWork = async (work: VampireWork) => {
     setVampireImporting(true);
     try {
-      await fetch(`${getApiBase()}/api/v1/vampire/import`, {
+      await authFetch(`${getApiBase()}/api/v1/vampire/import`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(opts.token ? { Authorization: `Bearer ${opts.token}` } : {}),
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ work_data: work }),
       });
       opts.onLibraryRefresh?.();
@@ -681,12 +677,9 @@ export function useVampireTab(opts: { onLibraryRefresh?: () => void; t?: Transla
   const handleTriggerBatchHarvest = async () => {
     setBatchHarvesting(true);
     try {
-      const res = await fetch(`${getApiBase()}/api/v1/vampire/harvest/batch`, {
+      const res = await authFetch(`${getApiBase()}/api/v1/vampire/harvest/batch`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(opts.token ? { Authorization: `Bearer ${opts.token}` } : {}),
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query: vampireQuery, source: vampireSource, limit: 3 }),
       });
       const data = await res.json();
@@ -702,9 +695,8 @@ export function useVampireTab(opts: { onLibraryRefresh?: () => void; t?: Transla
   const handleToggleDaemon = async (action: "start" | "stop") => {
     try {
       const endpoint = action === "start" ? "/api/v1/vampire/harvest/daemon/start" : "/api/v1/vampire/harvest/daemon/stop";
-      const res = await fetch(`${getApiBase()}${endpoint}`, {
+      const res = await authFetch(`${getApiBase()}${endpoint}`, {
         method: "POST",
-        headers: opts.token ? { Authorization: `Bearer ${opts.token}` } : undefined,
       });
       const data = await res.json();
       setDaemonRunning(action === "start");

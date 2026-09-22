@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Input, Textarea } from "@/components/ui/Field";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { SubNav } from "@/components/ui/SubNav";
+import { authFetch } from "../../lib/auth";
 
 interface PreregistrationTabProps {
   t: TranslationDict;
@@ -21,7 +22,6 @@ type PreregView = "create" | "view";
 export default function PreregistrationTab({
   t,
   apiBase,
-  token,
 }: PreregistrationTabProps) {
   const [view, setView] = useState<PreregView>("create");
   const [form, setForm] = useState({
@@ -45,11 +45,10 @@ export default function PreregistrationTab({
     setCreating(true);
     setCreateResult(null);
     try {
-      const res = await fetch(`${apiBase}/api/v1/editorial/preregistration/create`, {
+      const res = await authFetch(`${apiBase}/api/v1/editorial/preregistration/create`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({
           title: form.title,
@@ -81,7 +80,7 @@ export default function PreregistrationTab({
     setPreregData(null);
     setRegisterResult(null);
     try {
-      const res = await fetch(`${apiBase}/api/v1/editorial/preregistration/${viewTarget}`);
+      const res = await authFetch(`${apiBase}/api/v1/editorial/preregistration/${viewTarget}`, {});
       const data = await res.json();
       setPreregData(data);
     } catch {
@@ -96,11 +95,10 @@ export default function PreregistrationTab({
     setViewLoading(true);
     setRegisterResult(null);
     try {
-      const res = await fetch(
+      const res = await authFetch(
         `${apiBase}/api/v1/editorial/preregistration/register/${viewTarget}`,
         {
           method: "POST",
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
         }
       );
       const data = await res.json();

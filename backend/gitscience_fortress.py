@@ -452,7 +452,7 @@ class ZKPrivacyShield:
             anonymized_concat += hashlib.sha256(clean_str.encode('utf-8')).hexdigest()
 
         final_hash = hashlib.sha256(anonymized_concat.encode('utf-8')).hexdigest()
-        return {"cohort_hash": final_hash, "blind_salt": blind_salt}
+        return {"cohort_hash": final_hash}
 
 
 # =====================================================================

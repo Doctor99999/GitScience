@@ -17,6 +17,7 @@ const config: HardhatUserConfig = {
   networks: {
     localhost: { url: "http://127.0.0.1:8545", accounts },
     sepolia: { url: process.env.RPC_URL || "", accounts, chainId: 11155111 },
+    base_sepolia: { url: process.env.RPC_URL_BASE_SEPOLIA || "https://sepolia.base.org", accounts, chainId: 84532 },
     polygon: { url: process.env.RPC_URL || "", accounts, chainId: 137 },
     base: { url: process.env.RPC_URL || "", accounts, chainId: 8453 },
   },

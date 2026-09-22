@@ -6,25 +6,30 @@ import WelcomeBanner from "../components/WelcomeBanner";
 import NavigationTabs, { TabKey } from "../components/NavigationTabs";
 import Footer from "../components/Footer";
 
-// Tabs
-import NotaryTab from "../components/tabs/NotaryTab";
-import InspectorTab from "../components/tabs/InspectorTab";
-import LibraryTab from "../components/tabs/LibraryTab";
-import ZkDiscoveryTab from "../components/tabs/ZkDiscoveryTab";
-import PassportTab from "../components/tabs/PassportTab";
-import ReviewTab from "../components/tabs/ReviewTab";
-import MaasTab from "../components/tabs/MaasTab";
-import AmanatTab from "../components/tabs/AmanatTab";
-import CourtTab from "../components/tabs/CourtTab";
-import VampireTab from "../components/tabs/VampireTab";
-import EditorialTab from "../components/tabs/EditorialTab";
-import AuthorDashboardTab from "../components/tabs/AuthorDashboardTab";
-import PreregistrationTab from "../components/tabs/PreregistrationTab";
+import dynamic from "next/dynamic";
+
+import ErrorBoundary from "../components/ui/ErrorBoundary";
+import { refreshScholarToken, decodeJwtPayload, setAuthStore } from "../lib/auth";
 
 // Modals
 import OrcidModal from "../components/modals/OrcidModal";
 import GuideModal from "../components/modals/GuideModal";
 import LicenseModal from "../components/modals/LicenseModal";
+
+// Dynamic Tabs (Lazy Loading for performance)
+const NotaryTab = dynamic(() => import("../components/tabs/NotaryTab"), { ssr: false });
+const InspectorTab = dynamic(() => import("../components/tabs/InspectorTab"), { ssr: false });
+const LibraryTab = dynamic(() => import("../components/tabs/LibraryTab"), { ssr: false });
+const ZkDiscoveryTab = dynamic(() => import("../components/tabs/ZkDiscoveryTab"), { ssr: false });
+const PassportTab = dynamic(() => import("../components/tabs/PassportTab"), { ssr: false });
+const ReviewTab = dynamic(() => import("../components/tabs/ReviewTab"), { ssr: false });
+const MaasTab = dynamic(() => import("../components/tabs/MaasTab"), { ssr: false });
+const AmanatTab = dynamic(() => import("../components/tabs/AmanatTab"), { ssr: false });
+const CourtTab = dynamic(() => import("../components/tabs/CourtTab"), { ssr: false });
+const VampireTab = dynamic(() => import("../components/tabs/VampireTab"), { ssr: false });
+const EditorialTab = dynamic(() => import("../components/tabs/EditorialTab"), { ssr: false });
+const AuthorDashboardTab = dynamic(() => import("../components/tabs/AuthorDashboardTab"), { ssr: false });
+const PreregistrationTab = dynamic(() => import("../components/tabs/PreregistrationTab"), { ssr: false });
 
 // Libs
 import { getApiBase } from "../lib/constants";
@@ -132,6 +137,43 @@ export default function GitScienceApp() {
     setPasskeyNotice("Touch ID / FIDO2 аутентификациясы сәтті орындалды!");
     setTimeout(() => setPasskeyNotice(null), 3500);
   };
+
+  // Global auth store: токен живёт только в React-состоянии (не в localStorage).
+  // authFetch() в таб-хуках сам подставляет Bearer и ротирует JWT при 401.
+  useEffect(() => {
+    const token = activeScholar?.access_token ?? null;
+    setAuthStore(token, {
+      refreshed: (newToken) => {
+        setActiveScholar((prev) => (prev ? { ...prev, access_token: newToken } : prev));
+      },
+      failure: () => {
+        console.warn("[GitScience] Session expired — token rotation failed, signing out.");
+        setActiveScholar(null);
+        localStorage.removeItem("gitscience_active_scholar");
+      },
+    });
+  }, [activeScholar?.access_token]);
+
+  // Silent proactive refresh: ротация JWT за ~60с до истечения expiry (7d).
+  // Токен не «умирает» молча — пользователь остаётся в системе при активном использовании.
+  useEffect(() => {
+    const token = activeScholar?.access_token;
+    if (!token) return;
+    const payload = decodeJwtPayload(token);
+    const exp = typeof payload?.exp === "number" ? payload.exp : null;
+    if (!exp) return;
+    const msToExpiry = exp * 1000 - Date.now();
+    if (msToExpiry <= 60_000) return;
+    const timer = window.setTimeout(async () => {
+      const current = activeScholar?.access_token;
+      if (!current) return;
+      const rotated = await refreshScholarToken(current);
+      if (rotated) {
+        setActiveScholar((prev) => (prev ? { ...prev, access_token: rotated } : prev));
+      }
+    }, msToExpiry - 60_000);
+    return () => window.clearTimeout(timer);
+  }, [activeScholar?.access_token]);
 
   // Initial Load & Session Fetch
   useEffect(() => {
@@ -242,7 +284,8 @@ export default function GitScienceApp() {
       {/* Main Workspace — scrolls under the sticky header */}
       <main className="w-full max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6 min-w-0">
 
-          {/* Active Tab Panel */}
+          {/* Active Tab Panel — ErrorBoundary локализует сбои одного таба */}
+          <ErrorBoundary key={activeTab}>
           {activeTab === "notary" && (
             <NotaryTab
               t={t}
@@ -464,6 +507,7 @@ export default function GitScienceApp() {
               token={activeScholar?.access_token}
             />
           )}
+          </ErrorBoundary>
         </main>
 
       {/* Footer */}

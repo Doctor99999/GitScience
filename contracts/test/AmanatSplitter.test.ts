@@ -418,3 +418,49 @@ describe("SovereignIPNFT v4.1", function () {
     ).to.be.revertedWith("GS: receiver rejected ERC721 transfer");
   });
 });
+
+describe("withdrawNative (native ETH exit, nonReentrant)", function () {
+  async function deploySplitterFixture() {
+    const [founder, authorA] = await ethers.getSigners();
+    const Splitter = await ethers.getContractFactory("AmanatSplitter");
+    const splitter = await Splitter.deploy(founder.address, founder.address);
+    await splitter.waitForDeployment();
+    return { splitter, founder, authorA };
+  }
+
+  it("только founder может вывести native ETH (revert не-founder)", async function () {
+    const { splitter, founder, authorA } = await loadFixture(deploySplitterFixture);
+    const contract = await splitter.getAddress();
+    await authorA.sendTransaction({ to: contract, value: ethers.parseEther("1") });
+    await expect(
+      splitter.connect(authorA).withdrawNative(authorA.address, ethers.parseEther("1"))
+    ).to.be.revertedWith("GS: not founder");
+    await expect(
+      splitter.connect(founder).withdrawNative(
+        "0x0000000000000000000000000000000000000000",
+        ethers.parseEther("1")
+      )
+    ).to.be.revertedWith("GS: zero address");
+  });
+
+  it("founder выводит native ETH целевому получателю (receive() приём средств)", async function () {
+    const { splitter, founder, authorA } = await loadFixture(deploySplitterFixture);
+    const contract = await splitter.getAddress();
+    // Контракт принимает ETH через receive()
+    await authorA.sendTransaction({ to: contract, value: ethers.parseEther("2") });
+    expect(await ethers.provider.getBalance(contract)).to.equal(ethers.parseEther("2"));
+
+    const before = await ethers.provider.getBalance(authorA.address);
+    await splitter.connect(founder).withdrawNative(authorA.address, ethers.parseEther("2"));
+    const after = await ethers.provider.getBalance(authorA.address);
+    expect(after).to.equal(before + ethers.parseEther("2"));
+    expect(await ethers.provider.getBalance(contract)).to.equal(0);
+  });
+
+  it("revert при попытке вывести больше, чем есть на балансе", async function () {
+    const { splitter, founder } = await loadFixture(deploySplitterFixture);
+    await expect(
+      splitter.connect(founder).withdrawNative(founder.address, ethers.parseEther("1"))
+    ).to.be.revertedWith("GS: insufficient balance");
+  });
+});

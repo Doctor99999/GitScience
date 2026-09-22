@@ -283,7 +283,7 @@ contract AmanatSplitter {
 
     receive() external payable {}
 
-    function withdrawNative(address payable to, uint256 amount) external {
+    function withdrawNative(address payable to, uint256 amount) external nonReentrant {
         require(msg.sender == founderWallet, "GS: not founder");
         require(to != address(0), "GS: zero address");
         require(amount <= address(this).balance, "GS: insufficient balance");

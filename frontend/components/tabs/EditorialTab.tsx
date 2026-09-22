@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import type { TranslationDict } from "../../lib/translations";
+import { authFetch } from "../../lib/auth";
 import { Panel } from "@/components/ui/Panel";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { Button } from "@/components/ui/Button";
@@ -27,7 +28,7 @@ interface SubmissionDraft {
   category: string;
 }
 
-export default function EditorialTab({ t, apiBase, token }: EditorialTabProps) {
+export default function EditorialTab({ t, apiBase }: EditorialTabProps) {
   const [view, setView] = useState<EditorialView>("submit");
   const [draft, setDraft] = useState<SubmissionDraft>({
     title: "",
@@ -51,11 +52,10 @@ export default function EditorialTab({ t, apiBase, token }: EditorialTabProps) {
     setSubmitting(true);
     setSubmitResult(null);
     try {
-      const res = await fetch(`${apiBase}/api/v1/editorial/submit`, {
+      const res = await authFetch(`${apiBase}/api/v1/editorial/submit`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({
           title: draft.title,
@@ -81,9 +81,7 @@ export default function EditorialTab({ t, apiBase, token }: EditorialTabProps) {
   const loadPipeline = async () => {
     setPipelineLoading(true);
     try {
-      const res = await fetch(`${apiBase}/api/v1/editorial/analytics/pipeline`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
+      const res = await authFetch(`${apiBase}/api/v1/editorial/analytics/pipeline`, {});
       const data = await res.json();
       setPipeline(data.pipeline);
     } catch {
@@ -96,9 +94,7 @@ export default function EditorialTab({ t, apiBase, token }: EditorialTabProps) {
   const loadAnalytics = async () => {
     setAnalyticsLoading(true);
     try {
-      const res = await fetch(`${apiBase}/api/v1/editorial/analytics/dashboard`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
+      const res = await authFetch(`${apiBase}/api/v1/editorial/analytics/dashboard`, {});
       const data = await res.json();
       setAnalytics(data);
     } catch {
@@ -113,9 +109,7 @@ export default function EditorialTab({ t, apiBase, token }: EditorialTabProps) {
     setScreenLoading(true);
     setScreenResult(null);
     try {
-      const res = await fetch(`${apiBase}/api/v1/editorial/ai-screen/${screenTarget}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
+      const res = await authFetch(`${apiBase}/api/v1/editorial/ai-screen/${screenTarget}`, {});
       const data = await res.json();
       setScreenResult(data);
     } catch {

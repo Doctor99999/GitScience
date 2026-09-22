@@ -10,6 +10,7 @@ import { Input, Checkbox } from "@/components/ui/Field";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { SubNav } from "@/components/ui/SubNav";
+import { authFetch } from "../../lib/auth";
 
 interface AuthorDashboardTabProps {
   t: TranslationDict;
@@ -23,7 +24,6 @@ type DashboardView = "submissions" | "checklist" | "versions";
 export default function AuthorDashboardTab({
   t,
   apiBase,
-  token,
   orcid,
 }: AuthorDashboardTabProps) {
   const [view, setView] = useState<DashboardView>("submissions");
@@ -39,9 +39,7 @@ export default function AuthorDashboardTab({
     if (!orcid) return;
     setLoading(true);
     try {
-      const res = await fetch(`${apiBase}/api/v1/editorial/dashboard/${orcid}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
+      const res = await authFetch(`${apiBase}/api/v1/editorial/dashboard/${orcid}`, {});
       const data = await res.json();
       setDashboard(data);
     } catch {
@@ -49,15 +47,13 @@ export default function AuthorDashboardTab({
     } finally {
       setLoading(false);
     }
-  }, [apiBase, orcid, token]);
+  }, [apiBase, orcid]);
 
   const loadChecklist = async () => {
     if (!targetCode) return;
     setLoading(true);
     try {
-      const res = await fetch(`${apiBase}/api/v1/editorial/checklist/${targetCode}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
+      const res = await authFetch(`${apiBase}/api/v1/editorial/checklist/${targetCode}`, {});
       const data = await res.json();
       setChecklist(data);
     } catch {
@@ -71,9 +67,7 @@ export default function AuthorDashboardTab({
     if (!targetCode) return;
     setLoading(true);
     try {
-      const res = await fetch(`${apiBase}/api/v1/editorial/versions/${targetCode}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
+      const res = await authFetch(`${apiBase}/api/v1/editorial/versions/${targetCode}`, {});
       const data = await res.json();
       setVersions(data.versions || []);
     } catch {
@@ -88,11 +82,10 @@ export default function AuthorDashboardTab({
     setLoading(true);
     setRevisionResult(null);
     try {
-      const res = await fetch(`${apiBase}/api/v1/editorial/revision/create/${revisionTarget}`, {
+      const res = await authFetch(`${apiBase}/api/v1/editorial/revision/create/${revisionTarget}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({
           required_changes: ["Address reviewer comments"],
